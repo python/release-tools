@@ -1,5 +1,5 @@
-"An assistant for making Python releases by Benjamin Peterson"
 #!/usr/bin/env python
+"An assistant for making Python releases by Benjamin Peterson"
 from __future__ import with_statement
 
 import sys
