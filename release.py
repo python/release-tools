@@ -3,7 +3,7 @@
 """An assistant for making Python releases.
 
 Original code by Benjamin Peterson
-Additions by Barry Warsaw
+Additions by Barry Warsaw and Benjamin Peterson
 """
 
 from __future__ import with_statement
