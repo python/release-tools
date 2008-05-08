@@ -16,6 +16,7 @@ import subprocess
 import shutil
 import tempfile
 
+from contextlib import nested
 from hashlib import md5
 from string import Template
 from urlparse import urlsplit, urlunsplit
@@ -80,23 +81,22 @@ def constant_replace(fn, updated_constants,
     "Inserts in between --start constant-- and --end constant-- in a file"
     start_tag = comment_start + "--start constants--" + comment_end
     end_tag = comment_start + "--end constants--" + comment_end
-    with open(fn) as infile:
-        with open(fn + '.new', 'w') as outfile:
-            found_constants = False
-            waiting_for_end = False
-            for line in infile:
-                if line[:-1] == start_tag:
-                    print >> outfile, start_tag
-                    print >> outfile, updated_constants
-                    print >> outfile, end_tag
-                    waiting_for_end = True
-                    found_constants = True
-                elif line[:-1] == end_tag:
-                    waiting_for_end = False
-                elif waiting_for_end:
-                    pass
-                else:
-                    outfile.write(line)
+    with nested(open(fn), open(fn + '.new', 'w')) as infile, outfile:
+        found_constants = False
+        waiting_for_end = False
+        for line in infile:
+            if line[:-1] == start_tag:
+                print >> outfile, start_tag
+                print >> outfile, updated_constants
+                print >> outfile, end_tag
+                waiting_for_end = True
+                found_constants = True
+            elif line[:-1] == end_tag:
+                waiting_for_end = False
+            elif waiting_for_end:
+                pass
+            else:
+                outfile.write(line)
     if not found_constants:
         error('Constant section delimiters not found: %s' % fn)
     os.rename(fn + '.new', fn)
