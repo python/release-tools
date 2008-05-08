@@ -1,5 +1,11 @@
 #!/usr/bin/env python
-"An assistant for making Python releases by Benjamin Peterson"
+
+"""An assistant for making Python releases.
+
+Original code by Benjamin Peterson
+Additions by Barry Warsaw
+"""
+
 from __future__ import with_statement
 
 import sys
@@ -15,6 +21,7 @@ from string import Template
 from urlparse import urlsplit, urlunsplit
 
 SPACE = ' '
+tag_cre = re.compile(r"(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([abc])(\d+))?")
 
 
 # Ideas stolen from Mailman's release script, Lib/tokens.py and welease
@@ -48,20 +55,23 @@ def check_env():
         
 
 def get_arg_parser():
-    usage = "%prog [options] tagname"
+    usage = '%prog [options] tagname'
     p = optparse.OptionParser(usage=usage)
-    p.add_option("-b", "--bump",
-        default=False, action="store_true",
-        help="bump the revision number in important files")
-    p.add_option("-e", "--export",
-        default=False, action="store_true",
-        help="Export the SVN tag to a tarball")
-    p.add_option("-m", "--branch",
-        default=False, action="store_true",
-        help="create a maintance branch to go along with the release")
-    p.add_option("-t", "--tag",
-        default=False, action="store_true",
-        help="Tag the release in Subversion")
+    p.add_option('-b', '--bump',
+                 default=False, action='store_true',
+                 help='bump the revision number in important files')
+    p.add_option('-e', '--export',
+                 default=False, action='store_true',
+                 help='Export the SVN tag to a tarball')
+    p.add_option('-m', '--branch',
+                 default=False, action='store_true',
+                 help='create a maintance branch to go along with the release')
+    p.add_option('-t', '--tag',
+                 default=False, action='store_true',
+                 help='Tag the release in Subversion')
+    p.add_option('-d', '--done',
+                 default=False, action='store_true',
+                 help="Do post-release cleanups (i.e.  you're done!)")
     return p
 
 
@@ -92,6 +102,33 @@ def constant_replace(fn, updated_constants,
     os.rename(fn + '.new', fn)
 
 
+def tweak_patchlevel(tag, done=False):
+    print "Updating Include/patchlevel.h...",
+    template = Template("""\
+#define PY_MAJOR_VERSION\t$major
+#define PY_MINOR_VERSION\t$minor
+#define PY_MICRO_VERSION\t$patch
+#define PY_RELEASE_LEVEL\t$level
+#define PY_RELEASE_SERIAL\t$serial
+
+/* Version as a string */
+#define PY_VERSION      \t\"$text\"""")
+    substitutions = {}
+    for what in ('major', 'minor', 'patch', 'serial', 'text'):
+        substitutions[what] = getattr(tag, what)
+    substitutions['level'] = dict(
+        a   = 'PY_RELEASE_LEVEL_ALPHA',
+        b   = 'PY_RELEASE_LEVEL_BETA',
+        c   = 'PY_RELEASE_LEVEL_GAMMA',
+        f   = 'PY_RELEASE_LEVEL_FINAL',
+        )[tag.level]
+    if done:
+        substitutions['text'] += '+'
+    new_constants = template.substitute(substitutions)
+    constant_replace("Include/patchlevel.h", new_constants)
+    print "done"
+
+
 def bump(tag):
     print "Bumping version to %s" % tag
     
@@ -112,29 +149,8 @@ def bump(tag):
     constant_replace(wanted_file, new, "#", "")
     print "done"
     
-    print "Updating Include/patchlevel.h...",
-    template = Template("""\
-#define PY_MAJOR_VERSION\t$major
-#define PY_MINOR_VERSION\t$minor
-#define PY_MICRO_VERSION\t$patch
-#define PY_RELEASE_LEVEL\t$level
-#define PY_RELEASE_SERIAL\t$serial
+    tweak_patchlevel(tag)
 
-/* Version as a string */
-#define PY_VERSION      \t\"$text\"""")
-    substitutions = {}
-    for what in ('major', 'minor', 'patch', 'serial', 'text'):
-        substitutions[what] = getattr(tag, what)
-    substitutions['level'] = dict(
-        a   = 'PY_RELEASE_LEVEL_ALPHA',
-        b   = 'PY_RELEASE_LEVEL_BETA',
-        c   = 'PY_RELEASE_LEVEL_GAMMA',
-        f   = 'PY_RELEASE_LEVEL_FINAL',
-        )[tag.level]
-    new_constants = template.substitute(substitutions)
-    constant_replace("Include/patchlevel.h", new_constants)
-    print "done"
-    
     print "Updating Lib/idlelib/idlever.py...",
     with open("Lib/idlelib/idlever.py", "w") as fp:
         new = "IDLE_VERSION = \"%s\"\n" % tag.next_text
@@ -146,10 +162,17 @@ def bump(tag):
     constant_replace("Lib/distutils/__init__.py", new, "#", "")
     print "done"
     
-    other_files = ["README"]
+    other_files = ['README', 'Misc/NEWS']
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
-        other_files += ["Doc/tutorial/interpreter.rst",
-            "Doc/tutorial/stdlib.rst", "Doc/tutorial/stdlib2.rst"]
+        other_files += [
+            "Doc/tutorial/interpreter.rst",
+            "Doc/tutorial/stdlib.rst",
+            "Doc/tutorial/stdlib2.rst",
+            'LICENSE',
+            'Doc/license.rst',
+            ]
+    if tag.major == 3:
+        other_files.append('RELNOTES')
     print "\nManual editing time..."
     for fn in other_files:
         print "Edit %s" % fn
@@ -211,15 +234,26 @@ def export(tag):
 
 
 class Tag:
-    def __init__(self, text, major, minor, patch, level, serial):
-        self.text = text
-        self.next_text = self.text
-        self.major = major
-        self.minor = minor
-        self.patch = patch
-        self.level = level
-        self.serial = serial
-        self.basic_version = major + '.' + minor
+    def __init__(self, tag_name):
+        result = tag_cre.search(tag_name)
+        if result is None:
+            error("tag %s is not valid" % tag)
+        data = list(result.groups())
+        # fix None level
+        if data[3] is None:
+            data[3] = "f"
+        # For everything else, None means 0.
+        for i, thing in enumerate(data):
+            if thing is None:
+                data[i] = 0
+        self.text = tag_name
+        self.next_text = tag_name
+        self.major = int(data[0])
+        self.minor = int(data[1])
+        self.patch = int(data[2])
+        self.level = data[3]
+        self.serial = int(data[4])
+        self.basic_version = '%s.%s' % (self.major, self.minor)
     
     def __str__(self):
         return self.text
@@ -227,22 +261,6 @@ class Tag:
     @property
     def nickname(self):
         return self.text.replace('.', '')
-
-
-def break_up_tag(tag):
-    exp = re.compile(r"(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([abc])(\d+))?")
-    result = exp.search(tag)
-    if result is None:
-        error("tag %s is not valid" % tag)
-    data = list(result.groups())
-    # fix None level
-    if data[3] is None:
-        data[3] = "f"
-    # None Everythign else should be 0
-    for i, thing in enumerate(data):
-        if thing is None:
-            data[i] = 0
-    return Tag(tag, *data)
 
 
 def branch(tag):
@@ -271,23 +289,29 @@ def make_tag(tag):
     run_cmd(['svn', 'copy', get_current_location(), tag_url])
 
 
+def done(tag):
+    tweak_patchlevel(tag, done=True)
+
+
 def main(argv):
     parser = get_arg_parser()
     options, args = parser.parse_args(argv)
     if len(args) != 2:
         parser.print_usage()
         sys.exit(1)
-    tag = break_up_tag(args[1])
+    tag = Tag(args[1])
     if not options.export:
         check_env()
     if options.bump:
         bump(tag)
-    elif options.tag:
+    if options.tag:
         make_tag(tag)
-    elif options.branch:
+    if options.branch:
         branch(tag)
-    elif options.export:
+    if options.export:
         export(tag)
+    if options.done:
+        done(tag)
 
 
 if __name__ == "__main__":
