@@ -56,22 +56,22 @@ def check_env():
         
 
 def get_arg_parser():
-    usage = '%prog [options] tagname'
+    usage = "%prog [options] tagname"
     p = optparse.OptionParser(usage=usage)
-    p.add_option('-b', '--bump',
-                 default=False, action='store_true',
-                 help='bump the revision number in important files')
-    p.add_option('-e', '--export',
-                 default=False, action='store_true',
-                 help='Export the SVN tag to a tarball')
-    p.add_option('-m', '--branch',
-                 default=False, action='store_true',
-                 help='create a maintance branch to go along with the release')
-    p.add_option('-t', '--tag',
-                 default=False, action='store_true',
-                 help='Tag the release in Subversion')
-    p.add_option('-d', '--done',
-                 default=False, action='store_true',
+    p.add_option("-b", "--bump",
+                 default=False, action="store_true",
+                 help="bump the revision number in important files")
+    p.add_option("-e", "--export",
+                 default=False, action="store_true",
+                 help="Export the SVN tag to a tarball")
+    p.add_option("-m", "--branch",
+                 default=False, action="store_true",
+                 help="create a maintance branch to go along with the release")
+    p.add_option("-t", "--tag",
+                 default=False, action="store_true",
+                 help="Tag the release in Subversion")
+    p.add_option("-d", "--done",
+                 default=False, action="store_true",
                  help="Do post-release cleanups (i.e.  you're done!)")
     return p
 
@@ -81,7 +81,7 @@ def constant_replace(fn, updated_constants,
     "Inserts in between --start constant-- and --end constant-- in a file"
     start_tag = comment_start + "--start constants--" + comment_end
     end_tag = comment_start + "--end constants--" + comment_end
-    with nested(open(fn), open(fn + '.new', 'w')) as (infile, outfile):
+    with nested(open(fn), open(fn + ".new", "w")) as (infile, outfile):
         found_constants = False
         waiting_for_end = False
         for line in infile:
@@ -98,8 +98,8 @@ def constant_replace(fn, updated_constants,
             else:
                 outfile.write(line)
     if not found_constants:
-        error('Constant section delimiters not found: %s' % fn)
-    os.rename(fn + '.new', fn)
+        error("Constant section delimiters not found: %s" % fn)
+    os.rename(fn + ".new", fn)
 
 
 def tweak_patchlevel(tag, done=False):
@@ -114,16 +114,16 @@ def tweak_patchlevel(tag, done=False):
 /* Version as a string */
 #define PY_VERSION      \t\"$text\"""")
     substitutions = {}
-    for what in ('major', 'minor', 'patch', 'serial', 'text'):
+    for what in ("major", "minor", "patch", "serial", "text"):
         substitutions[what] = getattr(tag, what)
-    substitutions['level'] = dict(
-        a   = 'PY_RELEASE_LEVEL_ALPHA',
-        b   = 'PY_RELEASE_LEVEL_BETA',
-        c   = 'PY_RELEASE_LEVEL_GAMMA',
-        f   = 'PY_RELEASE_LEVEL_FINAL',
+    substitutions["level"] = dict(
+        a   = "PY_RELEASE_LEVEL_ALPHA",
+        b   = "PY_RELEASE_LEVEL_BETA",
+        c   = "PY_RELEASE_LEVEL_GAMMA",
+        f   = "PY_RELEASE_LEVEL_FINAL",
         )[tag.level]
     if done:
-        substitutions['text'] += '+'
+        substitutions["text"] += "+"
     new_constants = template.substitute(substitutions)
     constant_replace("Include/patchlevel.h", new_constants)
     print "done"
@@ -162,17 +162,17 @@ def bump(tag):
     constant_replace("Lib/distutils/__init__.py", new, "#", "")
     print "done"
     
-    other_files = ['README', 'Misc/NEWS']
+    other_files = ["README", "Misc/NEWS"]
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
         other_files += [
             "Doc/tutorial/interpreter.rst",
             "Doc/tutorial/stdlib.rst",
             "Doc/tutorial/stdlib2.rst",
-            'LICENSE',
-            'Doc/license.rst',
+            "LICENSE",
+            "Doc/license.rst",
             ]
     if tag.major == 3:
-        other_files.append('RELNOTES')
+        other_files.append("RELNOTES")
     print "\nManual editing time..."
     for fn in other_files:
         print "Edit %s" % fn
@@ -187,34 +187,31 @@ def manual_edit(fn):
 
 
 def export(tag):
-    if not os.path.exists('dist'):
+    if not os.path.exists("dist"):
         print "creating dist directory"
-        os.mkdir('dist')
-    if not os.path.isdir('dist'):
-        error('dist/ is not a directory')
+        os.mkdir("dist")
+    if not os.path.isdir("dist"):
+        error("dist/ is not a directory")
     tgz = "dist/Python-%s.tgz" % tag.text
     bz = "dist/Python-%s.tar.bz2" % tag.text
     old_cur = os.getcwd()
+    print "chdir'ing to dist"
+    os.chdir("dist")
     try:
-        print "chdir'ing to dist"
-        os.chdir('dist')
-        try:
-            print 'Exporting tag:', tag.text
-            python = 'Python-%s' % tag.text
-            run_cmd(["svn", "export",
-                     "http://svn.python.org/projects/python/tags/r%s"
-                     % tag.nickname, python])
-            print "Making .tgz"
-            run_cmd(["tar cf - %s | gzip -9 > %s.tgz" % (python, python)])
-            print "Making .tar.bz2"
-            run_cmd(["tar cf - %s | bzip2 -9 > %s.tar.bz2" %
-                     (python, python)])
-        finally:
-            os.chdir(old_cur)
-        print "Moving files to dist"
+        print "Exporting tag:", tag.text
+        python = "Python-%s:" % tag.text
+        run_cmd(["svn", "export",
+                 "http://svn.python.org/projects/python/tags/r%s"
+                 % tag.nickname, python])
+        print "Making .tgz"
+        run_cmd(["tar cf - %s | gzip -9 > %s.tgz" % (python, python)])
+        print "Making .tar.bz2"
+        run_cmd(["tar cf - %s | bzip2 -9 > %s.tar.bz2" %
+                 (python, python)])
     finally:
-        print "Cleaning up"
-    print 'Calculating md5 sums'
+        os.chdir(old_cur)
+    print "Moving files to dist"
+    print "Calculating md5 sums"
     md5sum_tgz = md5()
     with open(tgz) as source:
         md5sum_tgz.update(source.read())
@@ -223,17 +220,18 @@ def export(tag):
         md5sum_bz2.update(source.read())
     print md5sum_tgz.hexdigest(), ' ', tgz
     print md5sum_bz2.hexdigest(), ' ', bz
-    with open(tgz + '.md5', 'w') as md5file:
+    with open(tgz + ".md5", "w") as md5file:
         print >> md5file, md5sum_tgz.hexdigest()
-    with open(bz + '.md5', 'w') as md5file:
+    with open(bz + ".md5", "w") as md5file:
         print >> md5file, md5sum_bz2.hexdigest()
-    print 'Signing tarballs'
-    os.system('gpg -bas ' + tgz)
-    os.system('gpg -bas ' + bz)
+    print "Signing tarballs"
+    os.system("gpg -bas " + tgz)
+    os.system("gpg -bas " + bz)
     print "**Now extract the archives and run the tests**"
 
 
-class Tag:
+class Tag(object):
+
     def __init__(self, tag_name):
         result = tag_cre.search(tag_name)
         if result is None:
@@ -253,7 +251,7 @@ class Tag:
         self.patch = int(data[2])
         self.level = data[3]
         self.serial = int(data[4])
-        self.basic_version = '%s.%s' % (self.major, self.minor)
+        self.basic_version = "%s.%s" % (self.major, self.minor)
     
     def __str__(self):
         return self.text
@@ -265,7 +263,7 @@ class Tag:
 
 def branch(tag):
     if tag.minor > 0 or tag.patch > 0 or tag.level != "f":
-        print "It doesn't look like your making a final release."
+        print "It doesn't look like you're making a final release."
         if raw_input("Are you sure you want to branch?") != "y":
             return
     run_cmd(["svn", "copy", get_current_location(),
@@ -274,19 +272,19 @@ def branch(tag):
 
 
 def get_current_location():
-    proc = subprocess.Popen('svn info', shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen("svn info", shell=True, stdout=subprocess.PIPE)
     data = proc.stdout.read().splitlines()
     for line in data:
-        if line.startswith('URL: '):
-            return line.lstrip('URL: ')
+        if line.startswith("URL: "):
+            return line.lstrip("URL: ")
 
 
 def make_tag(tag):
     url = urlsplit(get_current_location())
-    new_path = 'python/tags/r' + tag.nickname
+    new_path = "python/tags/r" + tag.nickname
     tag_url = urlunsplit((url.scheme, url.netloc, new_path,
                           url.query, url.fragment))
-    run_cmd(['svn', 'copy', get_current_location(), tag_url])
+    run_cmd(["svn", "copy", get_current_location(), tag_url])
 
 
 def done(tag):
