@@ -200,7 +200,7 @@ def export(tag):
     os.chdir('dist')
     try:
         print 'Exporting tag:', tag.text
-        python = 'Python-%s:' % tag.text
+        python = 'Python-%s' % tag.text
         run_cmd(['svn', 'export',
                  'http://svn.python.org/projects/python/tags/r%s'
                  % tag.nickname, python])
@@ -219,16 +219,19 @@ def export(tag):
     md5sum_bz2 = md5()
     with open(bz) as source:
         md5sum_bz2.update(source.read())
-    print md5sum_tgz.hexdigest(), ' ', tgz
-    print md5sum_bz2.hexdigest(), ' ', bz
+    print '  %s  %8s  %s' % (
+        md5sum_tgz.hexdigest(), int(os.path.getsize(tgz)), tgz)
+    print '  %s  %8s  %s' % (
+        md5sum_bz2.hexdigest(), int(os.path.getsize(bz)), bz)
     with open(tgz + '.md5', 'w') as md5file:
         print >> md5file, md5sum_tgz.hexdigest()
     with open(bz + '.md5', 'w') as md5file:
         print >> md5file, md5sum_bz2.hexdigest()
+
     print 'Signing tarballs'
     os.system('gpg -bas ' + tgz)
     os.system('gpg -bas ' + bz)
-    print '**Now extract the archives and run the tests**'
+    print '\n**Now extract the archives and run the tests**'
 
 
 class Tag(object):
