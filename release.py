@@ -53,7 +53,7 @@ def check_env():
               'Please set your EDITOR enviroment variable')
     if not os.path.exists('.svn'):
         error('CWD is not a Subversion checkout')
-        
+
 
 def get_arg_parser():
     usage = '%prog [options] tagname'
@@ -132,7 +132,7 @@ def tweak_patchlevel(tag, done=False):
 
 def bump(tag):
     print 'Bumping version to %s' % tag
-    
+
     wanted_file = 'Misc/RPM/python-%s.spec' % tag.basic_version
     print 'Updating %s' % wanted_file,
     if not os.path.exists(wanted_file):
@@ -149,7 +149,7 @@ def bump(tag):
         '\n%define libver ' + tag.basic_version
     constant_replace(wanted_file, new, '#', '')
     print 'done'
-    
+
     tweak_patchlevel(tag)
 
     print 'Updating Lib/idlelib/idlever.py...',
@@ -157,12 +157,12 @@ def bump(tag):
         new = 'IDLE_VERSION = "%s"\n' % tag.next_text
         fp.write(new)
     print 'done'
-    
+
     print 'Updating Lib/distutils/__init__.py...',
     new = '__version__ = "%s"' % tag.text
     constant_replace('Lib/distutils/__init__.py', new, '#', '')
     print 'done'
-    
+
     other_files = ['README', 'Misc/NEWS']
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
         other_files += [
@@ -178,7 +178,7 @@ def bump(tag):
     for fn in other_files:
         print 'Edit %s' % fn
         manual_edit(fn)
-    
+
     print 'Bumped revision'
     print 'Please commit and use --tag'
 
@@ -204,6 +204,11 @@ def export(tag):
         run_cmd(['svn', 'export',
                  'http://svn.python.org/projects/python/tags/r%s'
                  % tag.nickname, python])
+        print 'Removing .hgignore and .bzrignore'
+        for name in ('.hgignore', '.bzrignore'):
+            try:
+                os.unlink(os.path.join('dist', name))
+            except OSError: pass
         print 'Making .tgz'
         run_cmd(['tar cf - %s | gzip -9 > %s.tgz' % (python, python)])
         print "Making .tar.bz2"
@@ -232,6 +237,7 @@ def export(tag):
     os.system('gpg -bas ' + tgz)
     os.system('gpg -bas ' + bz)
     print '\n**Now extract the archives and run the tests**'
+    print '**You may also want to run make install and re-test**'
 
 
 class Tag(object):
@@ -256,7 +262,7 @@ class Tag(object):
         self.level = data[3]
         self.serial = int(data[4])
         self.basic_version = '%s.%s' % (self.major, self.minor)
-    
+
     def __str__(self):
         return self.text
 
@@ -271,7 +277,7 @@ def branch(tag):
         if raw_input('Are you sure you want to branch?') != "y":
             return
     run_cmd(['svn', 'copy', get_current_location(),
-        'svn+ssh://svn.python.org/projects/python/branches/' 
+        'svn+ssh://svn.python.org/projects/python/branches/'
             'release%s-maint' % (tag.major + tag.minor)])
 
 
