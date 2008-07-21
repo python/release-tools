@@ -15,6 +15,7 @@ import re
 import subprocess
 import shutil
 import tempfile
+import time
 
 from contextlib import nested
 from hashlib import md5
@@ -297,8 +298,43 @@ def make_tag(tag):
     run_cmd(['svn', 'copy', get_current_location(), tag_url])
 
 
+NEWS_TEMPLATE = """
+What's New in Python {XXX PUT NEXT VERSION HERE XXX}?
+================================
+
+*Release date: %s*
+
+Core and Builtins
+-----------------
+
+Library
+-------
+
+"""
+
+def update_news():
+    print "Updating Misc/NEWS"
+    with open('Misc/NEWS') as fp:
+        lines = fp.readlines()
+    for i, line in enumerate(lines):
+        if line.startswith("(editors"):
+            start = i
+        if line.startswith("What's"):
+            end = i
+            break
+    release_date = time.strftime("%d-%b-%Y")
+    insert = NEWS_TEMPLATE % release_date
+    with open('Misc/NEWS', 'w') as fp:
+         fp.writelines(lines[:start+1])
+         fp.write(insert)
+         fp.writelines(lines[end-1:])
+    print "Please fill in the the name of the next version."
+    manual_edit('Misc/NEWS')
+
+
 def done(tag):
     tweak_patchlevel(tag, done=True)
+    update_news()
 
 
 def main(argv):
