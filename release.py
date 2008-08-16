@@ -17,7 +17,7 @@ import shutil
 import tempfile
 import time
 
-from contextlib import nested
+from contextlib import nested, contextmanager
 from hashlib import md5
 from string import Template
 from urlparse import urlsplit, urlunsplit
@@ -188,6 +188,17 @@ def manual_edit(fn):
     run_cmd([os.environ["EDITOR"], fn])
 
 
+@contextmanager
+def changed_dir(new):
+    print 'chdir\'ing to %s' % new
+    old = os.getcwd()
+    os.chdir(new)
+    try:
+        yield
+    finally:
+        os.chdir(old)
+
+
 def export(tag):
     if not os.path.exists('dist'):
         print 'creating dist directory'
@@ -197,27 +208,26 @@ def export(tag):
     tgz = 'dist/Python-%s.tgz' % tag.text
     bz = 'dist/Python-%s.tar.bz2' % tag.text
     old_cur = os.getcwd()
-    print 'chdir\'ing to dist'
-    os.chdir('dist')
-    try:
+    with changed_dir('dist'):
         print 'Exporting tag:', tag.text
         python = 'Python-%s' % tag.text
         run_cmd(['svn', 'export',
                  'http://svn.python.org/projects/python/tags/r%s'
                  % tag.nickname, python])
-        print 'Removing .hgignore and .bzrignore'
-        for name in ('.hgignore', '.bzrignore'):
-            try:
-                os.unlink(os.path.join('dist', name))
-            except OSError: pass
+        with changed_dir(python):
+            print 'Removing .hgignore and .bzrignore'
+            for name in ('.hgignore', '.bzrignore'):
+                try:
+                    os.unlink(os.path.join('dist', name))
+                except OSError: pass
+            print 'Touching Python-ast.h and Python-ast.c'
+            for name in ('Include/Python-ast.h', 'Python/Python-ast.c'):
+                os.utime(name, None)
         print 'Making .tgz'
         run_cmd(['tar cf - %s | gzip -9 > %s.tgz' % (python, python)])
         print "Making .tar.bz2"
         run_cmd(['tar cf - %s | bzip2 -9 > %s.tar.bz2' %
                  (python, python)])
-    finally:
-        os.chdir(old_cur)
-    print 'Moving files to dist'
     print 'Calculating md5 sums'
     md5sum_tgz = md5()
     with open(tgz) as source:
