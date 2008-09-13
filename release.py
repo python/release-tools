@@ -121,7 +121,7 @@ def tweak_patchlevel(tag, done=False):
     substitutions['level'] = dict(
         a   = 'PY_RELEASE_LEVEL_ALPHA',
         b   = 'PY_RELEASE_LEVEL_BETA',
-        rc   = 'PY_RELEASE_LEVEL_GAMMA',
+        rc  = 'PY_RELEASE_LEVEL_GAMMA',
         f   = 'PY_RELEASE_LEVEL_FINAL',
         )[tag.level]
     if done:
@@ -258,7 +258,6 @@ class Tag(object):
         if result is None:
             error('tag %s is not valid' % tag)
         data = list(result.groups())
-        import pdb; pdb.set_trace()
         # fix None level
         if data[3] is None:
             data[3] = "f"
