@@ -64,7 +64,7 @@ def get_arg_parser():
                  help='bump the revision number in important files')
     p.add_option('-e', '--export',
                  default=False, action='store_true',
-                 help='Export the SVN tag to a tarball')
+                 help='Export the SVN tag to a tarball and build docs')
     p.add_option('-m', '--branch',
                  default=False, action='store_true',
                  help='create a maintance branch to go along with the release')
@@ -198,43 +198,31 @@ def changed_dir(new):
     finally:
         os.chdir(old)
 
-
-def export(tag):
-    if not os.path.exists('dist'):
-        print 'creating dist directory'
+def make_dist():
+    try:
         os.mkdir('dist')
-    if not os.path.isdir('dist'):
-        error('dist/ is not a directory')
-    tgz = 'dist/Python-%s.tgz' % tag.text
-    bz = 'dist/Python-%s.tar.bz2' % tag.text
-    old_cur = os.getcwd()
-    with changed_dir('dist'):
-        print 'Exporting tag:', tag.text
-        python = 'Python-%s' % tag.text
-        run_cmd(['svn', 'export',
-                 'http://svn.python.org/projects/python/tags/r%s'
-                 % tag.nickname, python])
-        with changed_dir(python):
-            print 'Removing .hgignore and .bzrignore'
-            for name in ('.hgignore', '.bzrignore'):
-                try:
-                    os.unlink(os.path.join('dist', name))
-                except OSError: pass
-            print 'Touching Python-ast.h and Python-ast.c'
-            for name in ('Include/Python-ast.h', 'Python/Python-ast.c'):
-                os.utime(name, None)
-        print 'Making .tgz'
-        run_cmd(['tar cf - %s | gzip -9 > %s.tgz' % (python, python)])
-        print "Making .tar.bz2"
-        run_cmd(['tar cf - %s | bzip2 -9 > %s.tar.bz2' %
-                 (python, python)])
+    except OSError:
+        if not os.path.isdir('dist'):
+            error('dist/ is not a directory')
+    else:
+        print 'created dist directory'
+
+def tarball(source):
+    """Build tarballs for a directory."""
+    print 'Making .tgz'
+    tgz = source + '.tgz'
+    bz = source + '.tar.bz2'
+    run_cmd(['tar cf - %s | gzip -9 > %s' % (source, tgz)])
+    print "Making .tar.bz2"
+    run_cmd(['tar cf - %s | bzip2 -9 > %s' %
+             (source, bz)])
     print 'Calculating md5 sums'
     md5sum_tgz = md5()
-    with open(tgz) as source:
-        md5sum_tgz.update(source.read())
+    with open(tgz, 'rb') as data:
+        md5sum_tgz.update(data.read())
     md5sum_bz2 = md5()
-    with open(bz) as source:
-        md5sum_bz2.update(source.read())
+    with open(bz, 'rb') as data:
+        md5sum_bz2.update(data.read())
     print '  %s  %8s  %s' % (
         md5sum_tgz.hexdigest(), int(os.path.getsize(tgz)), tgz)
     print '  %s  %8s  %s' % (
@@ -247,8 +235,43 @@ def export(tag):
     print 'Signing tarballs'
     os.system('gpg -bas ' + tgz)
     os.system('gpg -bas ' + bz)
+
+
+def export(tag):
+    make_dist()
+    old_cur = os.getcwd()
+    with changed_dir('dist'):
+        print 'Exporting tag:', tag.text
+        python = 'Python-%s' % tag.text
+        run_cmd(['svn', 'export', '-q',
+                 'http://svn.python.org/projects/python/tags/r%s'
+                 % tag.nickname, python])
+        with changed_dir(python):
+            print 'Removing .hgignore and .bzrignore'
+            for name in ('.hgignore', '.bzrignore'):
+                try:
+                    os.unlink(os.path.join('dist', name))
+                except OSError: pass
+            print 'Touching Python-ast.h and Python-ast.c'
+            for name in ('Include/Python-ast.h', 'Python/Python-ast.c'):
+                os.utime(name, None)
+
+            docs = build_docs()
+        exported_docs = 'Python-%s-docs-html' % tag.text
+        shutil.copytree(docs, exported_docs)
+
+        tarball(python)
+        tarball(exported_docs)
     print '\n**Now extract the archives and run the tests**'
     print '**You may also want to run make install and re-test**'
+
+
+def build_docs():
+    """Build and tarball the documentation"""
+    print "Building docs"
+    with changed_dir('Doc'):
+        run_cmd(['make', 'html'])
+        return os.path.abspath('build/html')
 
 
 class Tag(object):
