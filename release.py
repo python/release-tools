@@ -260,6 +260,10 @@ def export(tag):
         exported_docs = 'Python-%s-docs-html' % tag.text
         shutil.copytree(docs, exported_docs)
 
+        with changed_dir(os.path.join(python, 'Doc')):
+            print 'Removing doc build artifacts'
+            shutil.rmtree('build')
+
         tarball(python)
         tarball(exported_docs)
     print '\n**Now extract the archives and run the tests**'
@@ -306,13 +310,15 @@ class Tag(object):
 
 
 def branch(tag):
-    if tag.minor > 0 or tag.patch > 0 or tag.level != "f":
+    if tag.patch > 0 or tag.level != "f":
         print 'It doesn\'t look like you\'re making a final release.'
         if raw_input('Are you sure you want to branch?') != "y":
             return
-    run_cmd(['svn', 'copy', get_current_location(),
-        'svn+ssh://svn.python.org/projects/python/branches/'
-            'release%s-maint' % (tag.major + tag.minor)])
+    url = urlsplit(get_current_location())
+    new_path = 'python/branches/release%s%s-maint' % (tag.major, tag.minor)
+    tag_url = urlunsplit((url.scheme, url.netloc, new_path,
+                          url.query, url.fragment))
+    run_cmd(['svn', 'copy', get_current_location(), tag_url])
 
 
 def get_current_location():
