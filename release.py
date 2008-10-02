@@ -242,11 +242,11 @@ def export(tag):
     old_cur = os.getcwd()
     with changed_dir('dist'):
         print 'Exporting tag:', tag.text
-        python = 'Python-%s' % tag.text
+        archivename = 'Python-%s' % tag.text
         run_cmd(['svn', 'export', '-q',
                  'http://svn.python.org/projects/python/tags/r%s'
-                 % tag.nickname, python])
-        with changed_dir(python):
+                 % tag.nickname, archivename])
+        with changed_dir(archivename):
             print 'Removing .hgignore and .bzrignore'
             for name in ('.hgignore', '.bzrignore'):
                 try:
@@ -256,16 +256,19 @@ def export(tag):
             for name in ('Include/Python-ast.h', 'Python/Python-ast.c'):
                 os.utime(name, None)
 
-            docs = build_docs()
-        exported_docs = 'Python-%s-docs-html' % tag.text
-        shutil.copytree(docs, exported_docs)
+            docdist = build_docs()
+        shutil.copytree(docdist, 'docs')
 
-        with changed_dir(os.path.join(python, 'Doc')):
+        with changed_dir(os.path.join(archivename, 'Doc')):
             print 'Removing doc build artifacts'
             shutil.rmtree('build')
+            shutil.rmtree('dist')
+            shutil.rmtree('tools/docutils')
+            shutil.rmtree('tools/sphinx')
+            shutil.rmtree('tools/jinja')
+            shutil.rmtree('tools/pygments')
 
-        tarball(python)
-        tarball(exported_docs)
+        tarball(archivename)
     print '\n**Now extract the archives and run the tests**'
     print '**You may also want to run make install and re-test**'
 
@@ -274,8 +277,8 @@ def build_docs():
     """Build and tarball the documentation"""
     print "Building docs"
     with changed_dir('Doc'):
-        run_cmd(['make', 'html'])
-        return os.path.abspath('build/html')
+        run_cmd(['make', 'dist'])
+        return os.path.abspath('dist')
 
 
 class Tag(object):
