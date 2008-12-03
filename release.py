@@ -164,9 +164,12 @@ def bump(tag):
     constant_replace('Lib/distutils/__init__.py', new, '#', '')
     print 'done'
 
+    extra_work = False
     other_files = ['README', 'Misc/NEWS']
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
+        extra_work = True
         other_files += [
+            'configure.in',
             'Doc/tutorial/interpreter.rst',
             'Doc/tutorial/stdlib.rst',
             'Doc/tutorial/stdlib2.rst',
@@ -181,6 +184,8 @@ def bump(tag):
         manual_edit(fn)
 
     print 'Bumped revision'
+    if extra_work:
+        print 'configure.in has change; re-run autotools !'
     print 'Please commit and use --tag'
 
 
@@ -250,8 +255,9 @@ def export(tag):
             print 'Removing .hgignore and .bzrignore'
             for name in ('.hgignore', '.bzrignore'):
                 try:
-                    os.unlink(os.path.join('dist', name))
-                except OSError: pass
+                    os.unlink(name)
+                except OSError:
+                    pass
             print 'Touching Python-ast.h and Python-ast.c'
             for name in ('Include/Python-ast.h', 'Python/Python-ast.c'):
                 os.utime(name, None)
