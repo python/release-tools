@@ -273,7 +273,6 @@ def export(tag):
             shutil.rmtree('tools/jinja')
             shutil.rmtree('tools/pygments')
             shutil.rmtree('tools/sphinx')
-            shutil.rmtree('tools/sphinxext')
             for dirpath, dirnames, filenames in os.walk('.'):
                 for filename in filenames:
                     if filename.endswith('.pyc'):
