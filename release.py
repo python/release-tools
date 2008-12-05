@@ -270,9 +270,14 @@ def export(tag):
             shutil.rmtree('build')
             shutil.rmtree('dist')
             shutil.rmtree('tools/docutils')
-            shutil.rmtree('tools/sphinx')
             shutil.rmtree('tools/jinja')
             shutil.rmtree('tools/pygments')
+            shutil.rmtree('tools/sphinx')
+            shutil.rmtree('tools/sphinxext')
+            for dirpath, dirnames, filenames in os.walk('.'):
+                for filename in filenames:
+                    if filename.endswith('.pyc'):
+                        os.remove(os.path.join(dirpath, filename))
 
         tarball(archivename)
     print '\n**Now extract the archives and run the tests**'
