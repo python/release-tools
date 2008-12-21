@@ -262,7 +262,7 @@ def export(tag):
             for name in ('Include/Python-ast.h', 'Python/Python-ast.c'):
                 os.utime(name, None)
 
-            docdist = build_docs(tag)
+            docdist = build_docs()
         shutil.copytree(docdist, 'docs')
 
         with changed_dir(os.path.join(archivename, 'Doc')):
@@ -283,11 +283,11 @@ def export(tag):
     print '**You may also want to run make install and re-test**'
 
 
-def build_docs(tag):
+def build_docs():
     """Build and tarball the documentation"""
     print "Building docs"
     with changed_dir('Doc'):
-        run_cmd(['make', 'dist', 'DISTVERSION=' + tag])
+        run_cmd(['make', 'dist'])
         return os.path.abspath('dist')
 
 
