@@ -65,6 +65,8 @@ def get_arg_parser():
     p.add_option('-e', '--export',
                  default=False, action='store_true',
                  help='Export the SVN tag to a tarball and build docs')
+    p.add_option('-u', '--upload', metavar="username",
+                 help='Upload the tarballs and docs to dinsdale')
     p.add_option('-m', '--branch',
                  default=False, action='store_true',
                  help='create a maintance branch to go along with the release')
@@ -215,8 +217,9 @@ def make_dist():
 def tarball(source):
     """Build tarballs for a directory."""
     print 'Making .tgz'
-    tgz = source + '.tgz'
-    bz = source + '.tar.bz2'
+    base = os.path.basename(source)
+    tgz = base + '.tgz'
+    bz = base + '.tar.bz2'
     run_cmd(['tar cf - %s | gzip -9 > %s' % (source, tgz)])
     print "Making .tar.bz2"
     run_cmd(['tar cf - %s | bzip2 -9 > %s' %
@@ -278,8 +281,10 @@ def export(tag):
                     if filename.endswith('.pyc'):
                         os.remove(os.path.join(dirpath, filename))
 
-        tarball(archivename)
-    print '\n**Now extract the archives and run the tests**'
+        os.mkdir('src')
+        with changed_dir('src'):
+            tarball(os.path.join("..", archivename))
+    print '\n**Now extract the archives in dist/src and run the tests**'
     print '**You may also want to run make install and re-test**'
 
 
@@ -289,6 +294,19 @@ def build_docs():
     with changed_dir('Doc'):
         run_cmd(['make', 'dist'])
         return os.path.abspath('dist')
+
+def upload(tag, username):
+    """scp everything to dinsdale"""
+    address ='"%s@dinsdale.python.org:' % username
+    def scp(from_loc, to_loc):
+        run_cmd(['scp %s %s' % (from_loc, to_loc)])
+    with changed_dir('dist'):
+        print "Uploading source tarballs"
+        scp('src', '/data/python-releases/%s' % tag.nickname)
+        print "Upload doc tarballs"
+        scp('docs', '/data/python-releases/doc/%s' % tag.nickname)
+        print "* Now change the permissions on the tarballs so they are " \
+            "writable by the webmaster group. *"
 
 
 class Tag(object):
@@ -396,7 +414,7 @@ def main(argv):
         parser.print_usage()
         sys.exit(1)
     tag = Tag(args[1])
-    if not options.export:
+    if not (options.export or options.upload):
         check_env()
     if options.bump:
         bump(tag)
@@ -406,6 +424,8 @@ def main(argv):
         branch(tag)
     if options.export:
         export(tag)
+    if options.upload:
+        upload(tag, options.upload)
     if options.done:
         done(tag)
 
