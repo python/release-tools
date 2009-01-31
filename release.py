@@ -261,8 +261,9 @@ def export(tag):
                     os.unlink(name)
                 except OSError:
                     pass
-            print 'Touching Python-ast.h and Python-ast.c'
-            for name in ('Include/Python-ast.h', 'Python/Python-ast.c'):
+            print 'Touching Python-ast.h, Python-ast.c, and opcode_targets.h'
+            for name in ('Include/Python-ast.h', 'Python/Python-ast.c',
+                         'opcode_targets.h'):
                 os.utime(name, None)
 
             docdist = build_docs()
@@ -273,7 +274,7 @@ def export(tag):
             shutil.rmtree('build')
             shutil.rmtree('dist')
             shutil.rmtree('tools/docutils')
-            shutil.rmtree('tools/jinja')
+            shutil.rmtree('tools/jinja2')
             shutil.rmtree('tools/pygments')
             shutil.rmtree('tools/sphinx')
             for dirpath, dirnames, filenames in os.walk('.'):
