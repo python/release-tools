@@ -22,6 +22,7 @@ from hashlib import md5
 from string import Template
 from urlparse import urlsplit, urlunsplit
 
+COMMASPACE = ', '
 SPACE = ' '
 tag_cre = re.compile(r'(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?')
 
@@ -261,9 +262,15 @@ def export(tag):
                     os.unlink(name)
                 except OSError:
                     pass
-            print 'Touching Python-ast.h, Python-ast.c, and opcode_targets.h'
-            for name in ('Include/Python-ast.h', 'Python/Python-ast.c',
-                         'opcode_targets.h'):
+            # Touch a few files that get generated so they're up-to-date in
+            # the tarball.
+            touchables = ['Include/Python-ast.h', 'Python/Python-ast.c']
+            if tag.major < 3:
+                # This file isn't in Python 3.x
+                touchables.append('opcode_targets.h')
+            print 'Touching:', COMMASPACE.join(name.rsplit('/', 1)[-1]
+                                               for name in touchables)
+            for name in touchables:
                 os.utime(name, None)
 
             docdist = build_docs()
