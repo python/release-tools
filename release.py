@@ -265,9 +265,9 @@ def export(tag):
             # Touch a few files that get generated so they're up-to-date in
             # the tarball.
             touchables = ['Include/Python-ast.h', 'Python/Python-ast.c']
-            if tag.major < 3:
-                # This file isn't in Python 3.x
-                touchables.append('opcode_targets.h')
+            if os.path.exists('Python/opcode_targets.h'):
+                # This file isn't in Python < 3.1
+                touchables.append('Python/opcode_targets.h')
             print 'Touching:', COMMASPACE.join(name.rsplit('/', 1)[-1]
                                                for name in touchables)
             for name in touchables:
