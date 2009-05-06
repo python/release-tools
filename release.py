@@ -179,8 +179,6 @@ def bump(tag):
             'LICENSE',
             'Doc/license.rst',
             ]
-    if tag.major == 3:
-        other_files.append('RELNOTES')
     print '\nManual editing time...'
     for fn in other_files:
         print 'Edit %s' % fn
