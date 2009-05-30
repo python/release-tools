@@ -227,7 +227,7 @@ def tarball(source):
     checksum_tgz = hashlib.sha1()
     with open(tgz, 'rb') as data:
         checksum_tgz.update(data.read())
-    checksum_bz2 = hashlib.sha1
+    checksum_bz2 = hashlib.sha1()
     with open(bz, 'rb') as data:
         checksum_bz2.update(data.read())
     print '  %s  %8s  %s' % (
