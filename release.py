@@ -249,7 +249,7 @@ def export(tag):
     old_cur = os.getcwd()
     with changed_dir('dist'):
         print 'Exporting tag:', tag.text
-        archivename = 'Python-%s' % tag.text
+        archivename = 'python-%s' % tag.text
         run_cmd(['svn', 'export', '-q',
                  'http://svn.python.org/projects/python/tags/r%s'
                  % tag.nickname, archivename])
