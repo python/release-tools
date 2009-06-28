@@ -1,12 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """An assistant for making Python releases.
 
 Original code by Benjamin Peterson
 Additions by Barry Warsaw and Benjamin Peterson
 """
-
-from __future__ import with_statement
 
 import sys
 import os
@@ -18,9 +16,9 @@ import shutil
 import tempfile
 import time
 
-from contextlib import nested, contextmanager
+from contextlib import contextmanager
 from string import Template
-from urlparse import urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 
 COMMASPACE = ', '
 SPACE = ' '
@@ -30,16 +28,16 @@ tag_cre = re.compile(r'(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?')
 # Ideas stolen from Mailman's release script, Lib/tokens.py and welease
 
 def error(*msgs):
-    print >> sys.stderr, '**ERROR**'
+    print('**ERROR**', file=sys.stderr)
     for msg in msgs:
-        print >> sys.stderr, msg
+        print(msg, file=sys.stderr)
     sys.exit(1)
 
 
 def run_cmd(args, silent=False):
     cmd = SPACE.join(args)
     if not silent:
-        print 'Executing %s' % cmd
+        print('Executing %s' % cmd)
     try:
         if silent:
             code = subprocess.call(cmd, shell=True, stdout=PIPE)
@@ -86,14 +84,14 @@ def constant_replace(fn, updated_constants,
     """
     start_tag = comment_start + '--start constants--' + comment_end
     end_tag = comment_start + '--end constants--' + comment_end
-    with nested(open(fn), open(fn + '.new', 'w')) as (infile, outfile):
+    with open(fn) as infile, open(fn + '.new', 'w') as outfile:
         found_constants = False
         waiting_for_end = False
         for line in infile:
             if line[:-1] == start_tag:
-                print >> outfile, start_tag
-                print >> outfile, updated_constants
-                print >> outfile, end_tag
+                print(start_tag, file=outfile)
+                print(updated_constants, file=outfile)
+                print(end_tag, file=outfile)
                 waiting_for_end = True
                 found_constants = True
             elif line[:-1] == end_tag:
@@ -108,7 +106,7 @@ def constant_replace(fn, updated_constants,
 
 
 def tweak_patchlevel(tag, done=False):
-    print 'Updating Include/patchlevel.h...',
+    print('Updating Include/patchlevel.h...', end=' ')
     template = Template("""\
 #define PY_MAJOR_VERSION\t$major
 #define PY_MINOR_VERSION\t$minor
@@ -131,41 +129,41 @@ def tweak_patchlevel(tag, done=False):
         substitutions['text'] += '+'
     new_constants = template.substitute(substitutions)
     constant_replace('Include/patchlevel.h', new_constants)
-    print 'done'
+    print('done')
 
 
 def bump(tag):
-    print 'Bumping version to %s' % tag
+    print('Bumping version to %s' % tag)
 
     wanted_file = 'Misc/RPM/python-%s.spec' % tag.basic_version
-    print 'Updating %s' % wanted_file,
+    print('Updating %s' % wanted_file, end=' ')
     if not os.path.exists(wanted_file):
         specs = os.listdir('Misc/RPM/')
         for file in specs:
             if file.startswith('python-'):
                 break
         full_path = os.path.join('Misc/RPM/', file)
-        print '\nrenaming %s to %s' % (full_path, wanted_file)
+        print('\nrenaming %s to %s' % (full_path, wanted_file))
         run_cmd(['svn', 'rename', '--force', full_path, wanted_file])
-        print 'File was renamed; please commit'
+        print('File was renamed; please commit')
         run_cmd(['svn', 'commit'])
     new = '%define version ' + tag.text + \
         '\n%define libver ' + tag.basic_version
     constant_replace(wanted_file, new, '#', '')
-    print 'done'
+    print('done')
 
     tweak_patchlevel(tag)
 
-    print 'Updating Lib/idlelib/idlever.py...',
+    print('Updating Lib/idlelib/idlever.py...', end=' ')
     with open('Lib/idlelib/idlever.py', 'w') as fp:
         new = 'IDLE_VERSION = "%s"\n' % tag.next_text
         fp.write(new)
-    print 'done'
+    print('done')
 
-    print 'Updating Lib/distutils/__init__.py...',
+    print('Updating Lib/distutils/__init__.py...', end=' ')
     new = '__version__ = "%s"' % tag.text
     constant_replace('Lib/distutils/__init__.py', new, '#', '')
-    print 'done'
+    print('done')
 
     extra_work = False
     other_files = ['README', 'Misc/NEWS']
@@ -179,15 +177,15 @@ def bump(tag):
             'LICENSE',
             'Doc/license.rst',
             ]
-    print '\nManual editing time...'
+    print('\nManual editing time...')
     for fn in other_files:
-        print 'Edit %s' % fn
+        print('Edit %s' % fn)
         manual_edit(fn)
 
-    print 'Bumped revision'
+    print('Bumped revision')
     if extra_work:
-        print 'configure.in has change; re-run autotools !'
-    print 'Please commit and use --tag'
+        print('configure.in has change; re-run autotools !')
+    print('Please commit and use --tag')
 
 
 def manual_edit(fn):
@@ -196,7 +194,7 @@ def manual_edit(fn):
 
 @contextmanager
 def changed_dir(new):
-    print 'chdir\'ing to %s' % new
+    print('chdir\'ing to %s' % new)
     old = os.getcwd()
     os.chdir(new)
     try:
@@ -211,35 +209,35 @@ def make_dist():
         if not os.path.isdir('dist'):
             error('dist/ is not a directory')
     else:
-        print 'created dist directory'
+        print('created dist directory')
 
 def tarball(source):
     """Build tarballs for a directory."""
-    print 'Making .tgz'
+    print('Making .tgz')
     base = os.path.basename(source)
     tgz = base + '.tgz'
     bz = base + '.tar.bz2'
     run_cmd(['tar cf - %s | gzip -9 > %s' % (source, tgz)])
-    print "Making .tar.bz2"
+    print("Making .tar.bz2")
     run_cmd(['tar cf - %s | bzip2 -9 > %s' %
              (source, bz)])
-    print 'Calculating sha1 sums'
+    print('Calculating sha1 sums')
     checksum_tgz = hashlib.sha1()
     with open(tgz, 'rb') as data:
         checksum_tgz.update(data.read())
     checksum_bz2 = hashlib.sha1()
     with open(bz, 'rb') as data:
         checksum_bz2.update(data.read())
-    print '  %s  %8s  %s' % (
-        checksum_tgz.hexdigest(), int(os.path.getsize(tgz)), tgz)
-    print '  %s  %8s  %s' % (
-        checksum_bz2.hexdigest(), int(os.path.getsize(bz)), bz)
+    print('  %s  %8s  %s' % (
+        checksum_tgz.hexdigest(), int(os.path.getsize(tgz)), tgz))
+    print('  %s  %8s  %s' % (
+        checksum_bz2.hexdigest(), int(os.path.getsize(bz)), bz))
     with open(tgz + '.sha1', 'w') as fp:
         fp.write(checksum_tgz.hexdigest())
     with open(bz + '.sha1', 'w') as fp:
         fp.write(checksum_bz2.hexdigest())
 
-    print 'Signing tarballs'
+    print('Signing tarballs')
     os.system('gpg -bas ' + tgz)
     os.system('gpg -bas ' + bz)
 
@@ -248,13 +246,13 @@ def export(tag):
     make_dist()
     old_cur = os.getcwd()
     with changed_dir('dist'):
-        print 'Exporting tag:', tag.text
+        print('Exporting tag:', tag.text)
         archivename = 'Python-%s' % tag.text
         run_cmd(['svn', 'export', '-q',
                  'http://svn.python.org/projects/python/tags/r%s'
                  % tag.nickname, archivename])
         with changed_dir(archivename):
-            print 'Removing .hgignore and .bzrignore'
+            print('Removing .hgignore and .bzrignore')
             for name in ('.hgignore', '.bzrignore'):
                 try:
                     os.unlink(name)
@@ -266,8 +264,8 @@ def export(tag):
             if os.path.exists('Python/opcode_targets.h'):
                 # This file isn't in Python < 3.1
                 touchables.append('Python/opcode_targets.h')
-            print 'Touching:', COMMASPACE.join(name.rsplit('/', 1)[-1]
-                                               for name in touchables)
+            print('Touching:', COMMASPACE.join(name.rsplit('/', 1)[-1]
+                                               for name in touchables))
             for name in touchables:
                 os.utime(name, None)
 
@@ -275,7 +273,7 @@ def export(tag):
         shutil.copytree(docdist, 'docs')
 
         with changed_dir(os.path.join(archivename, 'Doc')):
-            print 'Removing doc build artifacts'
+            print('Removing doc build artifacts')
             shutil.rmtree('build')
             shutil.rmtree('dist')
             shutil.rmtree('tools/docutils')
@@ -290,13 +288,13 @@ def export(tag):
         os.mkdir('src')
         with changed_dir('src'):
             tarball(os.path.join("..", archivename))
-    print '\n**Now extract the archives in dist/src and run the tests**'
-    print '**You may also want to run make install and re-test**'
+    print('\n**Now extract the archives in dist/src and run the tests**')
+    print('**You may also want to run make install and re-test**')
 
 
 def build_docs():
     """Build and tarball the documentation"""
-    print "Building docs"
+    print("Building docs")
     with changed_dir('Doc'):
         run_cmd(['make', 'dist'])
         return os.path.abspath('dist')
@@ -307,12 +305,12 @@ def upload(tag, username):
     def scp(from_loc, to_loc):
         run_cmd(['scp %s %s' % (from_loc, to_loc)])
     with changed_dir('dist'):
-        print "Uploading source tarballs"
+        print("Uploading source tarballs")
         scp('src', '/data/python-releases/%s' % tag.nickname)
-        print "Upload doc tarballs"
+        print("Upload doc tarballs")
         scp('docs', '/data/python-releases/doc/%s' % tag.nickname)
-        print "* Now change the permissions on the tarballs so they are " \
-            "writable by the webmaster group. *"
+        print("* Now change the permissions on the tarballs so they are " \
+            "writable by the webmaster group. *")
 
 
 class Tag(object):
@@ -348,8 +346,8 @@ class Tag(object):
 
 def branch(tag):
     if tag.patch > 0 or tag.level != "f":
-        print 'It doesn\'t look like you\'re making a final release.'
-        if raw_input('Are you sure you want to branch?') != "y":
+        print('It doesn\'t look like you\'re making a final release.')
+        if input('Are you sure you want to branch?') != "y":
             return
     url = urlsplit(get_current_location())
     new_path = 'python/branches/release%s%s-maint' % (tag.major, tag.minor)
@@ -389,7 +387,7 @@ Library
 """
 
 def update_news():
-    print "Updating Misc/NEWS"
+    print("Updating Misc/NEWS")
     with open('Misc/NEWS') as fp:
         lines = fp.readlines()
     for i, line in enumerate(lines):
@@ -404,7 +402,7 @@ def update_news():
          fp.writelines(lines[:start+1])
          fp.write(insert)
          fp.writelines(lines[end-1:])
-    print "Please fill in the the name of the next version."
+    print("Please fill in the the name of the next version.")
     manual_edit('Misc/NEWS')
 
 
