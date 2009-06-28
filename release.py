@@ -221,20 +221,20 @@ def tarball(source):
     print("Making .tar.bz2")
     run_cmd(['tar cf - %s | bzip2 -9 > %s' %
              (source, bz)])
-    print('Calculating sha1 sums')
-    checksum_tgz = hashlib.sha1()
+    print('Calculating md5 sums')
+    checksum_tgz = hashlib.md5()
     with open(tgz, 'rb') as data:
         checksum_tgz.update(data.read())
-    checksum_bz2 = hashlib.sha1()
+    checksum_bz2 = hashlib.md5()
     with open(bz, 'rb') as data:
         checksum_bz2.update(data.read())
     print('  %s  %8s  %s' % (
         checksum_tgz.hexdigest(), int(os.path.getsize(tgz)), tgz))
     print('  %s  %8s  %s' % (
         checksum_bz2.hexdigest(), int(os.path.getsize(bz)), bz))
-    with open(tgz + '.sha1', 'w') as fp:
+    with open(tgz + '.md5', 'w') as fp:
         fp.write(checksum_tgz.hexdigest())
-    with open(bz + '.sha1', 'w') as fp:
+    with open(bz + '.md5', 'w') as fp:
         fp.write(checksum_bz2.hexdigest())
 
     print('Signing tarballs')
