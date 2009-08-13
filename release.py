@@ -363,7 +363,7 @@ def branch(tag):
 
 def get_current_location():
     proc = subprocess.Popen('svn info', shell=True, stdout=subprocess.PIPE)
-    data = proc.stdout.read().splitlines()
+    data = proc.stdout.read().decode("utf-8").splitlines()
     for line in data:
         if line.startswith('URL: '):
             return line.lstrip('URL: ')
