@@ -269,8 +269,10 @@ def export(tag):
             for name in touchables:
                 os.utime(name, None)
 
-            docdist = build_docs()
-        shutil.copytree(docdist, 'docs')
+            if tag.is_final:
+                docdist = build_docs()
+        if tag.is_final:
+            shutil.copytree(docdist, 'docs')
 
         with changed_dir(os.path.join(archivename, 'Doc')):
             print('Removing doc build artifacts')
@@ -320,9 +322,12 @@ class Tag(object):
         if result is None:
             error('tag %s is not valid' % tag)
         data = list(result.groups())
-        # fix None level
         if data[3] is None:
+            # A final release.
+            self.is_final = True
             data[3] = "f"
+        else:
+            self.is_final = False
         # For everything else, None means 0.
         for i, thing in enumerate(data):
             if thing is None:
