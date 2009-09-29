@@ -276,12 +276,12 @@ def export(tag):
 
         with changed_dir(os.path.join(archivename, 'Doc')):
             print('Removing doc build artifacts')
-            shutil.rmtree('build')
-            shutil.rmtree('dist')
-            shutil.rmtree('tools/docutils')
-            shutil.rmtree('tools/jinja2')
-            shutil.rmtree('tools/pygments')
-            shutil.rmtree('tools/sphinx')
+            shutil.rmtree('build', ignore_errors=True)
+            shutil.rmtree('dist', ignore_errors=True)
+            shutil.rmtree('tools/docutils', ignore_errors=True)
+            shutil.rmtree('tools/jinja2', ignore_errors=True)
+            shutil.rmtree('tools/pygments', ignore_errors=True)
+            shutil.rmtree('tools/sphinx', ignore_errors=True)
             for dirpath, dirnames, filenames in os.walk('.'):
                 for filename in filenames:
                     if filename.endswith('.pyc'):
