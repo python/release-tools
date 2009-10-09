@@ -84,7 +84,8 @@ def constant_replace(fn, updated_constants,
     """
     start_tag = comment_start + '--start constants--' + comment_end
     end_tag = comment_start + '--end constants--' + comment_end
-    with open(fn) as infile, open(fn + '.new', 'w') as outfile:
+    with open(fn, encoding="ascii") as infile, \
+             open(fn + '.new', 'w', encoding="ascii") as outfile:
         found_constants = False
         waiting_for_end = False
         for line in infile:
@@ -155,7 +156,7 @@ def bump(tag):
     tweak_patchlevel(tag)
 
     print('Updating Lib/idlelib/idlever.py...', end=' ')
-    with open('Lib/idlelib/idlever.py', 'w') as fp:
+    with open('Lib/idlelib/idlever.py', 'w', encoding="ascii") as fp:
         new = 'IDLE_VERSION = "%s"\n' % tag.next_text
         fp.write(new)
     print('done')
@@ -232,9 +233,9 @@ def tarball(source):
         checksum_tgz.hexdigest(), int(os.path.getsize(tgz)), tgz))
     print('  %s  %8s  %s' % (
         checksum_bz2.hexdigest(), int(os.path.getsize(bz)), bz))
-    with open(tgz + '.md5', 'w') as fp:
+    with open(tgz + '.md5', 'w', encoding="ascii") as fp:
         fp.write(checksum_tgz.hexdigest())
-    with open(bz + '.md5', 'w') as fp:
+    with open(bz + '.md5', 'w', encoding="ascii") as fp:
         fp.write(checksum_bz2.hexdigest())
 
     print('Signing tarballs')
@@ -393,7 +394,7 @@ Library
 
 def update_news():
     print("Updating Misc/NEWS")
-    with open('Misc/NEWS') as fp:
+    with open('Misc/NEWS', encoding="utf-8") as fp:
         lines = fp.readlines()
     for i, line in enumerate(lines):
         if line.startswith("(editors"):
@@ -403,7 +404,7 @@ def update_news():
             break
     release_date = time.strftime("%d-%b-%Y")
     insert = NEWS_TEMPLATE % release_date
-    with open('Misc/NEWS', 'w') as fp:
+    with open('Misc/NEWS', 'w', encoding="utf-8") as fp:
          fp.writelines(lines[:start+1])
          fp.write(insert)
          fp.writelines(lines[end-1:])
