@@ -14,7 +14,6 @@ import re
 import subprocess
 import shutil
 import tempfile
-import time
 
 from contextlib import contextmanager
 from string import Template
@@ -382,7 +381,7 @@ NEWS_TEMPLATE = """
 What's New in Python {XXX PUT NEXT VERSION HERE XXX}?
 ================================
 
-*Release date: %s*
+*Release date: XXXX-XX-XX*
 
 Core and Builtins
 -----------------
@@ -402,11 +401,9 @@ def update_news():
         if line.startswith("What's"):
             end = i
             break
-    release_date = time.strftime("%d-%b-%Y")
-    insert = NEWS_TEMPLATE % release_date
     with open('Misc/NEWS', 'w', encoding="utf-8") as fp:
          fp.writelines(lines[:start+1])
-         fp.write(insert)
+         fp.write(NEWS_TEMPLATE)
          fp.writelines(lines[end-1:])
     print("Please fill in the the name of the next version.")
     manual_edit('Misc/NEWS')
