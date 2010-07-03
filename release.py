@@ -206,7 +206,9 @@ def make_dist():
     try:
         os.mkdir('dist')
     except OSError:
-        if not os.path.isdir('dist'):
+        if os.path.isdir('dist'):
+            print('WARNING: dist already exists', file=sys.stderr)
+        else:
             error('dist/ is not a directory')
     else:
         print('created dist directory')
