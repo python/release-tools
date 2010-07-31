@@ -240,8 +240,11 @@ def tarball(source):
         fp.write(checksum_bz2.hexdigest())
 
     print('Signing tarballs')
-    os.system('gpg -bas ' + tgz)
-    os.system('gpg -bas ' + bz)
+    print('List of available private keys:')
+    run_cmd(['gpg -K | grep -A 1 "^sec"'], silent=True)
+    uid = input('Please enter key ID to use for signing: ')
+    os.system('gpg -bas -u ' + uid + ' ' + tgz)
+    os.system('gpg -bas -u ' + uid + ' ' + bz)
 
 
 def export(tag):
