@@ -39,7 +39,7 @@ def run_cmd(args, silent=False):
         print('Executing %s' % cmd)
     try:
         if silent:
-            code = subprocess.call(cmd, shell=True, stdout=PIPE)
+            code = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
         else:
             code = subprocess.call(cmd, shell=True)
     except OSError:
