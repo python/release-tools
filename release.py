@@ -148,7 +148,7 @@ def bump(tag):
         print('File was renamed; please commit')
         run_cmd(['svn', 'commit'])
     new = '%define version ' + tag.text + \
-        '\n%define libver ' + tag.basic_version
+        '\n%define libvers ' + tag.basic_version
     constant_replace(wanted_file, new, '#', '')
     print('done')
 
