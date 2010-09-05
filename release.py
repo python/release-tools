@@ -15,7 +15,6 @@ import subprocess
 import shutil
 
 from contextlib import contextmanager
-from string import Template
 from urllib.parse import urlsplit, urlunsplit
 
 COMMASPACE = ', '
@@ -108,27 +107,23 @@ def constant_replace(fn, updated_constants,
 
 def tweak_patchlevel(tag, done=False):
     print('Updating Include/patchlevel.h...', end=' ')
-    template = Template("""\
-#define PY_MAJOR_VERSION\t$major
-#define PY_MINOR_VERSION\t$minor
-#define PY_MICRO_VERSION\t$patch
-#define PY_RELEASE_LEVEL\t$level
-#define PY_RELEASE_SERIAL\t$serial
+    template = """\
+#define PY_MAJOR_VERSION\t{tag.major}
+#define PY_MINOR_VERSION\t{tag.minor}
+#define PY_MICRO_VERSION\t{tag.patch}
+#define PY_RELEASE_LEVEL\t{level_def}
+#define PY_RELEASE_SERIAL\t{tag.serial}
 
 /* Version as a string */
-#define PY_VERSION      \t\"$text\"""")
-    substitutions = {}
-    for what in ('major', 'minor', 'patch', 'serial', 'text'):
-        substitutions[what] = getattr(tag, what)
-    substitutions['level'] = dict(
+#define PY_VERSION      \t\"{tag.text}{plus}\""""
+    level_def = dict(
         a   = 'PY_RELEASE_LEVEL_ALPHA',
         b   = 'PY_RELEASE_LEVEL_BETA',
         rc  = 'PY_RELEASE_LEVEL_GAMMA',
         f   = 'PY_RELEASE_LEVEL_FINAL',
         )[tag.level]
-    if done:
-        substitutions['text'] += '+'
-    new_constants = template.substitute(substitutions)
+    new_constants = template.format(tag=tag, level_def=level_def,
+                                    plus=done and '+' or '')
     constant_replace('Include/patchlevel.h', new_constants)
     print('done')
 
