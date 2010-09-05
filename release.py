@@ -396,13 +396,13 @@ def update_news():
     with open('Misc/NEWS', encoding="utf-8") as fp:
         lines = fp.readlines()
     for i, line in enumerate(lines):
-        if line.startswith("(editors"):
+        if line.startswith("Python News"):
             start = i
         if line.startswith("What's"):
             end = i
             break
     with open('Misc/NEWS', 'w', encoding="utf-8") as fp:
-         fp.writelines(lines[:start+1])
+         fp.writelines(lines[:start+2])
          fp.write(NEWS_TEMPLATE)
          fp.writelines(lines[end-1:])
     print("Please fill in the the name of the next version.")
