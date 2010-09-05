@@ -3,7 +3,7 @@
 """An assistant for making Python releases.
 
 Original code by Benjamin Peterson
-Additions by Barry Warsaw and Benjamin Peterson
+Additions by Barry Warsaw, Georg Brandl and Benjamin Peterson
 """
 
 import sys
@@ -13,7 +13,6 @@ import optparse
 import re
 import subprocess
 import shutil
-import tempfile
 
 from contextlib import contextmanager
 from string import Template
@@ -44,6 +43,8 @@ def run_cmd(args, silent=False):
             code = subprocess.call(cmd, shell=True)
     except OSError:
         error('%s failed' % cmd)
+    else:
+        return code
 
 
 def check_env():
@@ -249,7 +250,6 @@ def tarball(source):
 
 def export(tag):
     make_dist()
-    old_cur = os.getcwd()
     with changed_dir('dist'):
         print('Exporting tag:', tag.text)
         archivename = 'Python-%s' % tag.text
@@ -310,7 +310,7 @@ def upload(tag, username):
     """scp everything to dinsdale"""
     address ='"%s@dinsdale.python.org:' % username
     def scp(from_loc, to_loc):
-        run_cmd(['scp %s %s' % (from_loc, to_loc)])
+        run_cmd(['scp %s %s' % (from_loc, address + to_loc)])
     with changed_dir('dist'):
         print("Uploading source tarballs")
         scp('src', '/data/python-releases/%s' % tag.nickname)
@@ -325,7 +325,7 @@ class Tag(object):
     def __init__(self, tag_name):
         result = tag_cre.search(tag_name)
         if result is None:
-            error('tag %s is not valid' % tag)
+            error('tag %s is not valid' % tag_name)
         data = list(result.groups())
         if data[3] is None:
             # A final release.
