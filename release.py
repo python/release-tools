@@ -107,7 +107,7 @@ def constant_replace(fn, updated_constants,
 
 def tweak_patchlevel(tag, done=False):
     print('Updating Include/patchlevel.h...', end=' ')
-    template = """\
+    template = '''
 #define PY_MAJOR_VERSION\t{tag.major}
 #define PY_MINOR_VERSION\t{tag.minor}
 #define PY_MICRO_VERSION\t{tag.patch}
@@ -115,7 +115,7 @@ def tweak_patchlevel(tag, done=False):
 #define PY_RELEASE_SERIAL\t{tag.serial}
 
 /* Version as a string */
-#define PY_VERSION      \t\"{tag.text}{plus}\""""
+#define PY_VERSION      \t\"{tag.text}{plus}"'''.strip()
     level_def = dict(
         a   = 'PY_RELEASE_LEVEL_ALPHA',
         b   = 'PY_RELEASE_LEVEL_BETA',
