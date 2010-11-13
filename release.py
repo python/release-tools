@@ -198,11 +198,11 @@ def changed_dir(new):
     finally:
         os.chdir(old)
 
-def make_dist():
+def make_dist(name):
     try:
-        os.mkdir('dist')
+        os.mkdir(name)
     except OSError:
-        if os.path.isdir('dist'):
+        if os.path.isdir(name):
             print('WARNING: dist already exists', file=sys.stderr)
         else:
             error('dist/ is not a directory')
@@ -244,8 +244,8 @@ def tarball(source):
 
 
 def export(tag):
-    make_dist()
-    with changed_dir('dist'):
+    make_dist(tag.text)
+    with changed_dir(tag.text):
         print('Exporting tag:', tag.text)
         archivename = 'Python-%s' % tag.text
         run_cmd(['svn', 'export', '-q',
@@ -306,7 +306,7 @@ def upload(tag, username):
     address ='"%s@dinsdale.python.org:' % username
     def scp(from_loc, to_loc):
         run_cmd(['scp %s %s' % (from_loc, address + to_loc)])
-    with changed_dir('dist'):
+    with changed_dir(tag.text):
         print("Uploading source tarballs")
         scp('src', '/data/python-releases/%s' % tag.nickname)
         print("Upload doc tarballs")
