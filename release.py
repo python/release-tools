@@ -203,11 +203,11 @@ def make_dist(name):
         os.mkdir(name)
     except OSError:
         if os.path.isdir(name):
-            print('WARNING: dist already exists', file=sys.stderr)
+            print('WARNING: dist dir %s already exists' % name, file=sys.stderr)
         else:
-            error('dist/ is not a directory')
+            error('%s/ is not a directory' % name)
     else:
-        print('created dist directory')
+        print('created dist directory %s' % name)
 
 def tarball(source):
     """Build tarballs for a directory."""
@@ -290,7 +290,8 @@ def export(tag):
         os.mkdir('src')
         with changed_dir('src'):
             tarball(os.path.join("..", archivename))
-    print('\n**Now extract the archives in dist/src and run the tests**')
+    print()
+    print('**Now extract the archives in %s/src and run the tests**' % tag.text)
     print('**You may also want to run make install and re-test**')
 
 
