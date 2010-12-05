@@ -237,7 +237,7 @@ def tarball(source):
 
     print('Signing tarballs')
     print('List of available private keys:')
-    run_cmd(['gpg -K | grep -A 1 "^sec"'], silent=True)
+    run_cmd(['gpg -K | grep -A 1 "^sec"'])
     uid = input('Please enter key ID to use for signing: ')
     os.system('gpg -bas -u ' + uid + ' ' + tgz)
     os.system('gpg -bas -u ' + uid + ' ' + bz)
