@@ -215,10 +215,12 @@ def tarball(source):
     base = os.path.basename(source)
     tgz = base + '.tgz'
     bz = base + '.tar.bz2'
+    xz = base + '.tar.xz'
     run_cmd(['tar cf - %s | gzip -9 > %s' % (source, tgz)])
     print("Making .tar.bz2")
-    run_cmd(['tar cf - %s | bzip2 -9 > %s' %
-             (source, bz)])
+    run_cmd(['tar cf - %s | bzip2 -9 > %s' % (source, bz)])
+    print("Making .tar.xz")
+    run_cmd(['tar cf - %s | xz > %s' % (source, xz)])
     print('Calculating md5 sums')
     checksum_tgz = hashlib.md5()
     with open(tgz, 'rb') as data:
@@ -226,14 +228,21 @@ def tarball(source):
     checksum_bz2 = hashlib.md5()
     with open(bz, 'rb') as data:
         checksum_bz2.update(data.read())
+    checksum_xz = hashlib.md5()
+    with open(xz, 'rb') as data:
+        checksum_xz.update(data.read())
     print('  %s  %8s  %s' % (
         checksum_tgz.hexdigest(), int(os.path.getsize(tgz)), tgz))
     print('  %s  %8s  %s' % (
         checksum_bz2.hexdigest(), int(os.path.getsize(bz)), bz))
+    print('  %s  %8s  %s' % (
+        checksum_xz.hexdigest(), int(os.path.getsize(xz)), xz))
     with open(tgz + '.md5', 'w', encoding="ascii") as fp:
         fp.write(checksum_tgz.hexdigest())
     with open(bz + '.md5', 'w', encoding="ascii") as fp:
         fp.write(checksum_bz2.hexdigest())
+    with open(xz + '.md5', 'w', encoding="ascii") as fp:
+        fp.write(checksum_xz.hexdigest())
 
     print('Signing tarballs')
     print('List of available private keys:')
@@ -241,6 +250,7 @@ def tarball(source):
     uid = input('Please enter key ID to use for signing: ')
     os.system('gpg -bas -u ' + uid + ' ' + tgz)
     os.system('gpg -bas -u ' + uid + ' ' + bz)
+    os.system('gpg -bas -u ' + uid + ' ' + xz)
 
 
 def export(tag):
@@ -252,8 +262,8 @@ def export(tag):
                  'http://svn.python.org/projects/python/tags/r%s'
                  % tag.nickname, archivename])
         with changed_dir(archivename):
-            print('Removing .hgignore and .bzrignore')
-            for name in ('.hgignore', '.bzrignore'):
+            print('Removing VCS .*ignore and .hgeol')
+            for name in ('.hgignore', '.hgeol', '.bzrignore', '.gitignore'):
                 try:
                     os.unlink(name)
                 except OSError:
