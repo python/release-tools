@@ -19,7 +19,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 COMMASPACE = ', '
 SPACE = ' '
-tag_cre = re.compile(r'(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?')
+tag_cre = re.compile(r'(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$')
 
 
 # Ideas stolen from Mailman's release script, Lib/tokens.py and welease
@@ -329,7 +329,7 @@ def upload(tag, username):
 class Tag(object):
 
     def __init__(self, tag_name):
-        result = tag_cre.search(tag_name)
+        result = tag_cre.match(tag_name)
         if result is None:
             error('tag %s is not valid' % tag_name)
         data = list(result.groups())
