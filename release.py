@@ -45,6 +45,10 @@ def run_cmd(args, silent=False):
         return code
 
 
+def get_output(args):
+    return subprocess.check_output(SPACE.join(args), shell=True)
+
+
 def check_env():
     if 'EDITOR' not in os.environ:
         error('editor not detected.',
@@ -362,6 +366,12 @@ class Tag(object):
 
 
 def make_tag(tag):
+    # make sure we're on the correct branch
+    if tag.patch > 0:
+        if get_output(['hg', 'branch']).strip().decode() != tag.basic_version:
+            print('It doesn\'t look like you\'re on the correct branch.')
+            if input('Are you sure you want to tag?') != "y":
+                return
     run_cmd(['hg', 'tag', tag.hgname])
 
 
