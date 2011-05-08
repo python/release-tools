@@ -361,14 +361,6 @@ class Tag(object):
         return 'v' + self.text
 
 
-def branch(tag):
-    if tag.patch > 0 or tag.level != "f":
-        print('It doesn\'t look like you\'re making a final release.')
-        if input('Are you sure you want to branch?') != "y":
-            return
-    run_cmd(['hg', 'branch', tag.basic_version])
-
-
 def make_tag(tag):
     run_cmd(['hg', 'tag', tag.hgname])
 
@@ -414,17 +406,19 @@ def main(argv):
     parser = get_arg_parser()
     options, args = parser.parse_args(argv)
     if len(args) != 2:
-        parser.print_usage()
-        sys.exit(1)
-    tag = Tag(args[1])
+        if 'RELEASE_TAG' not in os.environ:
+            parser.print_usage()
+            sys.exit(1)
+        tagname = os.environ['RELEASE_TAG']
+    else:
+        tagname = args[1]
+    tag = Tag(tagname)
     if not (options.export or options.upload):
         check_env()
     if options.bump:
         bump(tag)
     if options.tag:
         make_tag(tag)
-    if options.branch:
-        branch(tag)
     if options.export:
         export(tag)
     if options.upload:
