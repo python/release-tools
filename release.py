@@ -15,7 +15,6 @@ import subprocess
 import shutil
 
 from contextlib import contextmanager
-from urllib.parse import urlsplit, urlunsplit
 
 COMMASPACE = ', '
 SPACE = ' '
@@ -50,8 +49,8 @@ def check_env():
     if 'EDITOR' not in os.environ:
         error('editor not detected.',
               'Please set your EDITOR enviroment variable')
-    if not os.path.exists('.svn'):
-        error('CWD is not a Subversion checkout')
+    if not os.path.exists('.hg'):
+        error('CWD is not a Mercurial clone')
 
 
 def get_arg_parser():
@@ -62,7 +61,7 @@ def get_arg_parser():
                  help='bump the revision number in important files')
     p.add_option('-e', '--export',
                  default=False, action='store_true',
-                 help='Export the SVN tag to a tarball and build docs')
+                 help='Export the hg tag to a tarball and build docs')
     p.add_option('-u', '--upload', metavar="username",
                  help='Upload the tarballs and docs to dinsdale')
     p.add_option('-m', '--branch',
@@ -140,9 +139,9 @@ def bump(tag):
                 break
         full_path = os.path.join('Misc/RPM/', file)
         print('\nrenaming %s to %s' % (full_path, wanted_file))
-        run_cmd(['svn', 'rename', '--force', full_path, wanted_file])
+        run_cmd(['hg', 'rename', '--force', full_path, wanted_file])
         print('File was renamed; please commit')
-        run_cmd(['svn', 'commit'])
+        run_cmd(['hg', 'commit'])
     new = '%define version ' + tag.text + \
         '\n%define libvers ' + tag.basic_version
     constant_replace(wanted_file, new, '#', '')
@@ -258,9 +257,7 @@ def export(tag):
     with changed_dir(tag.text):
         print('Exporting tag:', tag.text)
         archivename = 'Python-%s' % tag.text
-        run_cmd(['svn', 'export', '-q',
-                 'http://svn.python.org/projects/python/tags/r%s'
-                 % tag.nickname, archivename])
+        run_cmd(['hg', 'archive', '-r', tag.hgname, archivename])
         with changed_dir(archivename):
             print('Removing VCS .*ignore and .hgeol')
             for name in ('.hgignore', '.hgeol', '.bzrignore', '.gitignore'):
@@ -359,33 +356,21 @@ class Tag(object):
     def nickname(self):
         return self.text.replace('.', '')
 
+    @property
+    def hgname(self):
+        return 'v' + self.text
+
 
 def branch(tag):
     if tag.patch > 0 or tag.level != "f":
         print('It doesn\'t look like you\'re making a final release.')
         if input('Are you sure you want to branch?') != "y":
             return
-    url = urlsplit(get_current_location())
-    new_path = 'python/branches/release%s%s-maint' % (tag.major, tag.minor)
-    tag_url = urlunsplit((url.scheme, url.netloc, new_path,
-                          url.query, url.fragment))
-    run_cmd(['svn', 'copy', get_current_location(), tag_url])
-
-
-def get_current_location():
-    proc = subprocess.Popen('svn info', shell=True, stdout=subprocess.PIPE)
-    data = proc.stdout.read().decode("utf-8").splitlines()
-    for line in data:
-        if line.startswith('URL: '):
-            return line.lstrip('URL: ')
+    run_cmd(['hg', 'branch', tag.basic_version])
 
 
 def make_tag(tag):
-    url = urlsplit(get_current_location())
-    new_path = 'python/tags/r' + tag.nickname
-    tag_url = urlunsplit((url.scheme, url.netloc, new_path,
-                          url.query, url.fragment))
-    run_cmd(['svn', 'copy', get_current_location(), tag_url])
+    run_cmd(['hg', 'tag', tag.hgname])
 
 
 NEWS_TEMPLATE = """
