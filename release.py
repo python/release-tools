@@ -344,13 +344,16 @@ class Tag(object):
         for i, thing in enumerate(data):
             if thing is None:
                 data[i] = 0
-        self.text = tag_name
-        self.next_text = tag_name
         self.major = int(data[0])
         self.minor = int(data[1])
         self.patch = int(data[2])
         self.level = data[3]
         self.serial = int(data[4])
+        # This has the effect of normalizing the version.
+        self.text = "{}.{}.{}".format(self.major, self.minor, self.patch)
+        if self.level != "f":
+            self.text += self.level + str(self.serial)
+        self.next_text = tag_name
         self.basic_version = '%s.%s' % (self.major, self.minor)
 
     def __str__(self):
