@@ -155,7 +155,7 @@ def bump(tag):
 
     print('Updating Lib/idlelib/idlever.py...', end=' ')
     with open('Lib/idlelib/idlever.py', 'w', encoding="ascii") as fp:
-        new = 'IDLE_VERSION = "%s"\n' % tag.next_text
+        new = 'IDLE_VERSION = "%s"\n' % tag.text
         fp.write(new)
     print('done')
 
@@ -353,7 +353,6 @@ class Tag(object):
         self.text = "{}.{}.{}".format(self.major, self.minor, self.patch)
         if self.level != "f":
             self.text += self.level + str(self.serial)
-        self.next_text = tag_name
         self.basic_version = '%s.%s' % (self.major, self.minor)
 
     def __str__(self):
