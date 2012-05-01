@@ -261,7 +261,8 @@ def export(tag):
     with changed_dir(tag.text):
         print('Exporting tag:', tag.text)
         archivename = 'Python-%s' % tag.text
-        run_cmd(['hg', 'archive', '-r', tag.hgname, archivename])
+        run_cmd(['hg', 'archive', '--config', 'ui.archivemeta=off',
+                 '-r', tag.hgname, archivename])
         with changed_dir(archivename):
             print('Removing VCS .*ignore and .hg*')
             for name in ('.hgignore', '.hgeol', '.hgtags', '.hgtouch',
