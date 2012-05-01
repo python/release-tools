@@ -263,8 +263,9 @@ def export(tag):
         archivename = 'Python-%s' % tag.text
         run_cmd(['hg', 'archive', '-r', tag.hgname, archivename])
         with changed_dir(archivename):
-            print('Removing VCS .*ignore and .hgeol')
-            for name in ('.hgignore', '.hgeol', '.bzrignore', '.gitignore'):
+            print('Removing VCS .*ignore and .hg*')
+            for name in ('.hgignore', '.hgeol', '.hgtags', '.hgtouch',
+                         '.bzrignore', '.gitignore'):
                 try:
                     os.unlink(name)
                 except OSError:
