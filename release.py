@@ -169,7 +169,7 @@ def bump(tag):
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
         extra_work = True
         other_files += [
-            'configure.in',
+            'configure.ac',
             'Doc/tutorial/interpreter.rst',
             'Doc/tutorial/stdlib.rst',
             'Doc/tutorial/stdlib2.rst',
@@ -183,7 +183,7 @@ def bump(tag):
 
     print('Bumped revision')
     if extra_work:
-        print('configure.in has change; re-run autotools !')
+        print('configure.ac has change; re-run autotools!')
     print('Please commit and use --tag')
 
 
