@@ -264,6 +264,23 @@ def export(tag):
         run_cmd(['hg', 'archive', '--config', 'ui.archivemeta=off',
                  '-r', tag.hgname, archivename])
         with changed_dir(archivename):
+            # Touch a few files that get generated so they're up-to-date in
+            # the tarball.
+            if os.path.isfile('.hgtouch'):
+                # Use "hg touch" if available
+                run_cmd(['hg', '-v', 'touch', '--config',
+                         'extensions.touch=Tools/hg/hgtouch.py'])
+            else:
+                touchables = ['Include/Python-ast.h', 'Python/Python-ast.c']
+                if os.path.exists('Python/opcode_targets.h'):
+                    # This file isn't in Python < 3.1
+                    touchables.append('Python/opcode_targets.h')
+                print('Touching:', COMMASPACE.join(name.rsplit('/', 1)[-1]
+                                                   for name in touchables))
+                for name in touchables:
+                    os.utime(name, None)
+
+            # Remove files we don't want to ship in tarballs.
             print('Removing VCS .*ignore and .hg*')
             for name in ('.hgignore', '.hgeol', '.hgtags', '.hgtouch',
                          '.bzrignore', '.gitignore'):
@@ -271,16 +288,6 @@ def export(tag):
                     os.unlink(name)
                 except OSError:
                     pass
-            # Touch a few files that get generated so they're up-to-date in
-            # the tarball.
-            touchables = ['Include/Python-ast.h', 'Python/Python-ast.c']
-            if os.path.exists('Python/opcode_targets.h'):
-                # This file isn't in Python < 3.1
-                touchables.append('Python/opcode_targets.h')
-            print('Touching:', COMMASPACE.join(name.rsplit('/', 1)[-1]
-                                               for name in touchables))
-            for name in touchables:
-                os.utime(name, None)
 
             if tag.is_final:
                 docdist = build_docs()
