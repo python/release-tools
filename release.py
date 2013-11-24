@@ -281,9 +281,9 @@ def export(tag):
                     os.utime(name, None)
 
             # Remove files we don't want to ship in tarballs.
-            print('Removing VCS .*ignore and .hg*')
+            print('Removing VCS .*ignore, .hg*, and the hgtouch.pyc we JUST CREATED')
             for name in ('.hgignore', '.hgeol', '.hgtags', '.hgtouch',
-                         '.bzrignore', '.gitignore'):
+                         '.bzrignore', '.gitignore', 'Tools/hg/hgtouch.pyc'):
                 try:
                     os.unlink(name)
                 except OSError:
