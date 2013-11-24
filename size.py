@@ -11,7 +11,11 @@ DOT = '.'
 
 # For consistency with historical use.
 sort_order = dict((ext, i) for i, ext in enumerate(
-    ('tgz', 'tar.bz2', 'amd64.msi', 'msi', 'dmg')))
+    ('tgz', 'tar.bz2', 'tar.xz', 'pdb.zip', 'amd64.msi', 'msi', 'chm', 'dmg')))
+
+
+def ignore(filename):
+    return not any(filename.endswith(DOT + ext) for ext in sort_order)
 
 
 def key(filename):
@@ -21,10 +25,12 @@ def key(filename):
     if ext not in sort_order:
         ext = parts[-1]
     # Let KeyError propagate.
-    return sort_order[ext]
+    return sort_order.get(ext, 9999)
 
 
 for filename in sorted(sys.argv[1:], key=key):
+    if ignore(filename):
+        continue
     md5 = hashlib.md5()
     with open(filename, 'rb') as fp:
         md5.update(fp.read())
