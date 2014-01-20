@@ -270,7 +270,7 @@ def export(tag):
                     os.utime(name, None)
 
             # Remove files we don't want to ship in tarballs.
-            print('Removing VCS .*ignore, .hg*, and the hgtouch.pyc we JUST CREATED')
+            print('Removing VCS .*ignore, .hg*')
             for name in ('.hgignore', '.hgeol', '.hgtags', '.hgtouch',
                          '.bzrignore', '.gitignore'):
                 try:
