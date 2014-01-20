@@ -272,7 +272,7 @@ def export(tag):
             # Remove files we don't want to ship in tarballs.
             print('Removing VCS .*ignore, .hg*, and the hgtouch.pyc we JUST CREATED')
             for name in ('.hgignore', '.hgeol', '.hgtags', '.hgtouch',
-                         '.bzrignore', '.gitignore', 'Tools/hg/hgtouch.pyc'):
+                         '.bzrignore', '.gitignore'):
                 try:
                     os.unlink(name)
                 except OSError:
@@ -291,10 +291,11 @@ def export(tag):
             shutil.rmtree('tools/jinja2', ignore_errors=True)
             shutil.rmtree('tools/pygments', ignore_errors=True)
             shutil.rmtree('tools/sphinx', ignore_errors=True)
-            for dirpath, dirnames, filenames in os.walk('.'):
-                for filename in filenames:
-                    if filename.endswith('.pyc'):
-                        os.remove(os.path.join(dirpath, filename))
+
+        with changed_dir(archivename):
+            print('Zapping pycs')
+            run_cmd(["find . -depth -name '__pycache__' -exec rm -rf {} ';'"])
+            run_cmd(["find . -name '*.py[co]' -exec rm -f {} ';'"])
 
         os.mkdir('src')
         with changed_dir('src'):
