@@ -258,7 +258,9 @@ def export(tag):
             if os.path.isfile('.hgtouch'):
                 # Use "hg touch" if available
                 run_cmd(['hg', '-v', 'touch', '--config',
-                         'extensions.touch=Tools/hg/hgtouch.py'])
+                         'extensions.touch=Tools/hg/hgtouch.py',
+                         # need to give basedir path relative to repo root
+                         '-b', os.path.join(tag.text, archivename)])
             else:
                 touchables = ['Include/Python-ast.h', 'Python/Python-ast.c']
                 if os.path.exists('Python/opcode_targets.h'):
