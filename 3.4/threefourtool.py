@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 
+#
+# todo:
+#
+# change status page
+#  * get rid of "merged" vs "unmerged" lists
+#    instead, just have one list, with each revision marked merged or unmerged.
+#    make it obvious, like have unmerged indented or something.
+
 import atexit
 import collections
 import datetime
@@ -29,6 +37,8 @@ def now():
     s = str(datetime.datetime.now())
     for c in "- :":
         s = s.replace(c, '.')
+    fields = s.split('.')
+    s = '.'.join(fields[:-1])
     return s
 
 def line_to_rev(line):
@@ -428,10 +438,12 @@ q - quit
         text, cmd = commands[i]
         commands_run.add(text)
         if isinstance(cmd, str):
+            print()
             cmd = cmd.format_map(u)
             result = os.system(cmd)
             print()
-            print("Result:", result)
+            if result != 0:
+                print("Process return code:", result)
         else:
             cmd()
 
@@ -593,19 +605,30 @@ q - quit
             r = r.split()[0].strip()
             u['threefour picked revision'] = r
 
+        show_patch = False
+        def toggle_patch():
+            nonlocal show_patch
+            show_patch = not show_patch
+
         def mark_as_picked():
             del self.unfinished['default picked revision']
+            print()
+            print("_" * 79)
+            print("_" * 79)
+            print()
 
         while u.get('default picked revision'):
 
             commands = []
             commands.append(("Update to appropriate revision in 3.4 branch", "hg update -r {threefour graft here}"))
             commands.append(("Graft revision", "hg graft {default picked revision}"))
+            commands.append(("Patch revision (only if graft fails)", toggle_patch))
 
-            commands.append(("[graft failed step 1] Generate patch", "/usr/bin/hg diff -r {default diff from} -r {default picked revision} > {patch path}"))
-            commands.append(("[graft failed step 2] Inspect patch", "{EDITOR} {patch path}"))
-            commands.append(("[graft failed step 3] Apply patch", "/usr/bin/patch -p1 < {patch path}"))
-            commands.append(("[graft failed step 4] Check in patch", "/usr/bin/hg ci --user '{user}' --date '{date}' --logfile '{commit message path}'"))
+            if show_patch:
+                commands.append(("[graft failed step 1] Generate patch", "/usr/bin/hg diff -r {default diff from} -r {default picked revision} > {patch path}"))
+                commands.append(("[graft failed step 2] Inspect patch", "{EDITOR} {patch path}"))
+                commands.append(("[graft failed step 3] Apply patch", "/usr/bin/patch -p1 < {patch path}"))
+                commands.append(("[graft failed step 4] Check in patch", "/usr/bin/hg ci --user '{user}' --date '{date}' --logfile '{commit message path}'"))
 
             if u.get('threefour rebase from'):
                 commands.append(("Detect new revision", detect_new_revision))
@@ -615,8 +638,12 @@ q - quit
 
             commands.append(("Mark revision as picked", mark_as_picked))
 
+            commands.append(("Print details of picked revision", "hg log -r {default picked revision}"))
+
             print()
-            print("Picking revision {default picked revision}:".format_map(u))
+            total = len(u['original picked revisions'])
+            current = len(u['picked revisions'])
+            print("Picking revision {default picked revision}".format_map(u) + " ({}/{}):".format(total-current, total))
             self._run_command(commands, u)
 
     def finish(self):
@@ -686,6 +713,20 @@ q - quit
     def rsync(self):
         os.chdir(outgoing)
         os.system("rsync -av * midwinter.com:public_html/3.4.status")
+
+
+    def asyncio(self):
+        for dir in ("Lib/asyncio", "Lib/test/test_asyncio"):
+            os.chdir("/home/larry/src/python/3.4/" + dir)
+            os.system("diff . /home/larry/src/python/trunk/" + dir)
+        os.chdir("/home/larry/src/python/3.4/Doc/library")
+        for file in glob.glob("asyncio*"):
+            f1 = open(file, "rt").read()
+            f2 = open("/home/larry/src/python/trunk/Doc/library/" + file, "rt").read()
+            if f1 != f2:
+                cmd = "diff {file} /home/larry/src/python/trunk/Doc/library/{file}".format(file=file)
+                print(cmd)
+                os.system(cmd)
 
 
 
