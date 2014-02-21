@@ -26,6 +26,10 @@ import time
 outgoing = "/home/larry/src/python/34outgoing"
 
 
+def system(s):
+    print(s)
+    os.system(s)
+
 def yes_no():
     while True:
         s = input("Are you sure? (y/n) >")
@@ -693,7 +697,8 @@ q - quit
 
     def tar(self):
         time = now()
-        tardir = "/home/larry/src/python/python-" + time
+        tarbase = "python_3.4.0rc2_" + time
+        tardir = "/home/larry/src/python/" + tarbase
         def remove_dir(dir):
             if os.path.isdir(dir):
                 shutil.rmtree(dir)
@@ -702,21 +707,22 @@ q - quit
         remove_dir(tardir)
 
         os.chdir("/home/larry/src/python")
-        os.system("hg clone 3.4 " + tardir)
+        system("hg clone 3.4 " + tardir)
 
         os.chdir(tardir)
+        system("hg update -r 3.4")
         remove_dir(".hg")
         for prefix in ('.hg', '.bzr', '.git'):
             for filename in glob.glob(prefix + '*'):
                 os.unlink(filename)
         os.chdir("/home/larry/src/python")
-        os.system("tar cvfz " + outgoing + "/python.3.4.{}.tgz python-{}".format(time, time))
+        system("tar cvfz " + outgoing + "/" + tarbase + ".tgz " + tarbase)
 
         remove_dir(tardir)
 
     def rsync(self):
         os.chdir(outgoing)
-        os.system("rsync -av * midwinter.com:public_html/3.4.status")
+        system("rsync -av * midwinter.com:public_html/3.4.status")
 
 
     def asyncio(self):
