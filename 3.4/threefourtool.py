@@ -443,7 +443,11 @@ q - quit
             result = os.system(cmd)
             print()
             if result != 0:
-                print("Process return code:", result)
+                print("*" * 79)
+                print("*" * 79)
+                print("** Process return code:", result )
+                print("*" * 79)
+                print("*" * 79)
         else:
             cmd()
 
