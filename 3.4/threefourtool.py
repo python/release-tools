@@ -124,7 +124,7 @@ def read_changesets(earliest = '6343bdbb7085', force=False):
     current_directory = os.getcwd()
     try:
         os.chdir("/home/larry/src/python/3.4")
-        p = subprocess.Popen(["/usr/bin/hg", "log"], stdout=subprocess.PIPE)
+        p = subprocess.Popen(["/usr/bin/hg", "log", "-v"], stdout=subprocess.PIPE)
         # with open("/home/larry/src/python/logtxt", "rt", encoding="utf-8") as f:
             # output = f.read()
 
