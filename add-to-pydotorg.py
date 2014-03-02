@@ -1,17 +1,16 @@
 """
 Script to add ReleaseFile objects for Python releases on the new pydotorg.
-
-To use:
+To use (RELEASE is something like 3.3.5rc2):
 
 * Copy this script to dinsdale (it needs access to all the release files).
   You could also download all files, then you need to adapt the "ftp_root"
   string below.
 
-* Create a new Release object via the Django admin (API is currently broken),
-  the name MUST be "Python RELEASE".
-
-* Make sure all download files are in place in the /data/ftp.python.org
+* Make sure all download files are in place in the correct /data/ftp.python.org
   subdirectory.
+
+* Create a new Release object via the Django admin (adding via API is
+  currently broken), the name MUST be "Python RELEASE".
 
 * Put an AUTH_INFO variable containing "username:api_key" in your environment.
 
@@ -19,6 +18,8 @@ To use:
 
   Each call will remove all previous file objects, so you can call the script
   multiple times.
+
+Georg Brandl, March 2014.
 """
 
 import os
@@ -37,7 +38,7 @@ except KeyError:
         'containing "username:api_key".'
     sys.exit()
 
-base_url = 'http://127.0.0.1:8124/api/v1/'
+base_url = 'http://www.python.org/api/v1/'
 ftp_root = '/data/ftp.python.org/pub/python/'
 download_root = 'http://www.python.org/ftp/python/'
 
