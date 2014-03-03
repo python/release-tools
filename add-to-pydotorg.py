@@ -71,7 +71,7 @@ def slug_for(release):
         ('-' + release[5:] if release[5:] else '')
 
 def sigfile_for(release, rfile):
-    return download_root + '%s/%s.asc' % (release, rfile)
+    return download_root + '%s/%s.asc' % (release[:5], rfile)
 
 def md5sum_for(release, rfile):
     return hashlib.md5(open(ftp_root + release[:5] + '/' + rfile, 'rb').read()).hexdigest()
@@ -105,7 +105,7 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
         release = '/api/v1/downloads/release/%s/' % rel_pk,
         description = add_desc,
         is_source = os_pk == 3,
-        url = download_root + '%s/%s' % (release, rfile),
+        url = download_root + '%s/%s' % (release[:5], rfile),
         gpg_signature_file = sigfile_for(release, rfile),
         md5_sum = md5sum_for(release, rfile),
         filesize = filesize_for(release, rfile),
