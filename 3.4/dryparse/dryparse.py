@@ -373,6 +373,7 @@ class DryArgument:
         if is_option and (self.type is not bool) and (not self.value_usage):
             self.value_usage = option_value_usage_formatter(self.type.__name__)
 
+        # print("DryArgument name", repr(name), "type", self.type, "default", repr(default), "annotations", repr(annotations), "is_option", is_option )
 
 class OptionError(RuntimeError):
     pass
@@ -604,7 +605,14 @@ class DryCommand:
             nonlocal needs_value
             argument, is_bool = analyze_option(option)
             if is_bool:
-                argument.value = not argument.value
+                if value is unspecified:
+                    if argument.value is not unspecified:
+                        value = not argument.value
+                    elif argument.default is not unspecified:
+                        value = not argument.default
+                    else:
+                        value = True
+                argument.set_value(value)
             else:
                 if value is unspecified:
                     needs_value = argument

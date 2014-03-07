@@ -14,6 +14,7 @@ import datetime
 from dryparse import dryparse
 import glob
 import os
+import os.path
 import pprint
 import pickle
 import shutil
@@ -23,7 +24,22 @@ import tempfile
 import time
 
 
+def which(cmd, path="PATH"):
+    """Find cmd on PATH."""
+    if os.path.exists(cmd):
+        return cmd
+    if cmd[0] == '/':
+        return None
+    for segment in os.getenv(path).split(":"):
+        program = os.path.normpath(os.path.join(segment, cmd))
+        if os.path.exists(program):
+            return program
+    return None
+
+
 outgoing = "/home/larry/src/python/34outgoing"
+# path_to_hg = "/home/larry/src/hg/hg"
+hg = which('hg')
 
 
 def system(s):
@@ -124,7 +140,7 @@ def read_changesets(earliest = '6343bdbb7085', force=False):
     current_directory = os.getcwd()
     try:
         os.chdir("/home/larry/src/python/3.4")
-        p = subprocess.Popen(["/home/larry/src/hg/hg", "log", "-v"], stdout=subprocess.PIPE)
+        p = subprocess.Popen([hg, "log", "-v"], stdout=subprocess.PIPE)
         # with open("/home/larry/src/python/logtxt", "rt", encoding="utf-8") as f:
             # output = f.read()
 
@@ -276,6 +292,7 @@ def print_revs(print_test, lineage_test, printer):
         # print("  r", rev, "p", parents, "rev to print", rev_to_print)
         if rev_to_print in seen:
             continue
+        print(fields.get('branch'), "printing r", rev, "rev_to_print", rev_to_print)
         seen.add(rev_to_print)
         print_rev(rev_to_print, printer)
 
@@ -301,14 +318,8 @@ def is_34(rev):
     branch = fields.get('branch')
     if branch != '3.4':
         return False
-    revs = get_user_date_to_revs(fields)
-    assert (rev, branch) in revs
-    # print("is 34?", rev, revs)
-    for r2, branch in revs:
-        if not branch:
-            # print(rev, "->", r2)
-            return r2
-    return False
+
+    return default_from_34.get(rev, False)
 
 class Tool:
     unfinished_filename = "/home/larry/.34unfinished"
@@ -340,10 +351,13 @@ class Tool:
     def status(self):
         """
         Regenerate the status webpage.
+
+        The status webpage is written to the "34outgoing" directory.
         """
         f = open(outgoing + "/merge.status.html", "wt")
 
         read_changesets()
+        print("changesets in 3.4", default_from_34)
 
         def printer(*a):
             print(*a, file=f)
@@ -455,9 +469,15 @@ q - quit
         else:
             cmd()
 
-    def pick(self, picked_revision, *picked_revisions):
+    def pick(self, picked_revision, *picked_revisions,
+        rebase:('-r', 'Rebase so that all revisions are in chronological order')=True):
         """
-        Cherry-pick a revision from default to 3.4.
+        Cherry-pick one or more revisions from default to 3.4.
+
+        You can stop in the middle of a 'pick' session with Ctrl-C.  The current
+        state will be pickled, and you can resume it with the 'finish' command,
+        or abandon it with the 'abandon' command.  You can also resume a pick
+        session by running 'pick' with exactly the same arguments.
         """
         pr = [picked_revision]
         pr.extend(picked_revisions)
@@ -477,7 +497,8 @@ q - quit
         picked_revisions.sort(key=to_default_index)
 
         if self.unfinished:
-            if self.unfinished['original picked revisions'] == picked_revisions:
+            if ((self.unfinished['original picked revisions'] == picked_revisions) and
+                (self.unfinished['rebase'] == rebase)):
                 return self.finish()
             sys.exit("You have unfinished business!\n\nUse the 'finish' command to finish it,\nor the 'abandon' command to abandon it.")
 
@@ -485,6 +506,7 @@ q - quit
             'function': '_pick',
             'picked revisions': picked_revisions,
             'original picked revisions': list(picked_revisions),
+            'rebase': rebase,
             }
         self.finish()
 
@@ -515,7 +537,9 @@ q - quit
                 # print("r", r)
                 if r == r_34_first_revision:
                     break
-                r_default = default_from_34[r]
+                r_default = default_from_34.get(r)
+                if r_default is None:
+                    continue
                 i = branches[None].index(r_default)
                 if i >= index:
                     break
@@ -565,7 +589,7 @@ q - quit
         read_changesets()
         os.chdir("/home/larry/src/python/3.4")
         print("Updating to 3.4 branch:")
-        os.system("/home/larry/src/hg/hg update -r 3.4")
+        os.system(hg + " update -r 3.4")
         print()
         u = self.unfinished.get
         print("Picking revisions ", u('picked revisions'))
@@ -584,6 +608,7 @@ q - quit
         u = self.unfinished
 
         u['EDITOR'] = os.getenv('EDITOR')
+        u['hg'] = hg
 
         patch_path = "/tmp/patch.{default diff from}.to.{default picked revision}.diff".format_map(u)
         u['patch path'] = patch_path
@@ -604,7 +629,7 @@ q - quit
         atexit.register(delete_files, patch_path, commit_message_path)
 
         def detect_new_revision():
-            output = subprocess.check_output(['/home/larry/src/hg/hg', 'summary']).decode('utf-8').split('\n')
+            output = subprocess.check_output([hg, 'summary']).decode('utf-8').split('\n')
             line = output[0]
             assert line.startswith('parent:')
             line = line[len('parent:'):]
@@ -638,42 +663,47 @@ q - quit
                     path = os.path.join(dirpath, filename)
                     os.unlink(path)
 
-        changes = subprocess.check_output(['/home/larry/src/hg/hg', 'stat', '-mard']).decode('utf-8')
+        changes = subprocess.check_output([hg, 'stat', '-mard']).decode('utf-8')
         try_auto_graft = not bool(changes)
         if try_auto_graft:
             print("Attempting auto-graft:")
         else:
             print("Skipping auto-graft, there are outstanding changes.")
 
+        rebase = u['rebase']
+
         while u.get('default picked revision'):
 
             commands = []
-            commands.append(("Update to appropriate revision in 3.4 branch", "/home/larry/src/hg/hg update -r {threefour graft here}"))
-            commands.append(("Graft revision", "/home/larry/src/hg/hg graft --tool internal:merge {default picked revision}"))
+            if rebase:
+                commands.append(("Update to appropriate revision in 3.4 branch", "{hg} update -r {threefour graft here}"))
+            else:
+                commands.append(("Update to current revision in 3.4 branch", "{hg} update -r 3.4"))
+            commands.append(("Graft revision", "{hg} graft --tool internal:merge {default picked revision}"))
             commands.append(("Handle graft conflict", toggle_graft))
 
             if show_graft:
-                commands.append(("Graft #1: List conflicts", "/home/larry/src/hg/hg diff resolve -l"))
-                commands.append(("Graft #2: Mark all conflicts as resolved", "/home/larry/src/hg/hg diff resolve -m"))
-                commands.append(("Graft #3: Resume the graft", "/home/larry/src/hg/hg diff graft --continue"))
+                commands.append(("Graft #1: List conflicts", "{hg} resolve -l"))
+                commands.append(("Graft #2: Mark all conflicts as resolved", "{hg} resolve -m"))
+                commands.append(("Graft #3: Resume the graft", "{hg} graft --continue"))
                 commands.append(("Graft #4: Clean up .orig and .rej files", remove_orig_and_rej))
 
-            commands.append(("Patch revision (only if graft fails)", toggle_patch))
+            commands.append(("Patch revision (for ungraftable merge revisions)", toggle_patch))
             if show_patch:
-                commands.append(("Patch #1: Generate patch", "/home/larry/src/hg/hg diff -r {default diff from} -r {default picked revision} > {patch path}"))
+                commands.append(("Patch #1: Generate patch", "{hg} diff -r {default diff from} -r {default picked revision} > {patch path}"))
                 commands.append(("Patch #2: Inspect patch", "{EDITOR} {patch path}"))
                 commands.append(("Patch #3: Apply patch", "/usr/bin/patch -p1 < {patch path}"))
-                commands.append(("Patch #4: Check in patch", "/home/larry/src/hg/hg ci --user '{user}' --date '{date}' --logfile '{commit message path}'"))
+                commands.append(("Patch #4: Check in patch", "{hg} ci --user '{user}' --date '{date}' --logfile '{commit message path}'"))
 
             if u.get('threefour rebase from'):
                 commands.append(("Detect new revision", detect_new_revision))
-                c = "/home/larry/src/hg/hg rebase --source {threefour rebase from} --dest {threefour picked revision}"
+                c = "{hg} rebase --source {threefour rebase from} --dest {threefour picked revision}"
                 commands.append(("Rebase subsequent revisions after grafted revision", c))
-                commands.append(("Update to head of 3.4 branch", "/home/larry/src/hg/hg update -r 3.4"))
+                commands.append(("Update to head of 3.4 branch", "{hg} update -r 3.4"))
 
             commands.append(("Mark revision as picked", mark_as_picked))
 
-            commands.append(("Print details of picked revision", "/home/larry/src/hg/hg log  -v -r {default picked revision}"))
+            commands.append(("Print details of picked revision", "{hg} log  -v -r {default picked revision}"))
 
             print()
             total = len(u['original picked revisions'])
@@ -691,6 +721,7 @@ q - quit
                         print("** Process return code:", return_code)
                         print("*" * 80)
                         print("*" * 80)
+                        try_auto_graft = False
                         break
                 else:
                     mark_as_picked()
@@ -699,6 +730,9 @@ q - quit
             self._run_command(commands, u)
 
     def finish(self):
+        """
+        Continue unfinished business (e.g. pick).
+        """
         try:
             if not self.unfinished:
                 sys.exit("No unfinished business!")
@@ -713,6 +747,9 @@ q - quit
             self._save()
 
     def abandon(self, *, force:('-f',)=False):
+        """
+        Abandon unfinished business (e.g. pick).
+        """
         if not self.unfinished:
             sys.exit("No unfinished business!")
         if force or yes_no() == 'y':
@@ -733,13 +770,19 @@ q - quit
                 os.rename("/home/larry/src/python/3.4", "/home/larry/src/python/bad3.4")
                 continue
             break
-        os.system("/home/larry/src/hg/hg clone trunk 3.4")
+        os.system(hg + " clone trunk 3.4")
         os.chdir("/home/larry/src/python/3.4")
-        os.system("/home/larry/src/hg/hg update -r e64ae8b82672")
-        os.system("/home/larry/src/hg/hg branch 3.4")
-        os.system("/home/larry/src/hg/hg commit -m 'Created release branch for 3.4.'")
+        os.system(hg + " update -r e64ae8b82672")
+        os.system(hg + " branch 3.4")
+        os.system(hg + " commit -m 'Created release branch for 3.4.'")
 
     def tar(self):
+        """
+        Create a tarball from the current 3.4 tree.
+
+        The tarball is written to the "34outgoing" directory.
+        Its filename is constructed based on the current time.
+        """
         time = now()
         tarbase = "python_3.4.0rc2_" + time
         tardir = "/home/larry/src/python/" + tarbase
@@ -751,10 +794,10 @@ q - quit
         remove_dir(tardir)
 
         os.chdir("/home/larry/src/python")
-        system("/home/larry/src/hg/hg clone 3.4 " + tardir)
+        system(hg + " clone 3.4 " + tardir)
 
         os.chdir(tardir)
-        system("/home/larry/src/hg/hg update -r 3.4")
+        system(hg + " update -r 3.4")
         remove_dir(".hg")
         for prefix in ('.hg', '.bzr', '.git'):
             for filename in glob.glob(prefix + '*'):
@@ -765,11 +808,18 @@ q - quit
         remove_dir(tardir)
 
     def rsync(self):
+        """
+        Sync the current "34outgoing" directory to the public server.
+        """
         os.chdir(outgoing)
         system("rsync -av * midwinter.com:public_html/3.4.status")
 
 
     def asyncio(self):
+        """
+        Check that the 'asyncio' files in 3.4 are exactly the same
+        as the equivalent ones in trunk.
+        """
         for dir in ("Lib/asyncio", "Lib/test/test_asyncio"):
             os.chdir("/home/larry/src/python/3.4/" + dir)
             os.system("diff . /home/larry/src/python/trunk/" + dir)
