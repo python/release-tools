@@ -28,7 +28,7 @@ outgoing = "/home/larry/src/python/34outgoing"
 
 def system(s):
     print(s)
-    os.system(s)
+    return os.system(s)
 
 def yes_no():
     while True:
@@ -124,7 +124,7 @@ def read_changesets(earliest = '6343bdbb7085', force=False):
     current_directory = os.getcwd()
     try:
         os.chdir("/home/larry/src/python/3.4")
-        p = subprocess.Popen(["/usr/bin/hg", "log", "-v"], stdout=subprocess.PIPE)
+        p = subprocess.Popen(["/home/larry/src/hg/hg", "log", "-v"], stdout=subprocess.PIPE)
         # with open("/home/larry/src/python/logtxt", "rt", encoding="utf-8") as f:
             # output = f.read()
 
@@ -565,7 +565,7 @@ q - quit
         read_changesets()
         os.chdir("/home/larry/src/python/3.4")
         print("Updating to 3.4 branch:")
-        os.system("hg update -r 3.4")
+        os.system("/home/larry/src/hg/hg update -r 3.4")
         print()
         u = self.unfinished.get
         print("Picking revisions ", u('picked revisions'))
@@ -604,7 +604,7 @@ q - quit
         atexit.register(delete_files, patch_path, commit_message_path)
 
         def detect_new_revision():
-            output = subprocess.check_output(['/usr/bin/hg', 'summary']).decode('utf-8').split('\n')
+            output = subprocess.check_output(['/home/larry/src/hg/hg', 'summary']).decode('utf-8').split('\n')
             line = output[0]
             assert line.startswith('parent:')
             line = line[len('parent:'):]
@@ -612,6 +612,11 @@ q - quit
             assert colon == ':'
             r = r.split()[0].strip()
             u['threefour picked revision'] = r
+
+        show_graft = False
+        def toggle_graft():
+            nonlocal show_graft
+            show_graft = not show_graft
 
         show_patch = False
         def toggle_patch():
@@ -625,33 +630,72 @@ q - quit
             print("_" * 79)
             print()
 
+        def remove_orig_and_rej():
+            for dirpath, dirnames, filenames in os.walk("."):
+                for filename in filenames:
+                    if not filename.endswith((".orig", ".rej")):
+                        continue
+                    path = os.path.join(dirpath, filename)
+                    os.unlink(path)
+
+        changes = subprocess.check_output(['/home/larry/src/hg/hg', 'stat', '-mard']).decode('utf-8')
+        try_auto_graft = not bool(changes)
+        if try_auto_graft:
+            print("Attempting auto-graft:")
+        else:
+            print("Skipping auto-graft, there are outstanding changes.")
+
         while u.get('default picked revision'):
 
             commands = []
-            commands.append(("Update to appropriate revision in 3.4 branch", "hg update -r {threefour graft here}"))
-            commands.append(("Graft revision", "hg graft {default picked revision}"))
-            commands.append(("Patch revision (only if graft fails)", toggle_patch))
+            commands.append(("Update to appropriate revision in 3.4 branch", "/home/larry/src/hg/hg update -r {threefour graft here}"))
+            commands.append(("Graft revision", "/home/larry/src/hg/hg graft --tool internal:merge {default picked revision}"))
+            commands.append(("Handle graft conflict", toggle_graft))
 
+            if show_graft:
+                commands.append(("Graft #1: List conflicts", "/home/larry/src/hg/hg diff resolve -l"))
+                commands.append(("Graft #2: Mark all conflicts as resolved", "/home/larry/src/hg/hg diff resolve -m"))
+                commands.append(("Graft #3: Resume the graft", "/home/larry/src/hg/hg diff graft --continue"))
+                commands.append(("Graft #4: Clean up .orig and .rej files", remove_orig_and_rej))
+
+            commands.append(("Patch revision (only if graft fails)", toggle_patch))
             if show_patch:
-                commands.append(("[graft failed step 1] Generate patch", "/usr/bin/hg diff -r {default diff from} -r {default picked revision} > {patch path}"))
-                commands.append(("[graft failed step 2] Inspect patch", "{EDITOR} {patch path}"))
-                commands.append(("[graft failed step 3] Apply patch", "/usr/bin/patch -p1 < {patch path}"))
-                commands.append(("[graft failed step 4] Check in patch", "/usr/bin/hg ci --user '{user}' --date '{date}' --logfile '{commit message path}'"))
+                commands.append(("Patch #1: Generate patch", "/home/larry/src/hg/hg diff -r {default diff from} -r {default picked revision} > {patch path}"))
+                commands.append(("Patch #2: Inspect patch", "{EDITOR} {patch path}"))
+                commands.append(("Patch #3: Apply patch", "/usr/bin/patch -p1 < {patch path}"))
+                commands.append(("Patch #4: Check in patch", "/home/larry/src/hg/hg ci --user '{user}' --date '{date}' --logfile '{commit message path}'"))
 
             if u.get('threefour rebase from'):
                 commands.append(("Detect new revision", detect_new_revision))
-                c = "hg rebase --source {threefour rebase from} --dest {threefour picked revision}"
+                c = "/home/larry/src/hg/hg rebase --source {threefour rebase from} --dest {threefour picked revision}"
                 commands.append(("Rebase subsequent revisions after grafted revision", c))
-                commands.append(("Update to head of 3.4 branch", "hg update -r 3.4"))
+                commands.append(("Update to head of 3.4 branch", "/home/larry/src/hg/hg update -r 3.4"))
 
             commands.append(("Mark revision as picked", mark_as_picked))
 
-            commands.append(("Print details of picked revision", "hg log -r {default picked revision}"))
+            commands.append(("Print details of picked revision", "/home/larry/src/hg/hg log  -v -r {default picked revision}"))
 
             print()
             total = len(u['original picked revisions'])
             current = len(u['picked revisions'])
             print("Picking revision {default picked revision}".format_map(u) + " ({}/{}):".format(total-current, total))
+
+            if try_auto_graft:
+                for i in (0, 1):
+                    text, cmd = commands[i]
+                    return_code = system(cmd.format_map(u))
+                    u['commands run'].add(text)
+                    if return_code:
+                        print("*" * 80)
+                        print("*" * 80)
+                        print("** Process return code:", return_code)
+                        print("*" * 80)
+                        print("*" * 80)
+                        break
+                else:
+                    mark_as_picked()
+                    return
+
             self._run_command(commands, u)
 
     def finish(self):
@@ -678,7 +722,7 @@ q - quit
         """
         Recreate the 3.4 branch from scratch.
         """
-        if (not force) and (yes_no() == 'n'):
+        if (not force) and (yes_no() != 'y'):
             sys.exit()
         os.chdir("/home/larry/src/python")
         while True:
@@ -689,11 +733,11 @@ q - quit
                 os.rename("/home/larry/src/python/3.4", "/home/larry/src/python/bad3.4")
                 continue
             break
-        os.system("hg clone trunk 3.4")
+        os.system("/home/larry/src/hg/hg clone trunk 3.4")
         os.chdir("/home/larry/src/python/3.4")
-        os.system("hg update -r e64ae8b82672")
-        os.system("hg branch 3.4")
-        os.system("hg commit -m 'Created release branch for 3.4.'")
+        os.system("/home/larry/src/hg/hg update -r e64ae8b82672")
+        os.system("/home/larry/src/hg/hg branch 3.4")
+        os.system("/home/larry/src/hg/hg commit -m 'Created release branch for 3.4.'")
 
     def tar(self):
         time = now()
@@ -707,10 +751,10 @@ q - quit
         remove_dir(tardir)
 
         os.chdir("/home/larry/src/python")
-        system("hg clone 3.4 " + tardir)
+        system("/home/larry/src/hg/hg clone 3.4 " + tardir)
 
         os.chdir(tardir)
-        system("hg update -r 3.4")
+        system("/home/larry/src/hg/hg update -r 3.4")
         remove_dir(".hg")
         for prefix in ('.hg', '.bzr', '.git'):
             for filename in glob.glob(prefix + '*'):
