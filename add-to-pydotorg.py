@@ -26,6 +26,7 @@ import os
 import re
 import sys
 import json
+import time
 import hashlib
 from os import path
 
@@ -71,7 +72,7 @@ def slug_for(release):
         ('-' + release[5:] if release[5:] else '')
 
 def sigfile_for(release, rfile):
-    return download_root + '%s/%s.asc' % (release[:5], rfile)
+    return download_root + '%s/%s.asc' % (release, rfile)
 
 def md5sum_for(release, rfile):
     return hashlib.md5(open(ftp_root + release[:5] + '/' + rfile, 'rb').read()).hexdigest()
@@ -100,13 +101,13 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
     """Return a dictionary with all needed fields for a ReleaseFile object."""
     return dict(
         name = file_desc,
-        slug = slug_for(release) + '-' + make_slug(file_desc),
+        slug = slug_for(release) + '-' + make_slug(file_desc)[:40],
         os = '/api/v1/downloads/os/%s/' % os_pk,
         release = '/api/v1/downloads/release/%s/' % rel_pk,
         description = add_desc,
         is_source = os_pk == 3,
         url = download_root + '%s/%s' % (release[:5], rfile),
-        gpg_signature_file = sigfile_for(release, rfile),
+        gpg_signature_file = sigfile_for(release[:5], rfile),
         md5_sum = md5sum_for(release, rfile),
         filesize = filesize_for(release, rfile),
         download_button = 'tar.xz' in rfile or
@@ -165,10 +166,13 @@ def post_object(objtype, datadict):
                          data=json.dumps(datadict), headers=headers)
     if resp.status_code != 201:
         try:
-            print resp.json['traceback']
+            info = json.loads(resp.text)
+            print info.get('error_message', 'No error message.')
+            print info.get('traceback', '')
         except:
             pass
-        raise RuntimeError('creating %s failed: %s' % (objtype, resp.status_code))
+        print 'Creating %s failed: %s' % (objtype, resp.status_code)
+        return -1
     newloc = resp.headers['Location']
     pk = int(newloc.strip('/').split('/')[-1])
     return pk
@@ -188,8 +192,9 @@ def main():
         print 'Creating ReleaseFile object for', rfile
         file_dict = build_file_dict(rel, rfile, rel_pk, file_desc, os_pk, add_desc)
         file_pk = post_object('release_file', file_dict)
-        print 'Created as id =', file_pk
-        n += 1
+        if file_pk >= 0:
+            print 'Created as id =', file_pk
+            n += 1
     print 'Done - %d files added' % n
 
 main()
