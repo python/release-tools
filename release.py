@@ -232,10 +232,6 @@ def tarball(source):
         checksum_tgz.hexdigest(), int(os.path.getsize(tgz)), tgz))
     print('  %s  %8s  %s' % (
         checksum_xz.hexdigest(), int(os.path.getsize(xz)), xz))
-    with open(tgz + '.md5', 'w', encoding="ascii") as fp:
-        fp.write(checksum_tgz.hexdigest())
-    with open(xz + '.md5', 'w', encoding="ascii") as fp:
-        fp.write(checksum_xz.hexdigest())
 
     print('Signing tarballs')
     print('List of available private keys:')
