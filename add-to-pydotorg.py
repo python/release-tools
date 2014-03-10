@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Script to add ReleaseFile objects for Python releases on the new pydotorg.
 To use (RELEASE is something like 3.3.5rc2):
