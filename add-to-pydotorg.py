@@ -40,9 +40,9 @@ except KeyError:
         'containing "username:api_key".'
     sys.exit()
 
-base_url = 'http://www.python.org/api/v1/'
+base_url = 'https://www.python.org/api/v1/'
 ftp_root = '/data/ftp.python.org/pub/python/'
-download_root = 'http://www.python.org/ftp/python/'
+download_root = 'https://www.python.org/ftp/python/'
 
 headers = {'Authorization': 'ApiKey %s' % auth_info, 'Content-Type': 'application/json'}
 
