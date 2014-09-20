@@ -57,9 +57,9 @@ file_descriptions = [
     (rx(r'\.chm$'),              ('Windows help file', 1, '')),
     (rx(r'amd64-pdb\.zip$'),     ('Windows debug information files for 64-bit binaries', 1, '')),
     (rx(r'-pdb\.zip$'),          ('Windows debug information files', 1, '')),
-    (rx(r'-macosx10\.5(_rev\d)?\.dmg$'),  ('Mac OS X 32-bit i386/PPC installer', 2,
+    (rx(r'-macosx10\.5(_rev\d)?\.(dm|pk)g$'),  ('Mac OS X 32-bit i386/PPC installer', 2,
                                   'for Mac OS X 10.5 and later')),
-    (rx(r'-macosx10\.6(_rev\d)?\.dmg$'),  ('Mac OS X 64-bit/32-bit installer', 2,
+    (rx(r'-macosx10\.6(_rev\d)?\.(dm|pk)g$'),  ('Mac OS X 64-bit/32-bit installer', 2,
                                   'for Mac OS X 10.6 and later')),
 ]
 
@@ -113,6 +113,7 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
         filesize = filesize_for(release, rfile),
         download_button = 'tar.xz' in rfile or
                           'macosx10.6.dmg' in rfile or
+                          'macosx10.6.pkg' in rfile or
                           ('.msi' in rfile and not 'amd64' in rfile),
     )
 
