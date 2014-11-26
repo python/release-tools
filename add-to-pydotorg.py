@@ -100,7 +100,7 @@ def build_release_dict(release, reldate, is_latest, page_pk):
 
 def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
     """Return a dictionary with all needed fields for a ReleaseFile object."""
-    return dict(
+    d = dict(
         name = file_desc,
         slug = slug_for(release) + '-' + make_slug(file_desc)[:40],
         os = '/api/v1/downloads/os/%s/' % os_pk,
@@ -108,7 +108,6 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
         description = add_desc,
         is_source = os_pk == 3,
         url = download_root + '%s/%s' % (release[:5], rfile),
-        gpg_signature_file = sigfile_for(release[:5], rfile),
         md5_sum = md5sum_for(release, rfile),
         filesize = filesize_for(release, rfile),
         download_button = 'tar.xz' in rfile or
@@ -116,6 +115,9 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
                           'macosx10.6.pkg' in rfile or
                           ('.msi' in rfile and not 'amd64' in rfile),
     )
+    if os.path.exists(ftp_root + "%s/%s.asc" % (release[:5], rfile)):
+        d["gpg_signature_file"] = sigfile_for(release[:5], rfile)
+    return d
 
 def list_files(release):
     """List all of the release's download files."""
