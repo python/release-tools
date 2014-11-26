@@ -41,7 +41,7 @@ except KeyError:
     sys.exit()
 
 base_url = 'https://www.python.org/api/v1/'
-ftp_root = '/data/ftp.python.org/pub/python/'
+ftp_root = '/srv/www.python.org/ftp/python/'
 download_root = 'https://www.python.org/ftp/python/'
 
 headers = {'Authorization': 'ApiKey %s' % auth_info, 'Content-Type': 'application/json'}
