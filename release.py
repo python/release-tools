@@ -11,6 +11,7 @@ import os
 import hashlib
 import optparse
 import re
+import readline
 import subprocess
 import shutil
 
