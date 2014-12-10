@@ -14,6 +14,7 @@ import re
 import readline
 import subprocess
 import shutil
+import tempfile
 
 from contextlib import contextmanager
 
@@ -307,9 +308,14 @@ def export(tag):
 def build_docs():
     """Build and tarball the documentation"""
     print("Building docs")
-    with changed_dir('Doc'):
-        run_cmd(['make', 'dist'])
-        return os.path.abspath('dist')
+    with tempfile.TemporaryDirectory() as venv:
+        run_cmd(['virtualenv', venv])
+        pip = os.path.join(venv, 'bin', 'pip')
+        run_cmd([pip, 'install', 'Sphinx'])
+        sphinx_build = os.path.join(venv, 'bin', 'sphinx-build')
+        with changed_dir('Doc'):
+            run_cmd(['make', 'dist', 'SPHINXBUILD=' + sphinx_build])
+            return os.path.abspath('dist')
 
 def upload(tag, username):
     """scp everything to dinsdale"""
