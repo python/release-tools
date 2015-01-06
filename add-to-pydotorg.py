@@ -3,11 +3,11 @@
 Script to add ReleaseFile objects for Python releases on the new pydotorg.
 To use (RELEASE is something like 3.3.5rc2):
 
-* Copy this script to dinsdale (it needs access to all the release files).
+* Copy this script to dl-files (it needs access to all the release files).
   You could also download all files, then you need to adapt the "ftp_root"
   string below.
 
-* Make sure all download files are in place in the correct /data/ftp.python.org
+* Make sure all download files are in place in the correct /srv/www.python.org
   subdirectory.
 
 * Create a new Release object via the Django admin (adding via API is
