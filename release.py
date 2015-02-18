@@ -136,23 +136,6 @@ def tweak_patchlevel(tag, done=False):
 def bump(tag):
     print('Bumping version to %s' % tag)
 
-    wanted_file = 'Misc/RPM/python-%s.spec' % tag.basic_version
-    print('Updating %s' % wanted_file, end=' ')
-    if not os.path.exists(wanted_file):
-        specs = os.listdir('Misc/RPM/')
-        for file in specs:
-            if file.startswith('python-'):
-                break
-        full_path = os.path.join('Misc/RPM/', file)
-        print('\nrenaming %s to %s' % (full_path, wanted_file))
-        run_cmd(['hg', 'rename', '--force', full_path, wanted_file])
-        print('File was renamed; please commit')
-        run_cmd(['hg', 'commit'])
-    new = '%define version ' + tag.text + \
-        '\n%define libvers ' + tag.basic_version
-    constant_replace(wanted_file, new, '#', '')
-    print('done')
-
     tweak_patchlevel(tag)
 
     print('Updating Lib/idlelib/idlever.py...', end=' ')
