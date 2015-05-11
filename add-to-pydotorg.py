@@ -44,6 +44,8 @@ base_url = 'https://www.python.org/api/v1/'
 ftp_root = '/srv/www.python.org/ftp/python/'
 download_root = 'https://www.python.org/ftp/python/'
 
+tag_cre = re.compile(r'(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$')
+
 headers = {'Authorization': 'ApiKey %s' % auth_info, 'Content-Type': 'application/json'}
 
 rx = re.compile
@@ -70,19 +72,23 @@ def changelog_for(release):
 
 def slug_for(release):
     return release[0] + '-' + release[2] + '-' + release[4] + \
-        ('-' + release[5:] if release[5:] else '')
+        ('-' +  release[len(base_version(release)):] if release[len(base_version(release)):] else '')
 
 def sigfile_for(release, rfile):
     return download_root + '%s/%s.asc' % (release, rfile)
 
 def md5sum_for(release, rfile):
-    return hashlib.md5(open(ftp_root + release[:5] + '/' + rfile, 'rb').read()).hexdigest()
+    return hashlib.md5(open(ftp_root + base_version(release) + '/' + rfile, 'rb').read()).hexdigest()
 
 def filesize_for(release, rfile):
-    return path.getsize(ftp_root + release[:5] + '/' + rfile)
+    return path.getsize(ftp_root + base_version(release) + '/' + rfile)
 
 def make_slug(text):
     return re.sub('[^a-zA-Z0-9_-]', '', text.replace(' ', '-'))
+
+def base_version(release):
+    m = tag_cre.match(release)
+    return ".".join(m.groups()[:3])
 
 def build_release_dict(release, reldate, is_latest, page_pk):
     """Return a dictionary with all needed fields for a Release object."""
@@ -107,7 +113,7 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
         release = '/api/v1/downloads/release/%s/' % rel_pk,
         description = add_desc,
         is_source = os_pk == 3,
-        url = download_root + '%s/%s' % (release[:5], rfile),
+        url = download_root + '%s/%s' % (base_version(release), rfile),
         md5_sum = md5sum_for(release, rfile),
         filesize = filesize_for(release, rfile),
         download_button = 'tar.xz' in rfile or
@@ -115,13 +121,13 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
                           'macosx10.6.pkg' in rfile or
                           ('.msi' in rfile and not 'amd64' in rfile),
     )
-    if os.path.exists(ftp_root + "%s/%s.asc" % (release[:5], rfile)):
-        d["gpg_signature_file"] = sigfile_for(release[:5], rfile)
+    if os.path.exists(ftp_root + "%s/%s.asc" % (base_version(release), rfile)):
+        d["gpg_signature_file"] = sigfile_for(base_version(release), rfile)
     return d
 
 def list_files(release):
     """List all of the release's download files."""
-    reldir = release[:5]
+    reldir = base_version(release)
     for rfile in os.listdir(path.join(ftp_root, reldir)):
         if not path.isfile(path.join(ftp_root, reldir, rfile)):
             continue
