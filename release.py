@@ -138,12 +138,6 @@ def bump(tag):
 
     tweak_patchlevel(tag)
 
-    print('Updating Lib/idlelib/idlever.py...', end=' ')
-    with open('Lib/idlelib/idlever.py', 'w', encoding="ascii") as fp:
-        new = 'IDLE_VERSION = "%s"\n' % tag.text
-        fp.write(new)
-    print('done')
-
     print('Updating Lib/distutils/__init__.py...', end=' ')
     new = '__version__ = "%s"' % tag.text
     constant_replace('Lib/distutils/__init__.py', new, '#', '')
