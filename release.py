@@ -138,11 +138,6 @@ def bump(tag):
 
     tweak_patchlevel(tag)
 
-    print('Updating Lib/distutils/__init__.py...', end=' ')
-    new = '__version__ = "%s"' % tag.text
-    constant_replace('Lib/distutils/__init__.py', new, '#', '')
-    print('done')
-
     extra_work = False
     other_files = ['README', 'Misc/NEWS']
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
