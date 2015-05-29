@@ -55,7 +55,19 @@ file_descriptions = [
     (rx(r'\.tar\.xz$'),          ('XZ compressed source tarball', 3, '')),
     (rx(r'\.amd64\.msi$'),       ('Windows x86-64 MSI installer', 1,
                                   'for AMD64/EM64T/x64, not Itanium processors')),
+    (rx(r'-amd64-webinstall\.exe$'), ('Windows x86-64 web-based installer', 1,
+                                  'for AMD64/EM64T/x64, not Itanium processors')),
+    (rx(r'-embed-amd64\.zip$'),       ('Windows x86-64 embeddable zip file', 1,
+                                  'for AMD64/EM64T/x64, not Itanium processors')),
+    (rx(r'-embed-amd64\.exe$'),       ('Windows x86-64 embeddable installer', 1,
+                                  'for AMD64/EM64T/x64, not Itanium processors')),
+    (rx(r'-amd64\.exe$'),       ('Windows x86-64 executable installer', 1,
+                                  'for AMD64/EM64T/x64, not Itanium processors')),
     (rx(r'\.msi$'),              ('Windows x86 MSI installer', 1, '')),
+    (rx(r'-embed-win32\.zip$'),         ('Windows x86 embeddable zip file', 1, '')),
+    (rx(r'-embed-win32\.exe$'),         ('Windows x86 embeddable installer', 1, '')),
+    (rx(r'-webinstall\.exe$'),   ('Windows x86 web-based installer', 1, '')),
+    (rx(r'\.exe$'),              ('Windows x86 executable installer', 1, '')),
     (rx(r'\.chm$'),              ('Windows help file', 1, '')),
     (rx(r'amd64-pdb\.zip$'),     ('Windows debug information files for 64-bit binaries', 1, '')),
     (rx(r'-pdb\.zip$'),          ('Windows debug information files', 1, '')),
@@ -89,20 +101,6 @@ def make_slug(text):
 def base_version(release):
     m = tag_cre.match(release)
     return ".".join(m.groups()[:3])
-
-def build_release_dict(release, reldate, is_latest, page_pk):
-    """Return a dictionary with all needed fields for a Release object."""
-    return dict(
-        name = 'Python ' + release,
-        slug = slug_for(release),
-        version = int(release[0]),
-        is_published = True,
-        release_date = reldate,  # in "YYYY-MM-ddTHH:MM:SS"
-        pre_release = bool(release[5:]),
-        release_page = '/api/v1/pages/page/%s/' % page_pk, # XXX doesn't work yet
-        release_notes_url = changelog_for(release),
-        show_on_download_page = True,
-    )
 
 def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
     """Return a dictionary with all needed fields for a ReleaseFile object."""

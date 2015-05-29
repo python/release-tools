@@ -34,7 +34,7 @@ def error(*msgs):
 
 def run_cmd(args, silent=False):
     cmd = SPACE.join(args)
-    if not silent:
+    if 1: # not silent:
         print('Executing %s' % cmd)
     try:
         if silent:
@@ -250,9 +250,9 @@ def export(tag):
                 except OSError:
                     pass
 
-            if tag.is_final:
+            if 1 or tag.is_final:
                 docdist = build_docs()
-        if tag.is_final:
+        if 1 or tag.is_final:
             shutil.copytree(docdist, 'docs')
 
         with changed_dir(os.path.join(archivename, 'Doc')):
@@ -283,7 +283,8 @@ def build_docs():
     with tempfile.TemporaryDirectory() as venv:
         run_cmd(['virtualenv', venv])
         pip = os.path.join(venv, 'bin', 'pip')
-        run_cmd([pip, 'install', 'Sphinx'])
+        run_cmd([pip, 'install', 'Sphinx==1.2.3'])
+        # run_cmd([pip, 'install', 'Sphinx'])
         sphinx_build = os.path.join(venv, 'bin', 'sphinx-build')
         with changed_dir('Doc'):
             run_cmd(['make', 'dist', 'SPHINXBUILD=' + sphinx_build])
