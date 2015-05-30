@@ -191,14 +191,20 @@ def main():
     rel_pk = query_object('release', name='Python+' + rel)
     print 'Found Release object: id =', rel_pk
     n = 0
+    file_dicts = {}
+    for rfile, file_desc, os_pk, add_desc in list_files(rel):
+        print 'Creating ReleaseFile object for', rfile
+        file_dict = build_file_dict(rel, rfile, rel_pk, file_desc, os_pk, add_desc)
+        key = file_dict['slug']
+        if key in file_dicts:
+            raise RuntimeError('duplicate slug generated: %s' % key)
+        file_dicts[key] = file_dict
     print 'Deleting previous release files'
     resp = requests.delete(base_url + 'downloads/release_file/?release=%s' % rel_pk,
                            headers=headers)
     if resp.status_code != 204:
         raise RuntimeError('deleting previous releases failed: %s' % resp.status_code)
-    for rfile, file_desc, os_pk, add_desc in list_files(rel):
-        print 'Creating ReleaseFile object for', rfile
-        file_dict = build_file_dict(rel, rfile, rel_pk, file_desc, os_pk, add_desc)
+    for file_dict in file_dicts.values():
         file_pk = post_object('release_file', file_dict)
         if file_pk >= 0:
             print 'Created as id =', file_pk
