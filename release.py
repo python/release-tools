@@ -34,7 +34,7 @@ def error(*msgs):
 
 def run_cmd(args, silent=False):
     cmd = SPACE.join(args)
-    if 1: # not silent:
+    if not silent:
         print('Executing %s' % cmd)
     try:
         if silent:
@@ -250,9 +250,9 @@ def export(tag):
                 except OSError:
                     pass
 
-            if 1 or tag.is_final:
+            if tag.is_final:
                 docdist = build_docs()
-        if 1 or tag.is_final:
+        if tag.is_final:
             shutil.copytree(docdist, 'docs')
 
         with changed_dir(os.path.join(archivename, 'Doc')):
