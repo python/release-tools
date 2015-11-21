@@ -281,7 +281,7 @@ def build_docs():
     """Build and tarball the documentation"""
     print("Building docs")
     with tempfile.TemporaryDirectory() as venv:
-        run_cmd(['virtualenv', venv])
+        run_cmd(['python3', '-m', 'venv', venv])
         pip = os.path.join(venv, 'bin', 'pip')
         run_cmd([pip, 'install', 'Sphinx==1.2.3'])
         # run_cmd([pip, 'install', 'Sphinx'])
