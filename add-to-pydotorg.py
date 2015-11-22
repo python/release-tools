@@ -83,7 +83,7 @@ def changelog_for(release):
         return 'http://hg.python.org/cpython/file/v%s/Misc/NEWS' % release
 
 def slug_for(release):
-    return release[0] + '-' + release[2] + '-' + release[4] + \
+    return base_version(release).replace(".", "") + \
         ('-' +  release[len(base_version(release)):] if release[len(base_version(release)):] else '')
 
 def sigfile_for(release, rfile):
