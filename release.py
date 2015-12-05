@@ -283,7 +283,7 @@ def build_docs():
     with tempfile.TemporaryDirectory() as venv:
         run_cmd(['python3', '-m', 'venv', venv])
         pip = os.path.join(venv, 'bin', 'pip')
-        run_cmd([pip, 'install', 'Sphinx==1.2.3'])
+        run_cmd([pip, 'install', 'Sphinx==1.3.3'])
         # run_cmd([pip, 'install', 'Sphinx'])
         sphinx_build = os.path.join(venv, 'bin', 'sphinx-build')
         with changed_dir('Doc'):
