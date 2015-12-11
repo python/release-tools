@@ -23,13 +23,13 @@ To use (RELEASE is something like 3.3.5rc2):
 Georg Brandl, March 2014.
 """
 
+import hashlib
+import json
 import os
+from os import path
 import re
 import sys
-import json
 import time
-import hashlib
-from os import path
 
 import requests
 
@@ -117,7 +117,8 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
         download_button = 'tar.xz' in rfile or
                           'macosx10.6.dmg' in rfile or
                           'macosx10.6.pkg' in rfile or
-                          ('.msi' in rfile and not 'amd64' in rfile),
+                          (rfile.endswith(('.msi', '.exe'))
+                            and not ('amd64' in rfile or 'webinstall' in rfile)),
     )
     if os.path.exists(ftp_root + "%s/%s.asc" % (base_version(release), rfile)):
         d["gpg_signature_file"] = sigfile_for(base_version(release), rfile)
