@@ -250,9 +250,9 @@ def export(tag):
                 except OSError:
                     pass
 
-            if tag.is_final:
+            if tag.is_final or tag.level == 'rc':
                 docdist = build_docs()
-        if tag.is_final:
+        if tag.is_final or tag.level == 'rc':
             shutil.copytree(docdist, 'docs')
 
         with changed_dir(os.path.join(archivename, 'Doc')):
