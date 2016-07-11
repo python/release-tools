@@ -54,10 +54,14 @@ def get_output(args):
 def check_env():
     if 'EDITOR' not in os.environ:
         error('editor not detected.',
-              'Please set your EDITOR enviroment variable')
+              'Please set your EDITOR environment variable')
     if not os.path.exists('.hg'):
         error('CWD is not a Mercurial clone')
-
+    if 'TAR' not in os.environ:
+        os.environ['TAR'] = 'tar'
+    if 'GNU' not in get_output([os.environ['TAR'], '--version']).strip().decode():
+        error('"tar" must be GNU tar.',
+              'Please set your TAR environment variable')
 
 def get_arg_parser():
     usage = '%prog [options] tagname'
@@ -192,9 +196,9 @@ def tarball(source):
     base = os.path.basename(source)
     tgz = base + '.tgz'
     xz = base + '.tar.xz'
-    run_cmd(['tar cf - %s | gzip -9 > %s' % (source, tgz)])
+    run_cmd(['$TAR cf - %s | gzip -9 > %s' % (source, tgz)])
     print("Making .tar.xz")
-    run_cmd(['tar cf - %s | xz > %s' % (source, xz)])
+    run_cmd(['$TAR cf - %s | xz > %s' % (source, xz)])
     print('Calculating md5 sums')
     checksum_tgz = hashlib.md5()
     with open(tgz, 'rb') as data:
