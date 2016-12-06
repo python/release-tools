@@ -32,15 +32,16 @@ def error(*msgs):
     sys.exit(1)
 
 
-def run_cmd(args, silent=False):
-    cmd = SPACE.join(args)
+def run_cmd(cmd, silent=False, shell=True):
+    if shell:
+        cmd = SPACE.join(cmd)
     if not silent:
         print('Executing %s' % cmd)
     try:
         if silent:
-            code = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+            code = subprocess.call(cmd, shell=shell, stdout=subprocess.PIPE)
         else:
-            code = subprocess.call(cmd, shell=True)
+            code = subprocess.call(cmd, shell=shell)
     except OSError:
         error('%s failed' % cmd)
     else:
@@ -57,11 +58,6 @@ def check_env():
               'Please set your EDITOR environment variable')
     if not os.path.exists('.hg'):
         error('CWD is not a Mercurial clone')
-    if 'TAR' not in os.environ:
-        os.environ['TAR'] = 'tar'
-    if 'GNU' not in get_output([os.environ['TAR'], '--version']).strip().decode():
-        error('"tar" must be GNU tar.',
-              'Please set your TAR environment variable')
 
 def get_arg_parser():
     usage = '%prog [options] tagname'
@@ -194,11 +190,11 @@ def tarball(source):
     """Build tarballs for a directory."""
     print('Making .tgz')
     base = os.path.basename(source)
-    tgz = base + '.tgz'
-    xz = base + '.tar.xz'
-    run_cmd(['$TAR cf - %s | gzip -9 > %s' % (source, tgz)])
+    tgz = os.path.join('src', base + '.tgz')
+    xz = os.path.join('src', base + '.tar.xz')
+    run_cmd(["tar", "cf", tgz, "--use-compress-program", "gzip -9", source], shell=False)
     print("Making .tar.xz")
-    run_cmd(['$TAR cf - %s | xz > %s' % (source, xz)])
+    run_cmd(["tar", "cJf", xz, source], shell=False)
     print('Calculating md5 sums')
     checksum_tgz = hashlib.md5()
     with open(tgz, 'rb') as data:
@@ -274,8 +270,7 @@ def export(tag):
             run_cmd(["find . -name '*.py[co]' -exec rm -f {} ';'"])
 
         os.mkdir('src')
-        with changed_dir('src'):
-            tarball(os.path.join("..", archivename))
+        tarball(archivename)
     print()
     print('**Now extract the archives in %s/src and run the tests**' % tag.text)
     print('**You may also want to run make install and re-test**')
