@@ -306,6 +306,11 @@ def upload(tag, username):
 class Tag(object):
 
     def __init__(self, tag_name):
+        # if tag is ".", use current directory name as tag
+        # e.g. if current directory name is "3.4.6",
+        # "release.py --bump 3.4.6" and "release.py --bump ." are the same
+        if tag_name == ".":
+            tag_name = os.path.basename(os.getcwd())
         result = tag_cre.match(tag_name)
         if result is None:
             error('tag %s is not valid' % tag_name)
