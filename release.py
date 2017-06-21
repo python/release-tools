@@ -250,6 +250,9 @@ def export(tag):
                 except OSError:
                     pass
 
+            print("Removing Misc/NEWS.d")
+            shutil.rmtree('Misc/NEWS.d', ignore_errors=True)
+
             if tag.is_final or tag.level == 'rc':
                 docdist = build_docs()
         if tag.is_final or tag.level == 'rc':
