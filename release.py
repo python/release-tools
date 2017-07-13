@@ -56,8 +56,8 @@ def check_env():
     if 'EDITOR' not in os.environ:
         error('editor not detected.',
               'Please set your EDITOR environment variable')
-    if not os.path.exists('.hg'):
-        error('CWD is not a Mercurial clone')
+    if not os.path.exists('.git'):
+        error('CWD is not a git clone')
 
 def get_arg_parser():
     usage = '%prog [options] tagname'
@@ -67,7 +67,7 @@ def get_arg_parser():
                  help='bump the revision number in important files')
     p.add_option('-e', '--export',
                  default=False, action='store_true',
-                 help='Export the hg tag to a tarball and build docs')
+                 help='Export the git tag to a tarball and build docs')
     p.add_option('-u', '--upload', metavar="username",
                  help='Upload the tarballs and docs to dinsdale')
     p.add_option('-m', '--branch',
@@ -139,7 +139,9 @@ def bump(tag):
     tweak_patchlevel(tag)
 
     extra_work = False
-    other_files = ['README', 'Misc/NEWS']
+    # Older releases have a plain text README,
+    # newer releases have README.rst.
+    other_files = ['README.rst', 'README', 'Misc/NEWS']
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
         extra_work = True
         other_files += [
@@ -152,8 +154,11 @@ def bump(tag):
             ]
     print('\nManual editing time...')
     for fn in other_files:
-        print('Edit %s' % fn)
-        manual_edit(fn)
+        if os.path.exists(fn):
+            print('Edit %s' % fn)
+            manual_edit(fn)
+        else:
+            print('Skipping %s' % fn)
 
     print('Bumped revision')
     if extra_work:
@@ -217,41 +222,49 @@ def tarball(source):
 
 def export(tag):
     make_dist(tag.text)
+    print('Exporting tag:', tag.text)
+    archivename = 'Python-%s' % tag.text
+    # I have not figured out how to get git to directly produce an
+    # archive directory like hg can, so use git to produce a temporary
+    # tarball then expand it with tar.
+    archivetempfile = '%s.tar' % archivename
+    run_cmd(['git', 'archive', '--format=tar',
+             '--prefix=%s/' % archivename,
+             '-o', archivetempfile, tag.gitname])
     with changed_dir(tag.text):
-        print('Exporting tag:', tag.text)
-        archivename = 'Python-%s' % tag.text
-        run_cmd(['hg', 'archive', '--config', 'ui.archivemeta=off',
-                 '-r', tag.hgname, archivename])
+        archivetempfile = '../%s' % archivetempfile
+        run_cmd(['tar', '-xf', archivetempfile])
+        os.unlink(archivetempfile)
         with changed_dir(archivename):
             # Touch a few files that get generated so they're up-to-date in
             # the tarball.
-            if os.path.isfile('.hgtouch'):
-                # Use "hg touch" if available
-                run_cmd(['hg', '-v', 'touch', '--config',
-                         'extensions.touch=Tools/hg/hgtouch.py',
-                         # need to give basedir path relative to repo root
-                         '-b', os.path.join(tag.text, archivename)])
-            else:
-                touchables = ['Include/Python-ast.h', 'Python/Python-ast.c']
-                if os.path.exists('Python/opcode_targets.h'):
-                    # This file isn't in Python < 3.1
-                    touchables.append('Python/opcode_targets.h')
-                print('Touching:', COMMASPACE.join(name.rsplit('/', 1)[-1]
-                                                   for name in touchables))
-                for name in touchables:
-                    os.utime(name, None)
+            #
+            # Note, with the demise of "make touch" and the hg touch
+            # extension, touches should not be needed anymore,
+            # but keep it for now as a reminder.
+            touchables = ['Include/Python-ast.h', 'Python/Python-ast.c']
+            if os.path.exists('Python/opcode_targets.h'):
+                # This file isn't in Python < 3.1
+                touchables.append('Python/opcode_targets.h')
+            print('Touching:', COMMASPACE.join(name.rsplit('/', 1)[-1]
+                                               for name in touchables))
+            for name in touchables:
+                os.utime(name, None)
 
             # Remove files we don't want to ship in tarballs.
-            print('Removing VCS .*ignore, .hg*')
-            for name in ('.hgignore', '.hgeol', '.hgtags', '.hgtouch',
-                         '.bzrignore', '.gitignore'):
+            print('Removing VCS .*ignore, .git*, Misc/NEWS.d, et al')
+            for name in ('.gitattributes', '.gitignore',
+                         '.hgignore', '.hgeol', '.hgtags', '.hgtouch',
+                         '.bzrignore', '.codecov.yml',
+                         '.mention-bot', '.travis.yml', ):
                 try:
                     os.unlink(name)
                 except OSError:
                     pass
 
-            print("Removing Misc/NEWS.d")
-            shutil.rmtree('Misc/NEWS.d', ignore_errors=True)
+            # Remove directories we don't want to ship in tarballs.
+            for name in ('.git', '.github', '.hg', 'Misc/NEWS.d'):
+                shutil.rmtree(name, ignore_errors=True)
 
             if tag.is_final or tag.level == 'rc':
                 docdist = build_docs()
@@ -347,18 +360,24 @@ class Tag(object):
         return self.text.replace('.', '')
 
     @property
-    def hgname(self):
+    def gitname(self):
         return 'v' + self.text
 
 
 def make_tag(tag):
     # make sure we're on the correct branch
     if tag.patch > 0:
-        if get_output(['hg', 'branch']).strip().decode() != tag.basic_version:
+        if get_output(
+                ['git', 'name-rev', '--name-only', 'HEAD']
+                     ).strip().decode() != tag.basic_version:
             print('It doesn\'t look like you\'re on the correct branch.')
             if input('Are you sure you want to tag?') != "y":
                 return
-    run_cmd(['hg', 'tag', tag.hgname])
+    print('Signing tag')
+    print('List of available private keys:')
+    run_cmd(['gpg -K | grep -A 1 "^sec"'])
+    uid = input('Please enter key ID to use for signing: ')
+    run_cmd(['git', 'tag', '-s', '-u', uid, tag.gitname])
 
 
 NEWS_TEMPLATE = """
