@@ -6,14 +6,15 @@ Original code by Benjamin Peterson
 Additions by Barry Warsaw, Georg Brandl and Benjamin Peterson
 """
 
-import sys
-import os
+import glob
 import hashlib
 import optparse
+import os
 import re
 import readline
-import subprocess
 import shutil
+import subprocess
+import sys
 import tempfile
 
 from contextlib import contextmanager
@@ -46,6 +47,55 @@ def run_cmd(cmd, silent=False, shell=True):
         error('%s failed' % cmd)
     else:
         return code
+
+readme_re = re.compile(r"This is Python version [23]\.\d").match
+
+root = None
+
+def chdir_to_repo_root():
+    global root
+
+    # find the root of the local CPython repo
+    # note that we can't ask git, because we might
+    # be in an exported directory tree!
+    
+    # we intentionally start in a (probably nonexistant) subtree
+    # the first thing the while loop does is .., basically
+    path = os.path.abspath("garglemox")
+    while True:
+        next_path = os.path.dirname(path)
+        if next_path == path:
+            sys.exit('You\'re not inside a CPython repo right now!')
+        path = next_path
+
+        os.chdir(path)
+
+        def test_first_line(filename, test):
+            if not os.path.exists(filename):
+                return False
+            with open(filename, "rt") as f:
+                lines = f.read().split('\n')
+                if not (lines and test(lines[0])):
+                    return False
+            return True
+
+        if not (test_first_line("README", readme_re)
+            or test_first_line("README.rst", readme_re)):
+            continue
+
+        if not test_first_line("LICENSE",  "A. HISTORY OF THE SOFTWARE".__eq__):
+            continue
+        if not os.path.exists("Include/Python.h"):
+            continue
+        if not os.path.exists("Python/ceval.c"):
+            continue
+
+        break
+
+    root = path
+    return root
+
+
 
 
 def get_output(args):
@@ -171,7 +221,7 @@ def manual_edit(fn):
 
 
 @contextmanager
-def changed_dir(new):
+def pushd(new):
     print('chdir\'ing to %s' % new)
     old = os.getcwd()
     os.chdir(new)
@@ -231,11 +281,11 @@ def export(tag):
     run_cmd(['git', 'archive', '--format=tar',
              '--prefix=%s/' % archivename,
              '-o', archivetempfile, tag.gitname])
-    with changed_dir(tag.text):
+    with pushd(tag.text):
         archivetempfile = '../%s' % archivetempfile
         run_cmd(['tar', '-xf', archivetempfile])
         os.unlink(archivetempfile)
-        with changed_dir(archivename):
+        with pushd(archivename):
             # Touch a few files that get generated so they're up-to-date in
             # the tarball.
             #
@@ -251,6 +301,15 @@ def export(tag):
             for name in touchables:
                 os.utime(name, None)
 
+            # build docs *before* we do "blurb export"
+            # because docs now depend on Misc/NEWS.d
+            # and we remove Misc/NEWS.d as part of cleanup for export
+            if tag.is_final or tag.level == 'rc':
+                docdist = build_docs()
+
+            print('Using blurb to build Misc/NEWS')
+            os.system("blurb merge")
+
             # Remove files we don't want to ship in tarballs.
             print('Removing VCS .*ignore, .git*, Misc/NEWS.d, et al')
             for name in ('.gitattributes', '.gitignore',
@@ -263,15 +322,14 @@ def export(tag):
                     pass
 
             # Remove directories we don't want to ship in tarballs.
-            for name in ('.git', '.github', '.hg', 'Misc/NEWS.d'):
+            os.system("blurb export")
+            for name in ('.git', '.github', '.hg'):
                 shutil.rmtree(name, ignore_errors=True)
 
-            if tag.is_final or tag.level == 'rc':
-                docdist = build_docs()
         if tag.is_final or tag.level == 'rc':
             shutil.copytree(docdist, 'docs')
 
-        with changed_dir(os.path.join(archivename, 'Doc')):
+        with pushd(os.path.join(archivename, 'Doc')):
             print('Removing doc build artifacts')
             shutil.rmtree('build', ignore_errors=True)
             shutil.rmtree('dist', ignore_errors=True)
@@ -280,7 +338,7 @@ def export(tag):
             shutil.rmtree('tools/pygments', ignore_errors=True)
             shutil.rmtree('tools/sphinx', ignore_errors=True)
 
-        with changed_dir(archivename):
+        with pushd(archivename):
             print('Zapping pycs')
             run_cmd(["find . -depth -name '__pycache__' -exec rm -rf {} ';'"])
             run_cmd(["find . -name '*.py[co]' -exec rm -f {} ';'"])
@@ -298,11 +356,12 @@ def build_docs():
     with tempfile.TemporaryDirectory() as venv:
         run_cmd(['python3', '-m', 'venv', venv])
         pip = os.path.join(venv, 'bin', 'pip')
-        run_cmd([pip, 'install', 'Sphinx==1.4.4'])
+        run_cmd([pip, 'install', 'Sphinx==1.4.4', 'blurb'])
         # run_cmd([pip, 'install', 'Sphinx'])
         sphinx_build = os.path.join(venv, 'bin', 'sphinx-build')
-        with changed_dir('Doc'):
-            run_cmd(['make', 'dist', 'SPHINXBUILD=' + sphinx_build])
+        blurb = os.path.join(venv, 'bin', 'blurb')
+        with pushd('Doc'):
+            run_cmd(['make', 'dist', 'SPHINXBUILD=' + sphinx_build, 'BLURB=' + blurb])
             return os.path.abspath('dist')
 
 def upload(tag, username):
@@ -310,7 +369,7 @@ def upload(tag, username):
     address ='"%s@dinsdale.python.org:' % username
     def scp(from_loc, to_loc):
         run_cmd(['scp %s %s' % (from_loc, address + to_loc)])
-    with changed_dir(tag.text):
+    with pushd(tag.text):
         print("Uploading source tarballs")
         scp('src', '/data/python-releases/%s' % tag.nickname)
         print("Upload doc tarballs")
@@ -365,6 +424,15 @@ class Tag(object):
 
 
 def make_tag(tag):
+    # make sure we've run blurb export
+    good_files = glob.glob("Misc/NEWS.d/" + str(tag) + ".rst")
+    bad_files = list(glob.glob("Misc/NEWS.d/next/*/0*.rst"))
+    bad_files.extend(glob.glob("Misc/NEWS.d/next/*/2*.rst"))
+    if bad_files or not good_files:
+        print('It doesn\'t look like you didn\'t run "blurb release" yet.')
+        if input('Are you sure you want to tag?') != "y":
+            return
+
     # make sure we're on the correct branch
     if tag.patch > 0:
         if get_output(
@@ -418,6 +486,7 @@ def done(tag):
 
 
 def main(argv):
+    chdir_to_repo_root()
     parser = get_arg_parser()
     options, args = parser.parse_args(argv)
     if len(args) != 2:
