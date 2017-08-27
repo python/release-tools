@@ -308,7 +308,7 @@ def export(tag):
                 docdist = build_docs()
 
             print('Using blurb to build Misc/NEWS')
-            os.system("blurb merge")
+            run_cmd(["blurb", "merge"])
 
             # Remove files we don't want to ship in tarballs.
             print('Removing VCS .*ignore, .git*, Misc/NEWS.d, et al')
@@ -322,7 +322,7 @@ def export(tag):
                     pass
 
             # Remove directories we don't want to ship in tarballs.
-            os.system("blurb export")
+            run_cmd(["blurb", "export"])
             for name in ('.git', '.github', '.hg'):
                 shutil.rmtree(name, ignore_errors=True)
 
