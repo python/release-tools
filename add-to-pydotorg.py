@@ -37,16 +37,16 @@ try:
     auth_info = os.environ['AUTH_INFO']
 except KeyError:
     print 'Please set an environment variable named AUTH_INFO ' \
-        'containing "username:api_key".'
+        'containing "api_key".'
     sys.exit()
 
-base_url = 'https://www.python.org/api/v1/'
+base_url = 'https://www.python.org/api/v2/'
 ftp_root = '/srv/www.python.org/ftp/python/'
 download_root = 'https://www.python.org/ftp/python/'
 
 tag_cre = re.compile(r'(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$')
 
-headers = {'Authorization': 'ApiKey %s' % auth_info, 'Content-Type': 'application/json'}
+headers = {'Authorization': 'Token %s' % auth_info, 'Content-Type': 'application/json'}
 
 rx = re.compile
 # value is (file "name", OS id, file "description")
