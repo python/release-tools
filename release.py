@@ -40,13 +40,11 @@ def run_cmd(cmd, silent=False, shell=True):
         print('Executing %s' % cmd)
     try:
         if silent:
-            code = subprocess.call(cmd, shell=shell, stdout=subprocess.PIPE)
+            subprocess.check_call(cmd, shell=shell, stdout=subprocess.PIPE)
         else:
-            code = subprocess.call(cmd, shell=shell)
-    except OSError:
+            subprocess.check_call(cmd, shell=shell)
+    except subprocess.CalledProcessError:
         error('%s failed' % cmd)
-    else:
-        return code
 
 readme_re = re.compile(r"This is Python version [23]\.\d").match
 
