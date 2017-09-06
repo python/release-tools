@@ -446,41 +446,8 @@ def make_tag(tag):
     run_cmd(['git', 'tag', '-s', '-u', uid, tag.gitname])
 
 
-NEWS_TEMPLATE = """
-What's New in Python {XXX PUT NEXT VERSION HERE XXX}?
-================================
-
-*Release date: XXXX-XX-XX*
-
-Core and Builtins
------------------
-
-Library
--------
-
-"""
-
-def update_news():
-    print("Updating Misc/NEWS")
-    with open('Misc/NEWS', encoding="utf-8") as fp:
-        lines = fp.readlines()
-    for i, line in enumerate(lines):
-        if line.startswith("Python News"):
-            start = i
-        if line.startswith("What's"):
-            end = i
-            break
-    with open('Misc/NEWS', 'w', encoding="utf-8") as fp:
-         fp.writelines(lines[:start+2])
-         fp.write(NEWS_TEMPLATE)
-         fp.writelines(lines[end-1:])
-    print("Please fill in the the name of the next version.")
-    manual_edit('Misc/NEWS')
-
-
 def done(tag):
     tweak_patchlevel(tag, done=True)
-    update_news()
 
 
 def main(argv):
