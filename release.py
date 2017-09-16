@@ -443,7 +443,7 @@ def make_tag(tag):
     print('List of available private keys:')
     run_cmd(['gpg -K | grep -A 1 "^sec"'])
     uid = input('Please enter key ID to use for signing: ')
-    run_cmd(['git', 'tag', '-s', '-u', uid, tag.gitname])
+    run_cmd(['git', 'tag', '-s', '-u', uid, tag.gitname, '-m', 'Python ' + str(tag)])
 
 
 def done(tag):
