@@ -177,6 +177,8 @@ def tweak_patchlevel(tag, done=False):
         )[tag.level]
     new_constants = template.format(tag=tag, level_def=level_def,
                                     plus=done and '+' or '')
+    if tag.as_tuple() >= (3, 7, 0, 'a', 3):
+        new_constants = new_constants.expandtabs()
     constant_replace('Include/patchlevel.h', new_constants)
     print('done')
 
@@ -419,6 +421,9 @@ class Tag(object):
     @property
     def gitname(self):
         return 'v' + self.text
+
+    def as_tuple(self):
+        return (self.major, self.minor, self.patch, self.level, self.serial)
 
 
 def make_tag(tag):
