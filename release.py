@@ -433,7 +433,8 @@ def make_tag(tag):
     bad_files.extend(glob.glob("Misc/NEWS.d/next/*/2*.rst"))
     if bad_files or not good_files:
         print('It doesn\'t look like you didn\'t run "blurb release" yet.')
-        if input('Are you sure you want to tag?') != "y":
+        if input('Are you sure you want to tag? (y/n) > ') not in ("y", "yes"):
+            print("Aborting.")
             return
 
     # make sure we're on the correct branch
@@ -442,7 +443,8 @@ def make_tag(tag):
                 ['git', 'name-rev', '--name-only', 'HEAD']
                      ).strip().decode() != tag.basic_version:
             print('It doesn\'t look like you\'re on the correct branch.')
-            if input('Are you sure you want to tag?') != "y":
+            if input('Are you sure you want to tag? (y/n) > ').lower() not in ("y", "yes"):
+                print("Aborting.")
                 return
     print('Signing tag')
     print('List of available private keys:')
