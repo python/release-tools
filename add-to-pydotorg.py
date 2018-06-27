@@ -117,8 +117,7 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
         md5_sum = md5sum_for(release, rfile),
         filesize = filesize_for(release, rfile),
         download_button = 'tar.xz' in rfile or
-                          'macosx10.6.dmg' in rfile or
-                          'macosx10.6.pkg' in rfile or
+                          'macosx10.9.pkg' in rfile or
                           (rfile.endswith(('.msi', '.exe'))
                             and not ('amd64' in rfile or 'webinstall' in rfile)),
     )
