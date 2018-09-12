@@ -201,7 +201,7 @@ def main():
             raise RuntimeError('duplicate slug generated: %s' % key)
         file_dicts[key] = file_dict
     print 'Deleting previous release files'
-    resp = requests.delete(base_url + 'downloads/release_file/?release=%s' % rel_pk,
+    resp = requests.delete(base_url + 'downloads/release_file/delete_by_release/?release=%s' % rel_pk,
                            headers=headers)
     if resp.status_code != 204:
         raise RuntimeError('deleting previous releases failed: %s' % resp.status_code)
