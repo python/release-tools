@@ -13,7 +13,7 @@ To use (RELEASE is something like 3.3.5rc2):
 * Create a new Release object via the Django admin (adding via API is
   currently broken), the name MUST be "Python RELEASE".
 
-* Put an AUTH_INFO variable containing "username:api_key" in your environment.
+* Put an AUTH_INFO variable containing "api_key" in your environment.
 
 * Call this script as "python add-to-pydotorg.py RELEASE".
 
@@ -164,9 +164,9 @@ def query_object(objtype, **params):
     uri = base_url + 'downloads/%s/' % objtype
     uri += '?' + '&'.join('%s=%s' % v for v in params.items())
     resp = requests.get(uri, headers=headers)
-    if resp.status_code != 200 or not json.loads(resp.text)['objects']:
+    if resp.status_code != 200:
         raise RuntimeError('no object for %s params=%r' % (objtype, params))
-    obj = json.loads(resp.text)['objects'][0]
+    obj = json.loads(resp.text)[0]
     return int(obj['resource_uri'].strip('/').split('/')[-1])
 
 def post_object(objtype, datadict):
