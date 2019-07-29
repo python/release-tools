@@ -323,7 +323,7 @@ def export(tag):
 
             # Remove directories we don't want to ship in tarballs.
             run_cmd(["blurb", "export"])
-            for name in ('.git', '.github', '.hg'):
+            for name in ('.azure-pipelines', '.git', '.github', '.hg'):
                 shutil.rmtree(name, ignore_errors=True)
 
         if tag.is_final or tag.level == 'rc':
