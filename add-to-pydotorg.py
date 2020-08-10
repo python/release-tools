@@ -104,6 +104,10 @@ def base_version(release):
     m = tag_cre.match(release)
     return ".".join(m.groups()[:3])
 
+def minor_version_tuple(release):
+    m = tag_cre.match(release)
+    return (int(m.groups()[0]), int(m.groups()[1]))
+
 def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
     """Return a dictionary with all needed fields for a ReleaseFile object."""
     d = dict(
@@ -116,10 +120,18 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
         url = download_root + '%s/%s' % (base_version(release), rfile),
         md5_sum = md5sum_for(release, rfile),
         filesize = filesize_for(release, rfile),
-        download_button = 'tar.xz' in rfile or
-                          'macosx10.9.pkg' in rfile or
-                          (rfile.endswith(('.msi', '.exe'))
-                            and not ('amd64' in rfile or 'webinstall' in rfile)),
+        download_button=(
+            ("tar.xz" in rfile)
+            or ("macosx10.9.pkg" in rfile)
+            or (
+                rfile.endswith((".msi", ".exe"))
+                and ("webinstall" not in rfile)
+                and (
+                    ((minor_version_tuple() >= (3, 9)) and ("amd64" in rfile))
+                    or ("amd64" not in rfile)
+                )
+            )
+        ),
     )
     if os.path.exists(ftp_root + "%s/%s.asc" % (base_version(release), rfile)):
         d["gpg_signature_file"] = sigfile_for(base_version(release), rfile)
