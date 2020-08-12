@@ -127,7 +127,7 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
                 rfile.endswith((".msi", ".exe"))
                 and ("webinstall" not in rfile)
                 and (
-                    ((minor_version_tuple() >= (3, 9)) and ("amd64" in rfile))
+                    ((minor_version_tuple(release) >= (3, 9)) and ("amd64" in rfile))
                     or ("amd64" not in rfile)
                 )
             )
