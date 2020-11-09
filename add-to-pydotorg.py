@@ -22,6 +22,7 @@ To use (RELEASE is something like 3.3.5rc2):
 
 Georg Brandl, March 2014.
 """
+from __future__ import print_function
 
 import hashlib
 import json
@@ -36,8 +37,8 @@ import requests
 try:
     auth_info = os.environ['AUTH_INFO']
 except KeyError:
-    print 'Please set an environment variable named AUTH_INFO ' \
-        'containing "username:api_key".'
+    print('Please set an environment variable named AUTH_INFO '
+        'containing "username:api_key".')
     sys.exit()
 
 base_url = 'https://www.python.org/api/v1/'
@@ -53,24 +54,11 @@ rx = re.compile
 file_descriptions = [
     (rx(r'\.tgz$'),              ('Gzipped source tarball', 3, '')),
     (rx(r'\.tar\.xz$'),          ('XZ compressed source tarball', 3, '')),
-    (rx(r'\.amd64\.msi$'),       ('Windows x86-64 MSI installer', 1,
-                                  'for AMD64/EM64T/x64')),
-    (rx(r'-amd64-webinstall\.exe$'), ('Windows x86-64 web-based installer', 1,
-                                  'for AMD64/EM64T/x64')),
-    (rx(r'-embed-amd64\.zip$'),       ('Windows x86-64 embeddable zip file', 1,
-                                  'for AMD64/EM64T/x64')),
-    (rx(r'-embed-amd64\.exe$'),       ('Windows x86-64 embeddable installer', 1,
-                                  'for AMD64/EM64T/x64')),
-    (rx(r'-amd64\.exe$'),       ('Windows x86-64 executable installer', 1,
-                                  'for AMD64/EM64T/x64')),
-    (rx(r'\.msi$'),              ('Windows x86 MSI installer', 1, '')),
-    (rx(r'-embed-win32\.zip$'),         ('Windows x86 embeddable zip file', 1, '')),
-    (rx(r'-embed-win32\.exe$'),         ('Windows x86 embeddable installer', 1, '')),
-    (rx(r'-webinstall\.exe$'),   ('Windows x86 web-based installer', 1, '')),
-    (rx(r'\.exe$'),              ('Windows x86 executable installer', 1, '')),
+    (rx(r'-embed-amd64\.zip$'),  ('Windows embeddable package (64-bit)', 1, '')),
+    (rx(r'-amd64\.exe$'),        ('Windows installer (64-bit)', 1, 'Recommended')),
+    (rx(r'-embed-win32\.zip$'),  ('Windows embeddable package (32-bit)', 1, '')),
+    (rx(r'\.exe$'),              ('Windows installer (32-bit)', 1, '')),
     (rx(r'\.chm$'),              ('Windows help file', 1, '')),
-    (rx(r'amd64-pdb\.zip$'),     ('Windows debug information files for 64-bit binaries', 1, '')),
-    (rx(r'-pdb\.zip$'),          ('Windows debug information files', 1, '')),
     (rx(r'-macosx10\.5(_rev\d)?\.(dm|pk)g$'),  ('macOS 32-bit i386/PPC installer', 2,
                                   'for Mac OS X 10.5 and later')),
     (rx(r'-macosx10\.6(_rev\d)?\.(dm|pk)g$'),  ('macOS 64-bit/32-bit installer', 2,
@@ -149,11 +137,11 @@ def list_files(release):
             if rfile.startswith(prefix):
                 break
         else:
-            print '    File %s/%s has wrong prefix' % (reldir, rfile)
+            print('    File %s/%s has wrong prefix' % (reldir, rfile))
             continue
         if rfile.endswith('.chm'):
             if rfile[:-4] != 'python' + release.replace('.', ''):
-                print '    File %s/%s has a different version' % (reldir, rfile)
+                print('    File %s/%s has a different version' % (reldir, rfile))
                 continue
         else:
             try:
@@ -161,7 +149,7 @@ def list_files(release):
             except:
                 prefix, rest = rfile, ''
             if not rest.startswith((release + '-', release + '.')):
-                print '    File %s/%s has a different version' % (reldir, rfile)
+                print('    File %s/%s has a different version' % (reldir, rfile))
                 continue
         for rx, info in file_descriptions:
             if rx.search(rfile):
@@ -169,7 +157,7 @@ def list_files(release):
                 yield rfile, file_desc, os_pk, add_desc
                 break
         else:
-            print '    File %s/%s not recognized' % (reldir, rfile)
+            print('    File %s/%s not recognized' % (reldir, rfile))
             continue
 
 def query_object(objtype, **params):
@@ -189,11 +177,11 @@ def post_object(objtype, datadict):
     if resp.status_code != 201:
         try:
             info = json.loads(resp.text)
-            print info.get('error_message', 'No error message.')
-            print info.get('traceback', '')
+            print(info.get('error_message', 'No error message.'))
+            print(info.get('traceback', ''))
         except:
             pass
-        print 'Creating %s failed: %s' % (objtype, resp.status_code)
+        print('Creating %s failed: %s' % (objtype, resp.status_code))
         return -1
     newloc = resp.headers['Location']
     pk = int(newloc.strip('/').split('/')[-1])
@@ -201,19 +189,19 @@ def post_object(objtype, datadict):
 
 def main():
     rel = sys.argv[1]
-    print 'Querying python.org for release', rel
+    print('Querying python.org for release', rel)
     rel_pk = query_object('release', name='Python+' + rel)
-    print 'Found Release object: id =', rel_pk
+    print('Found Release object: id =', rel_pk)
     n = 0
     file_dicts = {}
     for rfile, file_desc, os_pk, add_desc in list_files(rel):
-        print 'Creating ReleaseFile object for', rfile
+        print('Creating ReleaseFile object for', rfile)
         file_dict = build_file_dict(rel, rfile, rel_pk, file_desc, os_pk, add_desc)
         key = file_dict['slug']
         if key in file_dicts:
             raise RuntimeError('duplicate slug generated: %s' % key)
         file_dicts[key] = file_dict
-    print 'Deleting previous release files'
+    print('Deleting previous release files')
     resp = requests.delete(base_url + 'downloads/release_file/?release=%s' % rel_pk,
                            headers=headers)
     if resp.status_code != 204:
@@ -221,8 +209,9 @@ def main():
     for file_dict in file_dicts.values():
         file_pk = post_object('release_file', file_dict)
         if file_pk >= 0:
-            print 'Created as id =', file_pk
+            print('Created as id =', file_pk)
             n += 1
-    print 'Done - %d files added' % n
+    print('Done - %d files added' % n)
 
-main()
+if not sys.flags.interactive:
+    main()
