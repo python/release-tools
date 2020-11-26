@@ -54,6 +54,7 @@ rx = re.compile
 file_descriptions = [
     (rx(r'\.tgz$'),              ('Gzipped source tarball', 3, '')),
     (rx(r'\.tar\.xz$'),          ('XZ compressed source tarball', 3, '')),
+    (rx(r'-webinstall\.exe$'),   ('', 0, '')),  # OS 0 = ignore on the Web
     (rx(r'-embed-amd64\.zip$'),  ('Windows embeddable package (64-bit)', 1, '')),
     (rx(r'-amd64\.exe$'),        ('Windows installer (64-bit)', 1, 'Recommended')),
     (rx(r'-embed-win32\.zip$'),  ('Windows embeddable package (32-bit)', 1, '')),
@@ -197,9 +198,11 @@ def main():
     n = 0
     file_dicts = {}
     for rfile, file_desc, os_pk, add_desc in list_files(rel):
-        print('Creating ReleaseFile object for', rfile)
         file_dict = build_file_dict(rel, rfile, rel_pk, file_desc, os_pk, add_desc)
         key = file_dict['slug']
+        if not os_pk:
+            continue
+        print('Creating ReleaseFile object for', rfile, key)
         if key in file_dicts:
             raise RuntimeError('duplicate slug generated: %s' % key)
         file_dicts[key] = file_dict
