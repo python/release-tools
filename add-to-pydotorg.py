@@ -65,6 +65,8 @@ file_descriptions = [
                                   'for Mac OS X 10.6 and later')),
     (rx(r'-macosx10\.9(_rev\d)?\.(dm|pk)g$'),  ('macOS 64-bit installer', 2,
                                   'for OS X 10.9 and later')),
+    (rx(r'-macosx11\.0(_rev\d)?\.(dm|pk)g$'),  ('macOS 64-bit universal2 installer', 2,
+                                  'for OS X 10.9 and later')),
 ]
 
 def changelog_for(release):
