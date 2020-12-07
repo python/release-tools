@@ -62,12 +62,12 @@ file_descriptions = [
     (rx(r'\.chm$'),              ('Windows help file', 1, '')),
     (rx(r'-macosx10\.5(_rev\d)?\.(dm|pk)g$'),  ('macOS 32-bit i386/PPC installer', 2,
                                   'for Mac OS X 10.5 and later')),
-    (rx(r'-macosx10\.6(_rev\d)?\.(dm|pk)g$'),  ('macOS 64-bit/32-bit installer', 2,
+    (rx(r'-macosx10\.6(_rev\d)?\.(dm|pk)g$'),  ('macOS 64-bit/32-bit Intel installer', 2,
                                   'for Mac OS X 10.6 and later')),
-    (rx(r'-macosx10\.9(_rev\d)?\.(dm|pk)g$'),  ('macOS 64-bit installer', 2,
-                                  'for OS X 10.9 and later')),
-    (rx(r'-macosx11\.0(_rev\d)?\.(dm|pk)g$'),  ('macOS 64-bit universal2 installer', 2,
-                                  'for OS X 10.9 and later')),
+    (rx(r'-macos(x)?10\.9\.(dm|pk)g$'),  ('macOS 64-bit Intel installer', 2,
+                                  'for macOS 10.9 and later')),
+    (rx(r'-macos(x)?1[1-9](\.[0-9]*)?\.pkg$'),  ('macOS 64-bit universal2 installer', 2,
+                                  'for macOS 10.9 and later, including macOS 11 Big Sur on Apple Silicon (experimental)')),
 ]
 
 def changelog_for(release):
