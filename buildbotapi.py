@@ -8,7 +8,6 @@ from aiohttp.client import ClientSession
 
 @dataclass
 class Builder:
-    id: int
     builderid: int
     description: Optional[str]
     masterids: List[int]
@@ -96,7 +95,7 @@ class BuildBotAPI:
     async def is_builder_failing_currently(self, builder: Builder) -> bool:
         builds_: Dict[str, Any] = await self._fetch_json(
             f"https://buildbot.python.org/all/api/v2/builds?complete__eq=true"
-            f"&&builderid__eq={builder.id}&&order=-complete_at"
+            f"&&builderid__eq={builder.builderid}&&order=-complete_at"
             f"&&limit=1"
         )
         builds = builds_["builds"]

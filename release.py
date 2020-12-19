@@ -418,6 +418,21 @@ class Tag(object):
     def __str__(self):
         return self.text
 
+    def normalized(self):
+        return "{}.{}.{}".format(self.major, self.minor, self.patch)
+
+    @property
+    def branch(self):
+        return "master" if self.is_alpha_release else f"{self.major}.{self.minor}"
+
+    @property
+    def is_alpha_release(self):
+        return self.level == "a"
+
+    @property
+    def is_feature_freeze_release(self):
+        return self.level == "b" and self.serial == 1
+
     @property
     def nickname(self):
         return self.text.replace('.', '')
@@ -425,6 +440,9 @@ class Tag(object):
     @property
     def gitname(self):
         return 'v' + self.text
+
+    def next_minor_release(self):
+        return self.__class__(f"{self.major}.{int(self.minor)+1}.0a0")
 
     def as_tuple(self):
         return (self.major, self.minor, self.patch, self.level, self.serial)

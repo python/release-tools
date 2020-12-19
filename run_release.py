@@ -61,7 +61,7 @@ class ReleaseDriver:
         self,
         tasks: List[Task],
         *,
-        release: str,
+        release_tag: release_mod.Tag,
         git_repo: str,
         api_key: str,
         ssh_user: str,
@@ -78,9 +78,7 @@ class ReleaseDriver:
 
         self.current_task: Optional[Task] = first_state
         self.completed_tasks = self.db.get("completed_tasks", [])
-        self.remaining_tasks = itertools.dropwhile(
-            lambda task: task in self.completed_tasks, self.tasks
-        )
+        self.remaining_tasks = iter(tasks[len(self.completed_tasks) :])
         if self.db.get("gpg_key"):
             os.environ["GPG_KEY_FOR_RELEASE"] = self.db["gpg_key"]
         if not self.db.get("git_repo"):
@@ -90,30 +88,13 @@ class ReleaseDriver:
         if not self.db.get("ssh_user"):
             self.db["ssh_user"] = ssh_user
 
-        match = RELEASE_REGEXP.match(release)
-        assert match is not None
-        major = match.group("major")
-        minor = match.group("minor")
-        patch = match.group("patch")
-        extra = match.groupdict().get("extra", "")
-        if not match:
-            raise ValueError("Invalid release string")
         if not self.db.get("release"):
-            self.db["release"] = release
-            self.db["release_major"] = major
-            self.db["release_minor"] = minor
-            self.db["release_patch"] = patch
-            self.db["release_extra"] = extra
-        if not self.db.get("normalized_release"):
-            self.db["normalized_release"] = f"{major}.{minor}.{patch}"
-        if not self.db.get("release_branch"):
-            branch = "master" if extra.startswith("a") else f"{major}.{minor}"
-            self.db["release_branch"] = branch
+            self.db["release"] = release_tag
 
         print("Release data: ")
-        print(f"- Branch: {self.db['release_branch']}")
+        print(f"- Branch: {release_tag.branch}")
         print(f"- Release tag: {self.db['release']}")
-        print(f"- Normalized release tag: {self.db['normalized_release']}")
+        print(f"- Normalized release tag: {release_tag.normalized()}")
         print(f"- Git repo: {self.db['git_repo']}")
         print(f"- SSH username: {self.db['ssh_user']}")
         print(f"- python.org API key : {self.db['auth_info']}")
@@ -221,9 +202,9 @@ def check_buildbots(db: DbfilenameShelf) -> None:
         async with aiohttp.ClientSession() as session:
             api = BuildBotAPI(session)
             await api.authenticate(token="")
-            release_branch = (
-                "3.x" if db["release_branch"] == "master" else db["release_branch"]
-            )
+            release_branch = db["release"].branch
+            if release_branch == "master":
+                release_branch = "3.x"
             stable_builders = await api.stable_builders(branch=release_branch)
             if not stable_builders:
                 raise ReleaseException(
@@ -252,7 +233,7 @@ def check_buildbots(db: DbfilenameShelf) -> None:
 
 
 def run_blurb_release(db: DbfilenameShelf) -> None:
-    subprocess.check_call(["blurb", "release", db["release"]], cwd=db["git_repo"])
+    subprocess.check_call(["blurb", "release", str(db["release"])], cwd=db["git_repo"])
     subprocess.check_call(
         ["git", "commit", "-m", f"Python {db['release']}"],
         cwd=db["git_repo"],
@@ -310,9 +291,7 @@ def check_pyspecific(db):
         for line in pyspecific:
             if "SOURCE_URI =" in line:
                 break
-    expected_branch = (
-        "master" if db["release_extra"].startswith("a") else db["release_branch"]
-    )
+    expected_branch = db["release"].branch
     expected = (
         f"SOURCE_URI = 'https://github.com/python/cpython/tree/{expected_branch}/%s'"
     )
@@ -322,7 +301,7 @@ def check_pyspecific(db):
 
 def bump_version(db: DbfilenameShelf) -> None:
     with cd(db["git_repo"]):
-        release_mod.bump(release_mod.Tag(db["release"]))
+        release_mod.bump(db["release"])
     subprocess.check_call(
         ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
     )
@@ -330,7 +309,7 @@ def bump_version(db: DbfilenameShelf) -> None:
 
 def create_tag(db: DbfilenameShelf) -> None:
     with cd(db["git_repo"]):
-        if not release_mod.make_tag(release_mod.Tag(db["release"])):
+        if not release_mod.make_tag(db["release"]):
             raise ReleaseException("Error when creating tag")
     subprocess.check_call(
         ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
@@ -339,7 +318,7 @@ def create_tag(db: DbfilenameShelf) -> None:
 
 def build_release_artifacts(db: DbfilenameShelf) -> None:
     with cd(db["git_repo"]):
-        release_mod.export(release_mod.Tag(db["release"]))
+        release_mod.export(db["release"])
 
 
 def test_release_artifacts(db: DbfilenameShelf) -> None:
@@ -349,7 +328,7 @@ def test_release_artifacts(db: DbfilenameShelf) -> None:
         filename = f"Python-{db['release']}"
         tarball = f"Python-{db['release']}.tgz"
         shutil.copy2(
-            db["git_repo"] / db["release"] / "src" / tarball,
+            db["git_repo"] / str(db["release"]) / "src" / tarball,
             the_dir / tarball,
         )
         subprocess.check_call(["tar", "xvf", tarball], cwd=the_dir)
@@ -360,7 +339,7 @@ def test_release_artifacts(db: DbfilenameShelf) -> None:
         subprocess.check_call(["make", "-j"], cwd=the_dir / filename)
         subprocess.check_call(["make", "install"], cwd=the_dir / filename)
         process = subprocess.run(
-            ["./bin/python3", "-m", "test", "test_list"],
+            ["./bin/python3", "-m", "test"],
             cwd=str(the_dir / "installation"),
             text=True,
         )
@@ -410,29 +389,22 @@ def upload_files_to_server(db: DbfilenameShelf) -> None:
     with contextlib.suppress(OSError):
         ftp_client.mkdir(str(destination))
 
-    shutil.rmtree(
-        pathlib.Path(db["git_repo"] / db["release"] / f"Python-{db['release']}"),
-        ignore_errors=True,
-    )
+    artifacts_path = pathlib.Path(db["git_repo"] / str(db["release"]))
+
+    shutil.rmtree(artifacts_path / f"Python-{db['release']}", ignore_errors=True)
 
     def upload_subdir(subdir):
         with contextlib.suppress(OSError):
             ftp_client.mkdir(str(destination / subdir))
-        with alive_bar(
-            len(
-                tuple(
-                    pathlib.Path(db["git_repo"] / db["release"] / subdir).glob("**/*")
-                )
-            )
-        ) as progress:
+        with alive_bar(len(tuple((artifacts_path / subdir).glob("**/*")))) as progress:
             ftp_client.put_dir(
-                db["git_repo"] / db["release"] / subdir,
+                artifacts_path / subdir,
                 str(destination / subdir),
                 progress=progress,
             )
 
     upload_subdir("src")
-    if pathlib.Path(db["git_repo"] / db["release"] / "docs").exists():
+    if (artifacts_path / "docs").exists():
         upload_subdir("docs")
     ftp_client.close()
 
@@ -444,7 +416,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
 
     source = f"/home/psf-users/pablogsal/{db['release']}"
-    destination = f"/srv/www.python.org/ftp/python/{db['normalized_release']}"
+    destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
 
     def execute_command(command):
         channel = client.get_transport().open_session()
@@ -481,10 +453,10 @@ def wait_util_all_files_are_in_folder(db: DbfilenameShelf) -> None:
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
     ftp_client = client.open_sftp()
 
-    destination = f"/srv/www.python.org/ftp/python/{db['normalized_release']}"
+    destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
 
     are_all_files_there = False
-    release = db["release"]
+    release = str(db["release"])
     print()
     while not are_all_files_there:
         try:
@@ -571,25 +543,17 @@ def modify_the_release_to_the_prerelease_pages(db: DbfilenameShelf) -> None:
 
 
 def post_release_tagging(db: DbfilenameShelf) -> None:
-    major = db["release_major"]
-    minor = db["release_minor"]
-    extra = db["release_extra"]
+    release_tag: release_mod.Tag = db["release"]
 
     subprocess.check_call(
         ["git", "fetch", "--all"],
         cwd=db["git_repo"],
     )
 
-    if extra.startswith("a") or extra == "b1":
-        subprocess.check_call(
-            ["git", "checkout", "master"],
-            cwd=db["git_repo"],
-        )
-    else:
-        subprocess.check_call(
-            ["git", "checkout", f"{major}.{minor}"],
-            cwd=db["git_repo"],
-        )
+    subprocess.check_call(
+        ["git", "checkout", release_tag.branch],
+        cwd=db["git_repo"],
+    )
 
     subprocess.check_call(
         ["git", "merge", "--no-squash", f"v{db['release']}"],
@@ -597,7 +561,7 @@ def post_release_tagging(db: DbfilenameShelf) -> None:
     )
 
     with cd(db["git_repo"]):
-        release_mod.done(release_mod.Tag(db["release"]))
+        release_mod.done(db["release"])
 
     subprocess.check_call(
         ["git", "commit", "-a", "-m", f"Post {db['release']}"],
@@ -606,19 +570,19 @@ def post_release_tagging(db: DbfilenameShelf) -> None:
 
 
 def branch_new_versions(db: DbfilenameShelf) -> None:
-    major = db["release_major"]
-    minor = db["release_minor"]
-    extra = db["release_extra"]
-    if extra != "b1":
+    release_tag: release_mod.Tag = db["release"]
+
+    if not release_tag.is_feature_freeze_release:
         return
+
     subprocess.check_call(["git", "checkout", "master"], cwd=db["git_repo"])
     subprocess.check_call(
-        ["git", "branch", f"{major}.{minor}"],
+        ["git", "branch", release_tag.branch],
         cwd=db["git_repo"],
     )
-    new_release = f"{major}.{int(minor)+1}.0a0"
+    new_release = release_tag.next_minor_release()
     with cd(db["git_repo"]):
-        release_mod.bump(release_mod.Tag(new_release))
+        release_mod.bump(new_release)
 
     subprocess.check_call(
         ["git", "commit", "-a", "-m", f"Python {new_release}"],
@@ -627,24 +591,22 @@ def branch_new_versions(db: DbfilenameShelf) -> None:
 
 
 def push_to_upstream(db: DbfilenameShelf) -> None:
-    def _push_to_upstream(dry_run=False):
-        major = db["release_major"]
-        minor = db["release_minor"]
-        extra = db["release_extra"]
+    release_tag: release_mod.Tag = db["release"]
 
+    def _push_to_upstream(dry_run=False):
+        branch = f"{release_tag.major}.{release_tag.minor}"
         git_command = ["git", "push"]
         if dry_run:
             git_command.append("--dry-run")
 
-        if extra.startswith("a"):
+        if release_tag.is_alpha_release:
             subprocess.check_call(
                 git_command + ["--tags", "git@github.com:python/cpython.git", "master"],
                 cwd=db["git_repo"],
             )
-        elif extra == "b1":
+        elif release_tag.is_feature_freeze_release:
             subprocess.check_call(
-                git_command
-                + ["--tags", "git@github.com:python/cpython.git", f"{major}.{minor}"],
+                git_command + ["--tags", "git@github.com:python/cpython.git", branch],
                 cwd=db["git_repo"],
             )
             subprocess.check_call(
@@ -653,8 +615,7 @@ def push_to_upstream(db: DbfilenameShelf) -> None:
             )
         else:
             subprocess.check_call(
-                git_command
-                + ["--tags", "git@github.com:python/cpython.git", f"{major}.{minor}"],
+                git_command + ["--tags", "git@github.com:python/cpython.git", branch],
                 cwd=db["git_repo"],
             )
 
@@ -665,7 +626,7 @@ def push_to_upstream(db: DbfilenameShelf) -> None:
         raise ReleaseException("Something is wrong - Push to upstream aborted")
     if not ask_question("Is the target branch unprotected for your user?"):
         raise ReleaseException("The target branch is not unprotected for your user")
-    _push_to_upstream(dry_run=True)
+    _push_to_upstream(dry_run=False)
 
 
 def main() -> None:
@@ -754,7 +715,7 @@ def main() -> None:
     ]
     automata = ReleaseDriver(
         git_repo=args.repo,
-        release=args.release,
+        release_tag=release_mod.Tag(args.release),
         api_key=auth_key,
         ssh_user=args.ssh_user,
         tasks=tasks,
