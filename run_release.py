@@ -203,9 +203,10 @@ def check_buildbots(db: DbfilenameShelf) -> None:
             api = BuildBotAPI(session)
             await api.authenticate(token="")
             release_branch = db["release"].branch
-            if release_branch == "master":
-                release_branch = "3.x"
             stable_builders = await api.stable_builders(branch=release_branch)
+            if not stable_builders:
+                release_branch = "3.x"
+            stable_builders = await api.stable_builders(branch="3.x")
             if not stable_builders:
                 raise ReleaseException(
                     f"Failed to get the stable buildbots for the {release_branch} tag"

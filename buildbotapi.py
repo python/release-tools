@@ -42,7 +42,6 @@ class Build:
 class BuildBotAPI:
     def __init__(self, session: ClientSession) -> None:
         self._session = session
-        self._stable_builders: Optional[Dict[int, Builder]] = None
 
     async def authenticate(self, token: str) -> None:
         await self._session.get(
@@ -65,14 +64,12 @@ class BuildBotAPI:
     ]:
         return json.loads(await self._fetch_text(url))
 
-    async def _get_stable_builders(self, branch: Optional[str]) -> Dict[int, Builder]:
+    async def stable_builders(self, branch: Optional[str]) -> Dict[int, Builder]:
         stable_builders = {
             id: builder
             for (id, builder) in (await self.all_builders(branch=branch)).items()
             if "stable" in builder.tags
         }
-        if self._stable_builders is None:
-            self._stable_builders = stable_builders
         return stable_builders
 
     async def all_builders(self, branch: Optional[str] = None) -> Dict[int, Builder]:
@@ -85,12 +82,6 @@ class BuildBotAPI:
             builder["builderid"]: Builder(**builder) for builder in builders
         }
         return all_builders
-
-    async def stable_builders(self, branch: Optional[str] = None) -> Dict[int, Builder]:
-        stable_builders = self._stable_builders
-        if stable_builders is None:
-            stable_builders = await self._get_stable_builders(branch=branch)
-        return stable_builders
 
     async def is_builder_failing_currently(self, builder: Builder) -> bool:
         builds_: Dict[str, Any] = await self._fetch_json(
