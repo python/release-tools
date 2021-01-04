@@ -515,7 +515,7 @@ def purge_the_cdn(db: DbfilenameShelf) -> None:
         "User-Agent": "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6"
     }
     req = urllib.request.Request(
-        url=f"https://www.python.org/downloads/release/python-{db['release'].replace('.', '')}/",
+        url=f"https://www.python.org/downloads/release/python-{str(db['release']).replace('.', '')}/",
         headers=headers,
         method="PURGE",
     )
@@ -527,7 +527,7 @@ def purge_the_cdn(db: DbfilenameShelf) -> None:
 
 def modify_the_release_to_the_prerelease_pages(db: DbfilenameShelf) -> None:
     pre_release_tags = {"rc", "b", "a"}
-    if any(tag in db["release"] for tag in pre_release_tags):
+    if any(tag in str(db["release"]) for tag in pre_release_tags):
         if not ask_question(
             "Have you already added the release to https://www.python.org/download/pre-releases/"
         ):
