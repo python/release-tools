@@ -340,7 +340,7 @@ def test_release_artifacts(db: DbfilenameShelf) -> None:
         subprocess.check_call(["make", "-j"], cwd=the_dir / filename)
         subprocess.check_call(["make", "install"], cwd=the_dir / filename)
         process = subprocess.run(
-            ["./bin/python3", "-m", "test"],
+            ["./bin/python3", "-m", "test", "test_list"],
             cwd=str(the_dir / "installation"),
             text=True,
         )
@@ -591,6 +591,25 @@ def branch_new_versions(db: DbfilenameShelf) -> None:
     )
 
 
+def push_to_local_fork(db: DbfilenameShelf) -> None:
+    def _push_to_local(dry_run=False):
+        git_command = ["git", "push"]
+        if dry_run:
+            git_command.append("--dry-run")
+
+        subprocess.check_call(
+            git_command + ["origin", "HEAD", "--tags"],
+            cwd=db["git_repo"],
+        )
+
+    _push_to_local(dry_run=True)
+    if not ask_question(
+        "Does these operations look reasonable? ⚠️⚠️⚠️ Answering 'yes' will push to your origin remote ⚠️⚠️⚠️"
+    ):
+        raise ReleaseException("Something is wrong - Push to remote aborted")
+    _push_to_local(dry_run=False)
+
+
 def push_to_upstream(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
 
@@ -700,6 +719,7 @@ def main() -> None:
         Task(test_release_artifacts, "Test release artifacts"),
         Task(upload_files_to_server, "Upload files to the PSF server"),
         Task(place_files_in_download_folder, "Place files in the download folder"),
+        Task(push_to_local_fork, "Push new tags and branches to private fork"),
         Task(
             send_email_to_platform_release_managers,
             "Platform release managers have been notified of the release artifacts",
