@@ -292,10 +292,12 @@ def export(tag):
             # Note, with the demise of "make touch" and the hg touch
             # extension, touches should not be needed anymore,
             # but keep it for now as a reminder.
-            touchables = ['Include/Python-ast.h', 'Python/Python-ast.c']
-            if os.path.exists('Python/opcode_targets.h'):
-                # This file isn't in Python < 3.1
-                touchables.append('Python/opcode_targets.h')
+            maybe_touchables = ['Include/Python-ast.h',
+                                'Include/internal/pycore_ast.h',
+                                'Include/internal/pycore_ast_state.h',
+                                'Python/Python-ast.c',
+                                'Python/opcode_targets.h']
+            touchables = [file for file in maybe_touchables if os.path.exists(file)]
             print('Touching:', COMMASPACE.join(name.rsplit('/', 1)[-1]
                                                for name in touchables))
             for name in touchables:
