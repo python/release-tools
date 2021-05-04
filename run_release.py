@@ -340,7 +340,7 @@ def test_release_artifacts(db: DbfilenameShelf) -> None:
         subprocess.check_call(["make", "-j"], cwd=the_dir / filename)
         subprocess.check_call(["make", "install"], cwd=the_dir / filename)
         process = subprocess.run(
-            ["./bin/python3", "-m", "test", "test_list"],
+            ["./bin/python3", "-m", "test"],
             cwd=str(the_dir / "installation"),
             text=True,
         )
@@ -478,7 +478,7 @@ def wait_util_all_files_are_in_folder(db: DbfilenameShelf) -> None:
         are_all_files_there = (
             are_linux_files_there and are_windows_files_there and are_macos_files_there
         )
-        if not are_macos_files_there:
+        if not are_all_files_there:
             linux_tick = "✅" if are_linux_files_there else "❎"
             windows_tick = "✅" if are_windows_files_there else "❎"
             macos_tick = "✅" if are_macos_files_there else "❎"
@@ -551,10 +551,17 @@ def post_release_tagging(db: DbfilenameShelf) -> None:
         cwd=db["git_repo"],
     )
 
-    subprocess.check_call(
-        ["git", "checkout", release_tag.branch],
-        cwd=db["git_repo"],
-    )
+    release_tag: release_mod.Tag = db["release"]
+    if release_tag.is_feature_freeze_release:
+        subprocess.check_call(
+            ["git", "checkout", "-b", release_tag.branch],
+            cwd=db["git_repo"],
+        )
+    else:
+        subprocess.check_call(
+            ["git", "checkout", release_tag.branch],
+            cwd=db["git_repo"],
+        )
 
     subprocess.check_call(
         ["git", "merge", "--no-squash", f"v{db['release']}"],
@@ -576,11 +583,7 @@ def branch_new_versions(db: DbfilenameShelf) -> None:
     if not release_tag.is_feature_freeze_release:
         return
 
-    subprocess.check_call(["git", "checkout", "master"], cwd=db["git_repo"])
-    subprocess.check_call(
-        ["git", "branch", release_tag.branch],
-        cwd=db["git_repo"],
-    )
+    subprocess.check_call(["git", "checkout", "main"], cwd=db["git_repo"])
     new_release = release_tag.next_minor_release()
     with cd(db["git_repo"]):
         release_mod.bump(new_release)
@@ -621,7 +624,7 @@ def push_to_upstream(db: DbfilenameShelf) -> None:
 
         if release_tag.is_alpha_release:
             subprocess.check_call(
-                git_command + ["--tags", "git@github.com:python/cpython.git", "master"],
+                git_command + ["--tags", "git@github.com:python/cpython.git", "main"],
                 cwd=db["git_repo"],
             )
         elif release_tag.is_feature_freeze_release:
@@ -630,7 +633,7 @@ def push_to_upstream(db: DbfilenameShelf) -> None:
                 cwd=db["git_repo"],
             )
             subprocess.check_call(
-                git_command + ["--tags", "git@github.com:python/cpython.git", "master"],
+                git_command + ["--tags", "git@github.com:python/cpython.git", "main"],
                 cwd=db["git_repo"],
             )
         else:
@@ -694,7 +697,7 @@ def main() -> None:
         type=str,
     )
     args = parser.parse_args()
-    auth_key = getattr(args, "auth_key", os.getenv("AUTH_INFO"))
+    auth_key = args.auth_key or os.getenv("AUTH_INFO")
     tasks = [
         Task(check_git, "Checking git is available"),
         Task(check_latexmk, "Checking latexmk is available"),
@@ -725,11 +728,11 @@ def main() -> None:
             "Platform release managers have been notified of the release artifacts",
         ),
         Task(create_release_object_in_db, "The django release object has been created"),
-        Task(wait_util_all_files_are_in_folder, "Wait until all files are ready"),
         Task(post_release_tagging, "Final touches for the release"),
-        Task(branch_new_versions, "Branch out new versions and prepare master branch"),
+        Task(branch_new_versions, "Branch out new versions and prepare main branch"),
         Task(push_to_upstream, "Push new tags and branches to upstream"),
         Task(remove_temporary_branch, "Removing temporary release branch"),
+        Task(wait_util_all_files_are_in_folder, "Wait until all files are ready"),
         Task(run_add_to_python_dot_org, "Add files to python.org download page"),
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
         Task(modify_the_release_to_the_prerelease_pages, "Modify the pre-release page"),
