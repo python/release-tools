@@ -567,11 +567,6 @@ def post_release_merge(db: DbfilenameShelf) -> None:
         cwd=db["git_repo"],
     )
 
-    subprocess.check_call(
-        ["git", "commit", "-a", "-m", "Merge release engineering branch"],
-        cwd=db["git_repo"],
-    )
-
 
 def post_release_tagging(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
@@ -750,6 +745,7 @@ def main() -> None:
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(run_autoconf, "Running autoconf"),
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
+        Task(check_pyspecific, "Chech pyspecific"),
         Task(bump_version, "Bump version"),
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
         Task(create_tag, "Create tag"),
