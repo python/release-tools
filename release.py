@@ -33,16 +33,16 @@ def error(*msgs):
     sys.exit(1)
 
 
-def run_cmd(cmd, silent=False, shell=True):
+def run_cmd(cmd, silent=False, shell=True, **kwargs):
     if shell:
         cmd = SPACE.join(cmd)
     if not silent:
         print('Executing %s' % cmd)
     try:
         if silent:
-            subprocess.check_call(cmd, shell=shell, stdout=subprocess.PIPE)
+            subprocess.check_call(cmd, shell=shell, stdout=subprocess.PIPE, **kwargs)
         else:
-            subprocess.check_call(cmd, shell=shell)
+            subprocess.check_call(cmd, shell=shell, **kwargs)
     except subprocess.CalledProcessError:
         error('%s failed' % cmd)
 
@@ -263,14 +263,16 @@ def tarball(source):
         checksum_xz.hexdigest(), int(os.path.getsize(xz)), xz))
 
     print('Signing tarballs')
-    print('List of available private keys:')
-    run_cmd(['gpg -K | grep -A 1 "^sec"'])
-    uid = input('Please enter key ID to use for signing: ')
+    uid = os.environ.get("GPG_KEY_FOR_RELEASE")
+    if not uid:
+        print('List of available private keys:')
+        run_cmd(['gpg -K | grep -A 1 "^sec"'])
+        uid = input('Please enter key ID to use for signing: ')
     os.system('gpg -bas -u ' + uid + ' ' + tgz)
     os.system('gpg -bas -u ' + uid + ' ' + xz)
 
 
-def export(tag):
+def export(tag, silent=False):
     make_dist(tag.text)
     print('Exporting tag:', tag.text)
     archivename = 'Python-%s' % tag.text
@@ -280,10 +282,10 @@ def export(tag):
     archivetempfile = '%s.tar' % archivename
     run_cmd(['git', 'archive', '--format=tar',
              '--prefix=%s/' % archivename,
-             '-o', archivetempfile, tag.gitname])
+             '-o', archivetempfile, tag.gitname], silent=silent)
     with pushd(tag.text):
         archivetempfile = '../%s' % archivetempfile
-        run_cmd(['tar', '-xf', archivetempfile])
+        run_cmd(['tar', '-xf', archivetempfile], silent=silent)
         os.unlink(archivetempfile)
         with pushd(archivename):
             # Touch a few files that get generated so they're up-to-date in
@@ -310,7 +312,7 @@ def export(tag):
                 docdist = build_docs()
 
             print('Using blurb to build Misc/NEWS')
-            run_cmd(["blurb", "merge"])
+            run_cmd(["blurb", "merge"], silent=silent)
 
             # Remove files we don't want to ship in tarballs.
             print('Removing VCS .*ignore, .git*, Misc/NEWS.d, et al')
@@ -324,7 +326,7 @@ def export(tag):
                     pass
 
             # Remove directories we don't want to ship in tarballs.
-            run_cmd(["blurb", "export"])
+            run_cmd(["blurb", "export"], silent=silent)
             for name in ('.azure-pipelines', '.git', '.github', '.hg'):
                 shutil.rmtree(name, ignore_errors=True)
 
@@ -342,8 +344,8 @@ def export(tag):
 
         with pushd(archivename):
             print('Zapping pycs')
-            run_cmd(["find . -depth -name '__pycache__' -exec rm -rf {} ';'"])
-            run_cmd(["find . -name '*.py[co]' -exec rm -f {} ';'"])
+            run_cmd(["find . -depth -name '__pycache__' -exec rm -rf {} ';'"], silent=silent)
+            run_cmd(["find . -name '*.py[co]' -exec rm -f {} ';'"], silent=silent)
 
         os.mkdir('src')
         tarball(archivename)
@@ -358,11 +360,12 @@ def build_docs():
     with tempfile.TemporaryDirectory() as venv:
         run_cmd(['python3', '-m', 'venv', venv])
         pip = os.path.join(venv, 'bin', 'pip')
-        run_cmd([pip, 'install', 'Sphinx==2.3.1', 'python-docs-theme==2020.1', 'blurb'])
+        run_cmd([pip, 'install', '-r' 'Doc/requirements.txt'])
         sphinx_build = os.path.join(venv, 'bin', 'sphinx-build')
         blurb = os.path.join(venv, 'bin', 'blurb')
         with pushd('Doc'):
-            run_cmd(['make', 'dist', 'SPHINXBUILD=' + sphinx_build, 'BLURB=' + blurb])
+            run_cmd(['make', 'dist', 'SPHINXBUILD=' + sphinx_build, 'BLURB=' + blurb],
+                    env={**os.environ, "SPHINXOPTS": "-j10"})
             return os.path.abspath('dist')
 
 def upload(tag, username):
@@ -415,6 +418,21 @@ class Tag(object):
     def __str__(self):
         return self.text
 
+    def normalized(self):
+        return "{}.{}.{}".format(self.major, self.minor, self.patch)
+
+    @property
+    def branch(self):
+        return "main" if self.is_alpha_release else f"{self.major}.{self.minor}"
+
+    @property
+    def is_alpha_release(self):
+        return self.level == "a"
+
+    @property
+    def is_feature_freeze_release(self):
+        return self.level == "b" and self.serial == 1
+
     @property
     def nickname(self):
         return self.text.replace('.', '')
@@ -422,6 +440,9 @@ class Tag(object):
     @property
     def gitname(self):
         return 'v' + self.text
+
+    def next_minor_release(self):
+        return self.__class__(f"{self.major}.{int(self.minor)+1}.0a0")
 
     def as_tuple(self):
         return (self.major, self.minor, self.patch, self.level, self.serial)
@@ -436,7 +457,7 @@ def make_tag(tag):
         print('It doesn\'t look like you didn\'t run "blurb release" yet.')
         if input('Are you sure you want to tag? (y/n) > ') not in ("y", "yes"):
             print("Aborting.")
-            return
+            return False
 
     # make sure we're on the correct branch
     if tag.patch > 0:
@@ -446,12 +467,15 @@ def make_tag(tag):
             print('It doesn\'t look like you\'re on the correct branch.')
             if input('Are you sure you want to tag? (y/n) > ').lower() not in ("y", "yes"):
                 print("Aborting.")
-                return
+                return False
     print('Signing tag')
-    print('List of available private keys:')
-    run_cmd(['gpg -K | grep -A 1 "^sec"'])
-    uid = input('Please enter key ID to use for signing: ')
+    uid = os.environ.get("GPG_KEY_FOR_RELEASE")
+    if not uid:
+        print('List of available private keys:')
+        run_cmd(['gpg -K | grep -A 1 "^sec"'])
+        uid = input('Please enter key ID to use for signing: ')
     run_cmd(['git', 'tag', '-s', '-u', uid, tag.gitname, '-m', 'Python ' + str(tag)], shell=False)
+    return True
 
 
 def done(tag):
