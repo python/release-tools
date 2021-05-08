@@ -542,8 +542,7 @@ def modify_the_release_to_the_prerelease_pages(db: DbfilenameShelf) -> None:
                 "The release has not been removed from the pre-release page"
             )
 
-
-def post_release_tagging(db: DbfilenameShelf) -> None:
+def post_release_merge(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
 
     subprocess.check_call(
@@ -554,7 +553,7 @@ def post_release_tagging(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
     if release_tag.is_feature_freeze_release:
         subprocess.check_call(
-            ["git", "checkout", "-b", release_tag.branch],
+            ["git", "checkout", "main"],
             cwd=db["git_repo"],
         )
     else:
@@ -568,11 +567,51 @@ def post_release_tagging(db: DbfilenameShelf) -> None:
         cwd=db["git_repo"],
     )
 
+    subprocess.check_call(
+        ["git", "commit", "-a", "-m", "Merge release engineering branch"],
+        cwd=db["git_repo"],
+    )
+
+
+def post_release_tagging(db: DbfilenameShelf) -> None:
+    release_tag: release_mod.Tag = db["release"]
+
+    subprocess.check_call(
+        ["git", "fetch", "--all"],
+        cwd=db["git_repo"],
+    )
+
+    subprocess.check_call(
+        ["git", "checkout", release_tag.branch],
+        cwd=db["git_repo"],
+    )
+
     with cd(db["git_repo"]):
         release_mod.done(db["release"])
 
     subprocess.check_call(
         ["git", "commit", "-a", "-m", f"Post {db['release']}"],
+        cwd=db["git_repo"],
+    )
+
+
+def maybe_prepare_new_master_branch(db: DbfilenameShelf) -> None:
+    release_tag: release_mod.Tag = db["release"]
+
+    if not release_tag.is_feature_freeze_release:
+        return
+
+    subprocess.check_call(
+        ["git", "checkout", "main"],
+        cwd=db["git_repo"],
+    )
+
+    new_release = release_tag.next_minor_release()
+    with cd(db["git_repo"]):
+        release_mod.bump(new_release)
+
+    subprocess.check_call(
+        ["git", "commit", "-a", "-m", f"Python {new_release}"],
         cwd=db["git_repo"],
     )
 
@@ -584,15 +623,11 @@ def branch_new_versions(db: DbfilenameShelf) -> None:
         return
 
     subprocess.check_call(["git", "checkout", "main"], cwd=db["git_repo"])
-    new_release = release_tag.next_minor_release()
-    with cd(db["git_repo"]):
-        release_mod.bump(new_release)
 
     subprocess.check_call(
-        ["git", "commit", "-a", "-m", f"Python {new_release}"],
+        ["git", "checkout", "-b", release_tag.branch],
         cwd=db["git_repo"],
     )
-
 
 def push_to_local_fork(db: DbfilenameShelf) -> None:
     def _push_to_local(dry_run=False):
@@ -728,8 +763,10 @@ def main() -> None:
             "Platform release managers have been notified of the release artifacts",
         ),
         Task(create_release_object_in_db, "The django release object has been created"),
-        Task(post_release_tagging, "Final touches for the release"),
+        Task(post_release_merge, "Merge the tag into the release branch"),
         Task(branch_new_versions, "Branch out new versions and prepare main branch"),
+        Task(post_release_tagging, "Final touches for the release"),
+        Task(maybe_prepare_new_master_branch, "prepare new master branch for feature freeze"),
         Task(push_to_upstream, "Push new tags and branches to upstream"),
         Task(remove_temporary_branch, "Removing temporary release branch"),
         Task(wait_util_all_files_are_in_folder, "Wait until all files are ready"),

@@ -423,7 +423,7 @@ class Tag(object):
 
     @property
     def branch(self):
-        return "master" if self.is_alpha_release else f"{self.major}.{self.minor}"
+        return "main" if self.is_alpha_release else f"{self.major}.{self.minor}"
 
     @property
     def is_alpha_release(self):
