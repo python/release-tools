@@ -324,7 +324,7 @@ def check_buildbots(db: DbfilenameShelf) -> None:
             stable_builders = await api.stable_builders(branch=release_branch)
             if not stable_builders:
                 release_branch = "3.x"
-            stable_builders = await api.stable_builders(branch="3.x")
+                stable_builders = await api.stable_builders(branch="3.x")
             if not stable_builders:
                 raise ReleaseException(
                     f"Failed to get the stable buildbots for the {release_branch} tag"
@@ -456,7 +456,7 @@ def test_release_artifacts(db: DbfilenameShelf) -> None:
             cwd=the_dir / filename,
         )
         subprocess.check_call(["make", "-j"], cwd=the_dir / filename)
-        subprocess.check_call(["make", "install"], cwd=the_dir / filename)
+        subprocess.check_call(["make", "install", "-j"], cwd=the_dir / filename)
         process = subprocess.run(
             ["./bin/python3", "-m", "test"],
             cwd=str(the_dir / "installation"),
