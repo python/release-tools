@@ -41,6 +41,7 @@ RELEASE_REGEXP = re.compile(
 )
 
 DOWNLOADS_SERVER = "downloads.nyc1.psf.io"
+DOCS_SERVER = "docs.nyc1.psf.io"
 
 WHATS_NEW_TEMPLATE = """
 ****************************
@@ -308,6 +309,8 @@ def check_ssh_connection(db: DbfilenameShelf) -> None:
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
     client.exec_command("pwd")
+    client.connect(DOCS_SERVER, port=22, username=db["ssh_user"])
+    client.exec_command("pwd")
 
 
 def check_buildbots(db: DbfilenameShelf) -> None:
@@ -470,31 +473,32 @@ def test_release_artifacts(db: DbfilenameShelf) -> None:
         raise ReleaseException("Test failed!")
 
 
+class MySFTPClient(paramiko.SFTPClient):
+    def put_dir(self, source, target, progress=None):
+        for item in os.listdir(source):
+            if os.path.isfile(os.path.join(source, item)):
+                progress.text(item)
+                self.put(os.path.join(source, item), "%s/%s" % (target, item))
+                progress()
+            else:
+                self.mkdir("%s/%s" % (target, item), ignore_existing=True)
+                self.put_dir(
+                    os.path.join(source, item),
+                    "%s/%s" % (target, item),
+                    progress=progress,
+                )
+
+    def mkdir(self, path, mode=511, ignore_existing=False):
+        try:
+            super().mkdir(path, mode)
+        except IOError:
+            if ignore_existing:
+                pass
+            else:
+                raise
+
+
 def upload_files_to_server(db: DbfilenameShelf) -> None:
-    class MySFTPClient(paramiko.SFTPClient):
-        def put_dir(self, source, target, progress=None):
-            for item in os.listdir(source):
-                if os.path.isfile(os.path.join(source, item)):
-                    progress.text(item)
-                    self.put(os.path.join(source, item), "%s/%s" % (target, item))
-                    progress()
-                else:
-                    self.mkdir("%s/%s" % (target, item), ignore_existing=True)
-                    self.put_dir(
-                        os.path.join(source, item),
-                        "%s/%s" % (target, item),
-                        progress=progress,
-                    )
-
-        def mkdir(self, path, mode=511, ignore_existing=False):
-            try:
-                super().mkdir(path, mode)
-            except IOError:
-                if ignore_existing:
-                    pass
-                else:
-                    raise
-
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
@@ -534,6 +538,8 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
 
+    # Sources
+
     source = f"/home/psf-users/pablogsal/{db['release']}"
     destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
 
@@ -547,6 +553,95 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
     execute_command(f"cp {source}/src/* {destination}")
     execute_command(f"chgrp downloads {destination}")
     execute_command(f"chmod 775 {destination}")
+    execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
+
+    # Docs
+
+    release_tag: release_mod.Tag = db["release"]
+    # TODO: Update this for final release
+    if release_tag.is_release_candiate:
+        source = f"/home/psf-users/pablogsal/{db['release']}"
+        destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
+
+        def execute_command(command):
+            channel = client.get_transport().open_session()
+            channel.exec_command(command)
+            if channel.recv_exit_status() != 0:
+                raise ReleaseException(channel.recv_stderr(1000))
+
+        execute_command(f"mkdir -p {destination}")
+        execute_command(f"cp {source}/docs/* {destination}")
+        execute_command(f"chgrp downloads {destination}")
+        execute_command(f"chmod 775 {destination}")
+        execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
+
+
+def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
+    release_tag: release_mod.Tag = db["release"]
+    # TODO: Update this for final release
+    if not release_tag.is_release_candiate:
+        return
+
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.connect(DOCS_SERVER, port=22, username=db["ssh_user"])
+
+    destination = pathlib.Path(f"/home/psf-users/pablogsal/{db['release']}")
+    ftp_client = MySFTPClient.from_transport(client.get_transport())
+
+    client.exec_command(f"rm -rf {destination}")
+
+    with contextlib.suppress(OSError):
+        ftp_client.mkdir(str(destination))
+
+    artifacts_path = pathlib.Path(db["git_repo"] / str(db["release"]))
+
+    shutil.rmtree(artifacts_path / f"Python-{db['release']}", ignore_errors=True)
+
+    def upload_subdir(subdir):
+        with contextlib.suppress(OSError):
+            ftp_client.mkdir(str(destination / subdir))
+        with alive_bar(len(tuple((artifacts_path / subdir).glob("**/*")))) as progress:
+            ftp_client.put_dir(
+                artifacts_path / subdir,
+                str(destination / subdir),
+                progress=progress,
+            )
+
+    upload_subdir("docs")
+    ftp_client.close()
+
+
+def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
+    release_tag: release_mod.Tag = db["release"]
+    # TODO: Update this for final release
+    if not release_tag.is_release_candiate:
+        return
+
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.connect(DOCS_SERVER, port=22, username=db["ssh_user"])
+
+    # Sources
+
+    source = f"/home/psf-users/pablogsal/{db['release']}"
+    destination = f"/srv/docs.python.org/release/{release_tag}"
+
+    def execute_command(command):
+        channel = client.get_transport().open_session()
+        channel.exec_command(command)
+        if channel.recv_exit_status() != 0:
+            raise ReleaseException(channel.recv_stderr(1000))
+
+    docs_filename = f"python-{release_tag}-docs-html"
+    execute_command(f"mkdir -p {destination}")
+    execute_command(f"unzip {source}/docs/{docs_filename}.zip -d {destination}")
+    execute_command(f"mv /{destination}/{docs_filename}/* {destination}")
+    execute_command(f"rm -rf /{destination}/{docs_filename}")
+    execute_command(f"chgrp -R docs {destination}")
+    execute_command(f"chmod -R 775 {destination}")
     execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
 
 
@@ -632,15 +727,16 @@ def purge_the_cdn(db: DbfilenameShelf) -> None:
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6"
     }
-    req = urllib.request.Request(
-        url=f"https://www.python.org/downloads/release/python-{str(db['release']).replace('.', '')}/",
-        headers=headers,
-        method="PURGE",
-    )
-    # try:
-    response = urllib.request.urlopen(req)
-    if response.code != 200:
-        raise RuntimeError("Failed to purge the python.org/downloads CDN")
+    urls = [
+        f"https://www.python.org/downloads/release/python-{str(db['release']).replace('.', '')}/",
+        f"https://docs.python.org/release/{db['release']}/",
+    ]
+    for url in urls:
+        req = urllib.request.Request(url=url, headers=headers, method="PURGE")
+        # try:
+        response = urllib.request.urlopen(req)
+        if response.code != 200:
+            raise RuntimeError("Failed to purge the python.org/downloads CDN")
 
 
 def modify_the_release_to_the_prerelease_pages(db: DbfilenameShelf) -> None:
@@ -659,6 +755,7 @@ def modify_the_release_to_the_prerelease_pages(db: DbfilenameShelf) -> None:
             raise ReleaseException(
                 "The release has not been removed from the pre-release page"
             )
+
 
 def post_release_merge(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
@@ -728,7 +825,8 @@ def maybe_prepare_new_master_branch(db: DbfilenameShelf) -> None:
     with cd(db["git_repo"]), open(whatsnew_file, "w") as f:
         f.write(WHATS_NEW_TEMPLATE.format(version=new_branch))
 
-    subprocess.check_call(["git", "add", whatsnew_file],
+    subprocess.check_call(
+        ["git", "add", whatsnew_file],
         cwd=db["git_repo"],
     )
 
@@ -750,6 +848,7 @@ def branch_new_versions(db: DbfilenameShelf) -> None:
         ["git", "checkout", "-b", release_tag.branch],
         cwd=db["git_repo"],
     )
+
 
 def push_to_local_fork(db: DbfilenameShelf) -> None:
     def _push_to_local(dry_run=False):
@@ -880,6 +979,8 @@ def main() -> None:
         Task(test_release_artifacts, "Test release artifacts"),
         Task(upload_files_to_server, "Upload files to the PSF server"),
         Task(place_files_in_download_folder, "Place files in the download folder"),
+        Task(upload_docs_to_the_docs_server, "Upload docs to the PSF docs server"),
+        Task(unpack_docs_in_the_docs_server, "Place docs files in the docs folder"),
         Task(push_to_local_fork, "Push new tags and branches to private fork"),
         Task(
             send_email_to_platform_release_managers,
@@ -889,7 +990,10 @@ def main() -> None:
         Task(post_release_merge, "Merge the tag into the release branch"),
         Task(branch_new_versions, "Branch out new versions and prepare main branch"),
         Task(post_release_tagging, "Final touches for the release"),
-        Task(maybe_prepare_new_master_branch, "prepare new master branch for feature freeze"),
+        Task(
+            maybe_prepare_new_master_branch,
+            "prepare new master branch for feature freeze",
+        ),
         Task(push_to_upstream, "Push new tags and branches to upstream"),
         Task(remove_temporary_branch, "Removing temporary release branch"),
         Task(wait_util_all_files_are_in_folder, "Wait until all files are ready"),

@@ -430,6 +430,10 @@ class Tag(object):
         return self.level == "a"
 
     @property
+    def is_release_candiate(self):
+        return self.level == "rc"
+
+    @property
     def is_feature_freeze_release(self):
         return self.level == "b" and self.serial == 1
 
