@@ -64,10 +64,10 @@ file_descriptions = [
                                   'for Mac OS X 10.5 and later')),
     (rx(r'-macosx10\.6(_rev\d)?\.(dm|pk)g$'),  ('macOS 64-bit/32-bit Intel installer', 2,
                                   'for Mac OS X 10.6 and later')),
-    (rx(r'-macos(x)?10\.9\.(dm|pk)g$'),  ('macOS 64-bit Intel installer', 2,
-                                  'for macOS 10.9 and later')),
+    (rx(r'-macos(x)?10\.9\.(dm|pk)g$'),  ('macOS 64-bit Intel-only installer', 2,
+                                  'for macOS 10.9 and later, deprecated')),
     (rx(r'-macos(x)?1[1-9](\.[0-9]*)?\.pkg$'),  ('macOS 64-bit universal2 installer', 2,
-                                  'for macOS 10.9 and later, including macOS 11 Big Sur on Apple Silicon (experimental)')),
+                                  'for macOS 10.9 and later')),
 ]
 
 def changelog_for(release):
@@ -113,7 +113,7 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
         filesize = filesize_for(release, rfile),
         download_button=(
             ("tar.xz" in rfile)
-            or ("macosx10.9.pkg" in rfile)
+            or ("macos11.pkg" in rfile)
             or (
                 rfile.endswith((".msi", ".exe"))
                 and ("webinstall" not in rfile)
