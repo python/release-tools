@@ -24,7 +24,7 @@ import urllib.request
 import sys
 from dataclasses import dataclass
 from shelve import DbfilenameShelf
-from typing import Callable, Iterator, List, Optional
+from typing import Callable, Iterator, List, Optional, final
 
 import aiohttp
 import gnupg
@@ -519,7 +519,7 @@ def upload_files_to_server(db: DbfilenameShelf) -> None:
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
 
-    destination = pathlib.Path(f"/home/psf-users/pablogsal/{db['release']}")
+    destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
     ftp_client = MySFTPClient.from_transport(client.get_transport())
 
     client.exec_command(f"rm -rf {destination}")
@@ -555,7 +555,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
 
     # Sources
 
-    source = f"/home/psf-users/pablogsal/{db['release']}"
+    source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
     destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
 
     def execute_command(command):
@@ -574,7 +574,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
 
     release_tag: release_mod.Tag = db["release"]
     if release_tag.is_final or release_tag.is_release_candiate:
-        source = f"/home/psf-users/pablogsal/{db['release']}"
+        source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
         destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
 
         def execute_command(command):
@@ -600,7 +600,7 @@ def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
     client.connect(DOCS_SERVER, port=22, username=db["ssh_user"])
 
-    destination = pathlib.Path(f"/home/psf-users/pablogsal/{db['release']}")
+    destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
     ftp_client = MySFTPClient.from_transport(client.get_transport())
 
     client.exec_command(f"rm -rf {destination}")
@@ -638,7 +638,7 @@ def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
 
     # Sources
 
-    source = f"/home/psf-users/pablogsal/{db['release']}"
+    source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
     destination = f"/srv/docs.python.org/release/{release_tag}"
 
     def execute_command(command):
@@ -714,7 +714,15 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(DOWNLOADS_SERVER, port=22, username="pablogsal")
+    client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
+
+    # Ensure the file is there
+    source = pathlib.Path(__file__).parent / "add-to-pydotorg.py" 
+    destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/add-to-pydotorg.py")
+    ftp_client = MySFTPClient.from_transport(client.get_transport())
+    ftp_client.put(str(source), str(destination))
+    ftp_client.close()
+
     auth_info = db["auth_info"]
     assert auth_info is not None
     stdin, stdout, stderr = client.exec_command(
