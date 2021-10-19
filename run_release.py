@@ -21,6 +21,7 @@ import subprocess
 import tempfile
 import time
 import urllib.request
+import sys
 from dataclasses import dataclass
 from shelve import DbfilenameShelf
 from typing import Callable, Iterator, List, Optional
@@ -921,6 +922,17 @@ def push_to_upstream(db: DbfilenameShelf) -> None:
 
 
 def main() -> None:
+
+    if "linux" not in sys.platform:
+        print("""\
+WARNING! This script has not been tested on a platform other than Linux.
+
+Although it should work correctly as long as you have all the dependencies,
+some things may not work as expected. As a release manager, you should try to
+fix these things in this script so it also support your platform.
+""")
+        if not ask_question("Do you want to continue?"):
+            raise ReleaseException("This release script is not compatible with the running platform")
 
     parser = argparse.ArgumentParser(description="Process some integers.")
 
