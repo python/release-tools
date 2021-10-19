@@ -23,7 +23,7 @@ import time
 import urllib.request
 from dataclasses import dataclass
 from shelve import DbfilenameShelf
-from typing import Callable, Iterator, List, Optional, cast
+from typing import Callable, Iterator, List, Optional
 
 import aiohttp
 import gnupg
@@ -238,6 +238,8 @@ class ReleaseDriver:
             self.completed_tasks.append(self.current_task)
             self.current_task = next(self.remaining_tasks, None)
         self.db["finished"] = True
+        print()
+        print(f"Congratulations, Python {self.db['release']} is released 🎉🎉🎉")
 
 
 def ask_question(question: str) -> bool:
@@ -280,6 +282,7 @@ check_latexmk = functools.partial(check_tool, tool="latexmk")
 check_make = functools.partial(check_tool, tool="make")
 check_blurb = functools.partial(check_tool, tool="blurb")
 check_autoconf = functools.partial(check_tool, tool="autoconf")
+check_docker = functools.partial(check_tool, tool="docker")
 
 
 def check_gpg_keys(db: DbfilenameShelf) -> None:
@@ -400,7 +403,18 @@ def prepare_pydoc_topics(db: DbfilenameShelf) -> None:
 
 
 def run_autoconf(db: DbfilenameShelf) -> None:
-    subprocess.check_call(["autoconf"], cwd=db["git_repo"])
+    subprocess.check_call(
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--pull=always",
+            f"-v{db['git_repo']}:/src",
+            "quay.io/tiran/cpython_autoconf:latest",
+        ],
+        cwd=db["git_repo"],
+    )
+    subprocess.check_call(["docker", "rmi", "quay.io/tiran/cpython_autoconf", "-f"])
     subprocess.check_call(
         ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
     )
@@ -558,8 +572,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
     # Docs
 
     release_tag: release_mod.Tag = db["release"]
-    # TODO: Update this for final release
-    if release_tag.is_release_candiate:
+    if release_tag.is_final or release_tag.is_release_candiate:
         source = f"/home/psf-users/pablogsal/{db['release']}"
         destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
 
@@ -578,8 +591,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
 
 def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
-    # TODO: Update this for final release
-    if not release_tag.is_release_candiate:
+    if not (release_tag.is_final or release_tag.is_release_candiate):
         return
 
     client = paramiko.SSHClient()
@@ -615,8 +627,7 @@ def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
 
 def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
-    # TODO: Update this for final release
-    if not release_tag.is_release_candiate:
+    if not (release_tag.is_final or release_tag.is_release_candiate):
         return
 
     client = paramiko.SSHClient()
@@ -674,20 +685,14 @@ def wait_util_all_files_are_in_folder(db: DbfilenameShelf) -> None:
     print()
     while not are_all_files_there:
         try:
-            all_files = ftp_client.listdir(destination)
+            all_files = set(ftp_client.listdir(destination))
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"The release folder in {destination} has not been created"
             ) from None
-        are_windows_files_there = any(
-            file.endswith(".exe") for file in all_files if release in file
-        )
-        are_macos_files_there = any(
-            file.endswith(".pkg") for file in all_files if release in file
-        )
-        are_linux_files_there = any(
-            file.endswith(".tgz") for file in all_files if release in file
-        )
+        are_windows_files_there = f"python-{release}.exe" in all_files
+        are_macos_files_there = f"python-{release}-macos11.pkg" in all_files
+        are_linux_files_there = f"Python-{release}.tgz" in all_files
         are_all_files_there = (
             are_linux_files_there and are_windows_files_there and are_macos_files_there
         )
@@ -727,9 +732,16 @@ def purge_the_cdn(db: DbfilenameShelf) -> None:
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6"
     }
+    normalized_release = db["release"].normalized()
     urls = [
         f"https://www.python.org/downloads/release/python-{str(db['release']).replace('.', '')}/",
         f"https://docs.python.org/release/{db['release']}/",
+        f"https://www.python.org/ftp/python/{normalized_release}/",
+        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tgz",
+        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tgz.asc",
+        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tar.xz",
+        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tar.xz.asc",
+        f"https://docs.python.org/release/{normalized_release}/",
     ]
     for url in urls:
         req = urllib.request.Request(url=url, headers=headers, method="PURGE")
@@ -959,6 +971,7 @@ def main() -> None:
         Task(check_latexmk, "Checking latexmk is available"),
         Task(check_make, "Checking make is available"),
         Task(check_blurb, "Checking blurb is available"),
+        Task(check_docker, "Checking docker is available"),
         Task(check_autoconf, "Checking autoconf is available"),
         Task(check_gpg_keys, "Checking GPG keys"),
         Task(check_ssh_connection, f"Validating ssh connection to {DOWNLOADS_SERVER}"),

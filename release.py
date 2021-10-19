@@ -335,6 +335,7 @@ def export(tag, silent=False):
 
         with pushd(os.path.join(archivename, 'Doc')):
             print('Removing doc build artifacts')
+            shutil.rmtree('venv', ignore_errors=True)
             shutil.rmtree('build', ignore_errors=True)
             shutil.rmtree('dist', ignore_errors=True)
             shutil.rmtree('tools/docutils', ignore_errors=True)
