@@ -366,15 +366,6 @@ def run_blurb_release(db: DbfilenameShelf) -> None:
     )
 
 
-def check_docs(db: DbfilenameShelf) -> None:
-    subprocess.check_call(["make", "venv"], cwd=db["git_repo"] / "Doc")
-    subprocess.check_call(
-        ["make", "suspicious"],
-        cwd=db["git_repo"] / "Doc",
-        env={**os.environ, "SPHINXOPTS": "-j10"},
-    )
-
-
 def check_cpython_repo_is_clean(db: DbfilenameShelf) -> None:
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=db["git_repo"]):
         raise ReleaseException("Git repository is not clean")
@@ -770,7 +761,7 @@ def modify_the_release_to_the_prerelease_pages(db: DbfilenameShelf) -> None:
                 "The release has not been added to the pre-release page"
             )
     else:
-        if ask_question(
+        if not ask_question(
             "Have you already removed the release from https://www.python.org/download/pre-releases/"
         ):
             raise ReleaseException(
@@ -999,7 +990,6 @@ fix these things in this script so it also support your platform.
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
         Task(preapre_temporary_branch, "Checking out a temporary release branch"),
         Task(run_blurb_release, "Run blurb release"),
-        Task(check_docs, "Check documentation"),
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(run_autoconf, "Running autoconf"),
@@ -1019,6 +1009,7 @@ fix these things in this script so it also support your platform.
             send_email_to_platform_release_managers,
             "Platform release managers have been notified of the release artifacts",
         ),
+        Task(wait_util_all_files_are_in_folder, "Wait until all files are ready"),
         Task(create_release_object_in_db, "The django release object has been created"),
         Task(post_release_merge, "Merge the tag into the release branch"),
         Task(branch_new_versions, "Branch out new versions and prepare main branch"),
@@ -1029,7 +1020,6 @@ fix these things in this script so it also support your platform.
         ),
         Task(push_to_upstream, "Push new tags and branches to upstream"),
         Task(remove_temporary_branch, "Removing temporary release branch"),
-        Task(wait_util_all_files_are_in_folder, "Wait until all files are ready"),
         Task(run_add_to_python_dot_org, "Add files to python.org download page"),
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
         Task(modify_the_release_to_the_prerelease_pages, "Modify the pre-release page"),
