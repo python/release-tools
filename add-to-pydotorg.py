@@ -56,6 +56,8 @@ file_descriptions = [
     (rx(r'\.tar\.xz$'),          ('XZ compressed source tarball', 3, '')),
     (rx(r'-webinstall\.exe$'),   ('', 0, '')),  # OS 0 = ignore on the Web
     (rx(r'-embed-amd64\.zip$'),  ('Windows embeddable package (64-bit)', 1, '')),
+    (rx(r'-embed-arm64\.zip$'),  ('Windows embeddable package (ARM64)', 1, '')),
+    (rx(r'-arm64\.exe$'),        ('Windows installer (ARM64)', 1, 'Experimental')),
     (rx(r'-amd64\.exe$'),        ('Windows installer (64-bit)', 1, 'Recommended')),
     (rx(r'-embed-win32\.zip$'),  ('Windows embeddable package (32-bit)', 1, '')),
     (rx(r'\.exe$'),              ('Windows installer (32-bit)', 1, '')),
