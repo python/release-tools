@@ -140,11 +140,6 @@ Optimizations
 
 
 
-Build and C API Changes
-=======================
-
-* :c:func:`PyFrame_BlockSetup` and :c:func:`PyFrame_BlockPop` have been removed.
-
 Deprecated
 ==========
 
@@ -160,6 +155,27 @@ Porting to Python {version}
 
 This section lists previously described changes and other bugfixes
 that may require changes to your code.
+
+
+Build Changes
+=============
+
+
+C API Changes
+=============
+
+New Features
+------------
+
+Porting to Python {version}
+----------------------
+
+Deprecated
+----------
+
+Removed
+-------
+
 """
 
 
