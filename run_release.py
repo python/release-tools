@@ -92,7 +92,7 @@ WHATS_NEW_TEMPLATE = """
    This saves the maintainer the effort of going through the Mercurial log
    when researching a change.
 
-This article explains the new features in Python {version}, compared to 3.10.
+This article explains the new features in Python {version}, compared to {prev_version}.
 
 For full details, see the :ref:`changelog <changelog>`.
 
@@ -848,10 +848,12 @@ def maybe_prepare_new_master_branch(db: DbfilenameShelf) -> None:
     with cd(db["git_repo"]):
         release_mod.bump(new_release)
 
+    prev_branch = f"{release_tag.major}.{release_tag.minor}"
     new_branch = f"{release_tag.major}.{int(release_tag.minor)+1}"
     whatsnew_file = f"Doc/whatsnew/{new_branch}"
     with cd(db["git_repo"]), open(whatsnew_file, "w") as f:
-        f.write(WHATS_NEW_TEMPLATE.format(version=new_branch))
+        f.write(WHATS_NEW_TEMPLATE.format(version=new_branch,
+                                          prev_version=prev_branch))
 
     subprocess.check_call(
         ["git", "add", whatsnew_file],
