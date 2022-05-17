@@ -110,7 +110,7 @@ stages:
   - stage: Build
     displayName: Build binaries
     jobs:
-    - template: windows-release/stage-build.yml
+    - template: stage-build.yml
       parameters:
         ARM64TclTk: ${{ parameters.ARM64TclTk }}
 
@@ -118,35 +118,35 @@ stages:
     displayName: Sign binaries
     dependsOn: Build
     jobs:
-    - template: windows-release/stage-sign.yml
+    - template: stage-sign.yml
 
   - stage: Layout
     displayName: Generate layouts
     dependsOn: Sign
     jobs:
-    - template: windows-release/stage-layout-full.yml
+    - template: stage-layout-full.yml
       parameters:
         ARM64TclTk: ${{ parameters.ARM64TclTk }}
-    - template: windows-release/stage-layout-embed.yml
-    - template: windows-release/stage-layout-nuget.yml
+    - template: stage-layout-embed.yml
+    - template: stage-layout-nuget.yml
 
   - stage: Pack
     dependsOn: Layout
     jobs:
-    - template: windows-release/stage-pack-nuget.yml
+    - template: stage-pack-nuget.yml
 
   - stage: Test
     dependsOn: Pack
     jobs:
-    - template: windows-release/stage-test-embed.yml
-    - template: windows-release/stage-test-nuget.yml
+    - template: stage-test-embed.yml
+    - template: stage-test-nuget.yml
 
   - ${{ if eq(parameters.DoMSIX, 'true') }}:
     - stage: Layout_MSIX
       displayName: Generate MSIX layouts
       dependsOn: Sign
       jobs:
-      - template: windows-release/stage-layout-msix.yml
+      - template: stage-layout-msix.yml
         parameters:
           ARM64TclTk: ${{ parameters.ARM64TclTk }}
 
@@ -154,14 +154,14 @@ stages:
       displayName: Package MSIX
       dependsOn: Layout_MSIX
       jobs:
-      - template: windows-release/stage-pack-msix.yml
+      - template: stage-pack-msix.yml
 
   - ${{ if eq(parameters.DoMSI, 'true') }}:
     - stage: Build_MSI
       displayName: Build MSI installer
       dependsOn: Sign
       jobs:
-      - template: windows-release/stage-msi.yml
+      - template: stage-msi.yml
         parameters:
           ARM64TclTk: ${{ parameters.ARM64TclTk }}
 
@@ -169,7 +169,7 @@ stages:
       displayName: Test MSI installer
       dependsOn: Build_MSI
       jobs:
-      - template: windows-release/stage-test-msi.yml
+      - template: stage-test-msi.yml
 
   - ${{ if eq(parameters.DoPublish, 'true') }}:
     - ${{ if eq(parameters.DoMSI, 'true') }}:
@@ -177,7 +177,7 @@ stages:
         displayName: Publish to python.org
         dependsOn: ['Test_MSI', 'Test']
         jobs:
-        - template: windows-release/stage-publish-pythonorg.yml
+        - template: stage-publish-pythonorg.yml
 
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - stage: PublishNuget
@@ -187,7 +187,7 @@ stages:
         ${{ else }}:
           dependsOn: 'Test'
         jobs:
-        - template: windows-release/stage-publish-nugetorg.yml
+        - template: stage-publish-nugetorg.yml
 
     - ${{ if eq(parameters.DoMSIX, 'true') }}:
       - stage: PublishStore
@@ -197,7 +197,7 @@ stages:
         ${{ else }}:
           dependsOn: 'Pack_MSIX'
         jobs:
-        - template: windows-release/stage-publish-store.yml
+        - template: stage-publish-store.yml
 
 - ${{ else }}:
   - stage: PublishExisting
@@ -205,16 +205,16 @@ stages:
     dependsOn: []
     jobs:
     - ${{ if eq(parameters.DoMSI, 'true') }}:
-      - template: windows-release/stage-publish-pythonorg.yml
+      - template: stage-publish-pythonorg.yml
         parameters:
           BuildToPublish: ${{ parameters.BuildToPublish }}
 
     - ${{ if eq(parameters.DoNuget, 'true') }}:
-      - template: windows-release/stage-publish-nugetorg.yml
+      - template: stage-publish-nugetorg.yml
         parameters:
           BuildToPublish: ${{ parameters.BuildToPublish }}
 
     - ${{ if eq(parameters.DoMSIX, 'true') }}:
-      - template: windows-release/stage-publish-store.yml
+      - template: stage-publish-store.yml
         parameters:
           BuildToPublish: ${{ parameters.BuildToPublish }}
