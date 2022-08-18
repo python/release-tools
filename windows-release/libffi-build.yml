@@ -59,6 +59,7 @@ jobs:
 - job: Sign_LibFFI
   displayName: Sign LibFFI
   dependsOn: Build_LibFFI
+  condition: and(succeeded, variables['SigningCertificate'])
   pool:
     name: 'Windows Release'
 
@@ -74,7 +75,7 @@ jobs:
 
     - powershell: |
         signtool sign /q /a `
-            /n "Python Software Foundation" `
+            /n "$(SigningCertificate)" `
             /fd sha256 `
             /tr http://timestamp.digicert.com/ /td sha256 `
             /d "LibFFI for Python" `
