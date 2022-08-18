@@ -144,7 +144,7 @@ def list_files(release):
     for rfile in os.listdir(path.join(ftp_root, reldir)):
         if not path.isfile(path.join(ftp_root, reldir, rfile)):
             continue
-        if rfile.endswith('.asc'):
+        if rfile.endswith(('.asc', '.sig', '.crt')):
             continue
         for prefix in ('python', 'Python'):
             if rfile.startswith(prefix):
