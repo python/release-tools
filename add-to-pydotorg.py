@@ -34,6 +34,8 @@ import time
 
 import requests
 
+from release import run_cmd
+
 try:
     auth_info = os.environ['AUTH_INFO']
 except KeyError:
@@ -200,14 +202,36 @@ def post_object(objtype, datadict):
     pk = int(newloc.strip('/').split('/')[-1])
     return pk
 
+def sign_release_files_with_sigstore(release, release_files):
+    filenames = [
+        ftp_root + "%s/%s" % (base_version(release), rfile)
+        for rfile, file_desc, os_pk, add_desc in release_files
+    ]
+
+    def has_sigstore_signature(release_file):
+        return (
+            os.path.exists(ftp_root + "%s/%s.sig" % (base_version(release), rfile)) and
+            os.path.exists(ftp_root + "%s/%s.crt" % (base_version(release), rfile))
+        )
+
+    # Skip files that already have a signature (likely source distributions)
+    unsigned_files = [
+        filename for filename in filenames if not has_sigstore_signature(filename)
+    ]
+
+    print('Signging release files with Sigstore')
+    run_cmd(['python3', '-m', 'sigstore', 'sign', '--oidc-disable-ambient-providers'] + filenames)
+
 def main():
     rel = sys.argv[1]
     print('Querying python.org for release', rel)
     rel_pk = query_object('release', name='Python+' + rel)
     print('Found Release object: id =', rel_pk)
+    release_files = list(list_files(rel))
+    sign_release_files_with_sigstore(rel, release_files)
     n = 0
     file_dicts = {}
-    for rfile, file_desc, os_pk, add_desc in list_files(rel):
+    for rfile, file_desc, os_pk, add_desc in release_files:
         file_dict = build_file_dict(rel, rfile, rel_pk, file_desc, os_pk, add_desc)
         key = file_dict['slug']
         if not os_pk:
