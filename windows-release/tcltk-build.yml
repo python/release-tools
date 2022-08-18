@@ -1,5 +1,12 @@
 name: tcl$(TkSourceTag)_$(Date:yyyyMMdd)$(Rev:.rr)
 
+resources:
+  repositories:
+  - repository: cpython
+    type: github
+    name: Python/cpython
+    endpoint: "Steve's github repos"
+
 variables:
   IntDir: '$(Build.BinariesDirectory)\obj'
   ExternalsDir: '$(Build.BinariesDirectory)\externals'
@@ -24,6 +31,8 @@ jobs:
     clean: all
 
   steps:
+    - checkout: self
+    - checkout: cpython
     - template: ./find-tools.yml
 
     - powershell: |
@@ -49,21 +58,21 @@ jobs:
       displayName: 'Generate msbuild.rsp'
 
     - powershell: |
-        & "$(msbuild)" PCbuild\tcl.vcxproj "@msbuild.rsp" /p:Platform=Win32 /p:tcltkDir="$(OutDir)\win32"
-        & "$(msbuild)" PCbuild\tk.vcxproj  "@msbuild.rsp" /p:Platform=Win32 /p:tcltkDir="$(OutDir)\win32"
-        & "$(msbuild)" PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=Win32 /p:tcltkDir="$(OutDir)\win32"
+        & "$(msbuild)" cpython\PCbuild\tcl.vcxproj "@msbuild.rsp" /p:Platform=Win32 /p:tcltkDir="$(OutDir)\win32"
+        & "$(msbuild)" cpython\PCbuild\tk.vcxproj  "@msbuild.rsp" /p:Platform=Win32 /p:tcltkDir="$(OutDir)\win32"
+        & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=Win32 /p:tcltkDir="$(OutDir)\win32"
       displayName: 'Build for win32'
 
     - powershell: |
-        & "$(msbuild)" PCbuild\tcl.vcxproj "@msbuild.rsp" /p:Platform=x64 /p:tcltkDir="$(OutDir)\amd64"
-        & "$(msbuild)" PCbuild\tk.vcxproj  "@msbuild.rsp" /p:Platform=x64 /p:tcltkDir="$(OutDir)\amd64"
-        & "$(msbuild)" PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=x64 /p:tcltkDir="$(OutDir)\amd64"
+        & "$(msbuild)" cpython\PCbuild\tcl.vcxproj "@msbuild.rsp" /p:Platform=x64 /p:tcltkDir="$(OutDir)\amd64"
+        & "$(msbuild)" cpython\PCbuild\tk.vcxproj  "@msbuild.rsp" /p:Platform=x64 /p:tcltkDir="$(OutDir)\amd64"
+        & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=x64 /p:tcltkDir="$(OutDir)\amd64"
       displayName: 'Build for amd64'
 
     - powershell: |
-        & "$(msbuild)" PCbuild\tcl.vcxproj "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
-        & "$(msbuild)" PCbuild\tk.vcxproj  "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
-        & "$(msbuild)" PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
+        & "$(msbuild)" cpython\PCbuild\tcl.vcxproj "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
+        & "$(msbuild)" cpython\PCbuild\tk.vcxproj  "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
+        & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
       displayName: 'Build for arm64'
 
     - publish: '$(OutDir)'
