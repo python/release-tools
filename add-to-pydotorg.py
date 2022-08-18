@@ -31,10 +31,32 @@ from os import path
 import re
 import sys
 import time
+import subprocess
 
 import requests
 
-from release import run_cmd
+# Copied from release.py
+def error(*msgs):
+    print('**ERROR**', file=sys.stderr)
+    for msg in msgs:
+        print(msg, file=sys.stderr)
+    sys.exit(1)
+
+
+# Copied from release.py
+def run_cmd(cmd, silent=False, shell=True, **kwargs):
+    if shell:
+        cmd = ' '.join(cmd)
+    if not silent:
+        print('Executing %s' % cmd)
+    try:
+        if silent:
+            subprocess.check_call(cmd, shell=shell, stdout=subprocess.PIPE, **kwargs)
+        else:
+            subprocess.check_call(cmd, shell=shell, **kwargs)
+    except subprocess.CalledProcessError:
+        error('%s failed' % cmd)
+
 
 try:
     auth_info = os.environ['AUTH_INFO']
