@@ -59,7 +59,7 @@ jobs:
 - job: Sign_LibFFI
   displayName: Sign LibFFI
   dependsOn: Build_LibFFI
-  condition: and(succeeded, variables['SigningCertificate'])
+  condition: and(succeeded(), variables['SigningCertificate'])
   pool:
     name: 'Windows Release'
 
