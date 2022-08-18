@@ -31,8 +31,32 @@ from os import path
 import re
 import sys
 import time
+import subprocess
 
 import requests
+
+# Copied from release.py
+def error(*msgs):
+    print('**ERROR**', file=sys.stderr)
+    for msg in msgs:
+        print(msg, file=sys.stderr)
+    sys.exit(1)
+
+
+# Copied from release.py
+def run_cmd(cmd, silent=False, shell=True, **kwargs):
+    if shell:
+        cmd = ' '.join(cmd)
+    if not silent:
+        print('Executing %s' % cmd)
+    try:
+        if silent:
+            subprocess.check_call(cmd, shell=shell, stdout=subprocess.PIPE, **kwargs)
+        else:
+            subprocess.check_call(cmd, shell=shell, **kwargs)
+    except subprocess.CalledProcessError:
+        error('%s failed' % cmd)
+
 
 try:
     auth_info = os.environ['AUTH_INFO']
@@ -126,8 +150,16 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
             )
         ),
     )
+    # Upload GPG signature
     if os.path.exists(ftp_root + "%s/%s.asc" % (base_version(release), rfile)):
         d["gpg_signature_file"] = sigfile_for(base_version(release), rfile)
+    # Upload Sigstore signature
+    if os.path.exists(ftp_root + "%s/%s.sig" % (base_version(release), rfile)):
+        d["sigstore_signature_file"] = download_root + '%s/%s.sig' % (release, rfile)
+    # Upload Sigstore certificate
+    if os.path.exists(ftp_root + "%s/%s.crt" % (base_version(release), rfile)):
+        d["sigstore_cert_file"] = download_root + '%s/%s.crt' % (release, rfile)
+
     return d
 
 def list_files(release):
@@ -136,7 +168,7 @@ def list_files(release):
     for rfile in os.listdir(path.join(ftp_root, reldir)):
         if not path.isfile(path.join(ftp_root, reldir, rfile)):
             continue
-        if rfile.endswith('.asc'):
+        if rfile.endswith(('.asc', '.sig', '.crt')):
             continue
         for prefix in ('python', 'Python'):
             if rfile.startswith(prefix):
@@ -192,14 +224,36 @@ def post_object(objtype, datadict):
     pk = int(newloc.strip('/').split('/')[-1])
     return pk
 
+def sign_release_files_with_sigstore(release, release_files):
+    filenames = [
+        ftp_root + "%s/%s" % (base_version(release), rfile)
+        for rfile, file_desc, os_pk, add_desc in release_files
+    ]
+
+    def has_sigstore_signature(release_file):
+        return (
+            os.path.exists(ftp_root + "%s/%s.sig" % (base_version(release), rfile)) and
+            os.path.exists(ftp_root + "%s/%s.crt" % (base_version(release), rfile))
+        )
+
+    # Skip files that already have a signature (likely source distributions)
+    unsigned_files = [
+        filename for filename in filenames if not has_sigstore_signature(filename)
+    ]
+
+    print('Signging release files with Sigstore')
+    run_cmd(['python3', '-m', 'sigstore', 'sign', '--oidc-disable-ambient-providers'] + filenames)
+
 def main():
     rel = sys.argv[1]
     print('Querying python.org for release', rel)
     rel_pk = query_object('release', name='Python+' + rel)
     print('Found Release object: id =', rel_pk)
+    release_files = list(list_files(rel))
+    sign_release_files_with_sigstore(rel, release_files)
     n = 0
     file_dicts = {}
-    for rfile, file_desc, os_pk, add_desc in list_files(rel):
+    for rfile, file_desc, os_pk, add_desc in release_files:
         file_dict = build_file_dict(rel, rfile, rel_pk, file_desc, os_pk, add_desc)
         key = file_dict['slug']
         if not os_pk:
