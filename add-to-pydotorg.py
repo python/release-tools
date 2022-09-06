@@ -230,7 +230,7 @@ def sign_release_files_with_sigstore(release, release_files):
         for rfile, file_desc, os_pk, add_desc in release_files
     ]
 
-    def has_sigstore_signature(release_file):
+    def has_sigstore_signature(rfile):
         return (
             os.path.exists(ftp_root + "%s/%s.sig" % (base_version(release), rfile)) and
             os.path.exists(ftp_root + "%s/%s.crt" % (base_version(release), rfile))
