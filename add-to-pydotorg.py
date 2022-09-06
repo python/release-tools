@@ -250,7 +250,8 @@ def main():
     rel_pk = query_object('release', name='Python+' + rel)
     print('Found Release object: id =', rel_pk)
     release_files = list(list_files(rel))
-    sign_release_files_with_sigstore(rel, release_files)
+    # TODO: Uncomment when this is synced with the rest of the release scripts
+    # sign_release_files_with_sigstore(rel, release_files)
     n = 0
     file_dicts = {}
     for rfile, file_desc, os_pk, add_desc in release_files:
