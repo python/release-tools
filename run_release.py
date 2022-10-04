@@ -732,8 +732,10 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
 
     auth_info = db["auth_info"]
     assert auth_info is not None
+    # Do the interactive flow to get an identity for Sigstore
+    identity_token = subprocess.check_output(["python", "-m", "sigstore", "get-identity-token"]).strip().decode()
     stdin, stdout, stderr = client.exec_command(
-        f"AUTH_INFO={auth_info} python add-to-pydotorg.py {db['release']}"
+        f"AUTH_INFO={auth_info} IDENTITY_TOKEN={identity_token} python add-to-pydotorg.py {db['release']}"
     )
     stderr_text = stderr.read().decode()
     if stderr_text:
