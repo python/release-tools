@@ -3,4 +3,4 @@ alive_progress
 python-gnupg
 aiohttp
 blurb
-sigstore
+sigstore>0.6.6
