@@ -244,6 +244,10 @@ def sign_release_files_with_sigstore(release, release_files):
     print('Signging release files with Sigstore')
     run_cmd(['python3', '-m', 'sigstore', 'sign', '--oidc-disable-ambient-providers'] + filenames)
 
+    # Update permissions on Sigstore verification materials to match other downloads
+    run_cmd(["find", ftp_root, "-type", "f", "\(", "-iname", "\*.sig", "-o", "-iname", "\*.crt", "\)", "exec", "chmod", "644", "{}", "\\;"])
+
+
 def main():
     rel = sys.argv[1]
     print('Querying python.org for release', rel)
