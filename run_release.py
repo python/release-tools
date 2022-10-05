@@ -724,7 +724,7 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
 
     # Ensure the file is there
-    source = pathlib.Path(__file__).parent / "add-to-pydotorg.py" 
+    source = pathlib.Path(__file__).parent / "add-to-pydotorg.py"
     destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/add-to-pydotorg.py")
     ftp_client = MySFTPClient.from_transport(client.get_transport())
     ftp_client.put(str(source), str(destination))
