@@ -155,10 +155,10 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
         d["gpg_signature_file"] = sigfile_for(base_version(release), rfile)
     # Upload Sigstore signature
     if os.path.exists(ftp_root + "%s/%s.sig" % (base_version(release), rfile)):
-        d["sigstore_signature_file"] = download_root + '%s/%s.sig' % (release, rfile)
+        d["sigstore_signature_file"] = download_root + '%s/%s.sig' % (base_version(release), rfile)
     # Upload Sigstore certificate
     if os.path.exists(ftp_root + "%s/%s.crt" % (base_version(release), rfile)):
-        d["sigstore_cert_file"] = download_root + '%s/%s.crt' % (release, rfile)
+        d["sigstore_cert_file"] = download_root + '%s/%s.crt' % (base_version(release), rfile)
 
     return d
 
