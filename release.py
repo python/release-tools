@@ -271,7 +271,7 @@ def tarball(source):
     os.system('gpg -bas -u ' + uid + ' ' + tgz)
     os.system('gpg -bas -u ' + uid + ' ' + xz)
 
-    print('Signging tarballs with Sigstore')
+    print('Signing tarballs with Sigstore')
     run_cmd(['python3', '-m', 'sigstore', 'sign', '--oidc-disable-ambient-providers', tgz, xz])
 
 
