@@ -155,10 +155,10 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
         d["gpg_signature_file"] = sigfile_for(base_version(release), rfile)
     # Upload Sigstore signature
     if os.path.exists(ftp_root + "%s/%s.sig" % (base_version(release), rfile)):
-        d["sigstore_signature_file"] = download_root + '%s/%s.sig' % (release, rfile)
+        d["sigstore_signature_file"] = download_root + '%s/%s.sig' % (base_version(release), rfile)
     # Upload Sigstore certificate
     if os.path.exists(ftp_root + "%s/%s.crt" % (base_version(release), rfile)):
-        d["sigstore_cert_file"] = download_root + '%s/%s.crt' % (release, rfile)
+        d["sigstore_cert_file"] = download_root + '%s/%s.crt' % (base_version(release), rfile)
 
     return d
 
@@ -244,14 +244,17 @@ def sign_release_files_with_sigstore(release, release_files):
     print('Signging release files with Sigstore')
     run_cmd(['python3', '-m', 'sigstore', 'sign', '--oidc-disable-ambient-providers'] + filenames)
 
+    # Update permissions on Sigstore verification materials to match other downloads
+    run_cmd(["find", ftp_root, "-type", "f", "\(", "-iname", "\*.sig", "-o", "-iname", "\*.crt", "\)", "exec", "chmod", "644", "{}", "\\;"])
+
+
 def main():
     rel = sys.argv[1]
     print('Querying python.org for release', rel)
     rel_pk = query_object('release', name='Python+' + rel)
     print('Found Release object: id =', rel_pk)
     release_files = list(list_files(rel))
-    # TODO: Uncomment when this is synced with the rest of the release scripts
-    # sign_release_files_with_sigstore(rel, release_files)
+    sign_release_files_with_sigstore(rel, release_files)
     n = 0
     file_dicts = {}
     for rfile, file_desc, os_pk, add_desc in release_files:

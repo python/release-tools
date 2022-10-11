@@ -29,6 +29,8 @@ from typing import Callable, Iterator, List, Optional, final
 import aiohttp
 import gnupg
 import paramiko
+from sigstore._cli import _get_identity_token
+from sigstore._internal.oidc.oauth import DEFAULT_OAUTH_ISSUER
 from alive_progress import alive_bar
 
 import release as release_mod
@@ -724,7 +726,7 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
 
     # Ensure the file is there
-    source = pathlib.Path(__file__).parent / "add-to-pydotorg.py" 
+    source = pathlib.Path(__file__).parent / "add-to-pydotorg.py"
     destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/add-to-pydotorg.py")
     ftp_client = MySFTPClient.from_transport(client.get_transport())
     ftp_client.put(str(source), str(destination))
@@ -732,8 +734,16 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
 
     auth_info = db["auth_info"]
     assert auth_info is not None
+    # Do the interactive flow to get an identity for Sigstore
+    args = argparse.Namespace(
+        oidc_disable_ambient_providers=True,
+        oidc_client_secret=None,
+        oidc_issuer=sigstore._internal.oidc.oauth.DEFAULT_OAUTH_ISSUER,
+        oidc_client_id="sigstore",
+    )
+    identity_token = sigstore._cli._get_identity_token(args)
     stdin, stdout, stderr = client.exec_command(
-        f"AUTH_INFO={auth_info} python add-to-pydotorg.py {db['release']}"
+        f"AUTH_INFO={auth_info} IDENTITY_TOKEN={identity_token} python add-to-pydotorg.py {db['release']}"
     )
     stderr_text = stderr.read().decode()
     if stderr_text:
