@@ -83,13 +83,13 @@ WHATS_NEW_TEMPLATE = """
    * Credit the author of a patch or bugfix.   Just the name is
    sufficient; the e-mail address isn't necessary.
 
-   * It's helpful to add the bug/patch number as a comment:
+   * It's helpful to add the issue number as a comment:
 
    XXX Describe the transmogrify() function added to the socket
    module.
-   (Contributed by P.Y. Developer in :issue:`12345`.)
+   (Contributed by P.Y. Developer in :gh:`12345`.)
 
-   This saves the maintainer the effort of going through the Mercurial log
+   This saves the maintainer the effort of going through the VCS log
    when researching a change.
 
 This article explains the new features in Python {version}, compared to {prev_version}.
