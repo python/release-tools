@@ -744,7 +744,7 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
     )
     identity_token = sigstore._cli._get_identity_token(args)
     stdin, stdout, stderr = client.exec_command(
-        f"AUTH_INFO={auth_info} IDENTITY_TOKEN={identity_token} python3 add-to-pydotorg.py {db['release']}"
+        f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add-to-pydotorg.py {db['release']}"
     )
     stderr_text = stderr.read().decode()
     if stderr_text:
@@ -863,8 +863,7 @@ def maybe_prepare_new_master_branch(db: DbfilenameShelf) -> None:
     new_branch = f"{release_tag.major}.{int(release_tag.minor)+1}"
     whatsnew_file = f"Doc/whatsnew/{new_branch}"
     with cd(db["git_repo"]), open(whatsnew_file, "w") as f:
-        f.write(WHATS_NEW_TEMPLATE.format(version=new_branch,
-                                          prev_version=prev_branch))
+        f.write(WHATS_NEW_TEMPLATE.format(version=new_branch, prev_version=prev_branch))
 
     subprocess.check_call(
         ["git", "add", whatsnew_file],
@@ -952,15 +951,19 @@ def push_to_upstream(db: DbfilenameShelf) -> None:
 def main() -> None:
 
     if "linux" not in sys.platform:
-        print("""\
+        print(
+            """\
 WARNING! This script has not been tested on a platform other than Linux.
 
 Although it should work correctly as long as you have all the dependencies,
 some things may not work as expected. As a release manager, you should try to
 fix these things in this script so it also support your platform.
-""")
+"""
+        )
         if not ask_question("Do you want to continue?"):
-            raise ReleaseException("This release script is not compatible with the running platform")
+            raise ReleaseException(
+                "This release script is not compatible with the running platform"
+            )
 
     parser = argparse.ArgumentParser(description="Process some integers.")
 
