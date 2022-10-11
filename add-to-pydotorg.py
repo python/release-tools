@@ -243,6 +243,9 @@ def sign_release_files_with_sigstore(release, release_files):
     if unsigned_files:
         print('Signing release files with Sigstore')
         run_cmd(['python3', '-m', 'sigstore', 'sign', '--oidc-disable-ambient-providers'] + unsigned_files)
+        for file in unsigned_files:
+            run_cmd(['chmod', '644', file + '.sig'])
+            run_cmd(['chmod', '644', file + '.crt'])
     else:
         print('All release files already signed with Sigstore')
 
