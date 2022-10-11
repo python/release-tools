@@ -29,6 +29,7 @@ from typing import Callable, Iterator, List, Optional, final
 import aiohttp
 import gnupg
 import paramiko
+import sigstore
 from sigstore._cli import _get_identity_token
 from sigstore._internal.oidc.oauth import DEFAULT_OAUTH_ISSUER
 from alive_progress import alive_bar
@@ -420,7 +421,7 @@ def run_autoconf(db: DbfilenameShelf) -> None:
             "--rm",
             "--pull=always",
             f"-v{db['git_repo']}:/src",
-            "quay.io/tiran/cpython_autoconf:latest",
+            "quay.io/tiran/cpython_autoconf:cp311",
         ],
         cwd=db["git_repo"],
     )
@@ -743,7 +744,7 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
     )
     identity_token = sigstore._cli._get_identity_token(args)
     stdin, stdout, stderr = client.exec_command(
-        f"AUTH_INFO={auth_info} IDENTITY_TOKEN={identity_token} python add-to-pydotorg.py {db['release']}"
+        f"AUTH_INFO={auth_info} IDENTITY_TOKEN={identity_token} python3 add-to-pydotorg.py {db['release']}"
     )
     stderr_text = stderr.read().decode()
     if stderr_text:
