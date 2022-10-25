@@ -61,10 +61,12 @@ jobs:
   - script: |
       python -c "import sys; print(sys.version)"
     displayName: 'Collect version number'
+    condition: and(succeeded(), not(variables['SkipTests']))
 
   - script: |
       python -m site
     displayName: 'Collect site'
+    condition: and(succeeded(), not(variables['SkipTests']))
 
   - powershell: |
       gci -r "${env:PROGRAMDATA}\Microsoft\Windows\Start Menu\Programs\Python*"
@@ -87,10 +89,12 @@ jobs:
       python -m pip install "azure<0.10"
       python -m pip uninstall -y azure python-dateutil six
     displayName: 'Test (un)install package'
+    condition: and(succeeded(), not(variables['SkipTests']))
 
   - script: |
       python -m test -uall -v test_ttk_guionly test_tk test_idle
     displayName: 'Test Tkinter and Idle'
+    condition: and(succeeded(), not(variables['SkipTests']), not(variables['SkipTkTests']))
 
   - script: >
       "$(SetupExe)"
