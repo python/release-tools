@@ -768,7 +768,9 @@ def purge_the_cdn(db: DbfilenameShelf) -> None:
         f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tgz.asc",
         f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tar.xz",
         f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tar.xz.asc",
-        f"https://docs.python.org/release/{normalized_release}/",
+        "https://www.python.org/downloads/",
+        "https://www.python.org/downloads/windows/",
+        "https://www.python.org/downloads/macos/",
     ]
     for url in urls:
         req = urllib.request.Request(url=url, headers=headers, method="PURGE")
