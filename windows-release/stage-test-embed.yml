@@ -35,7 +35,9 @@ jobs:
   - script: |
       python -c "import sys; print(sys.version)"
     displayName: 'Collect version number'
+    condition: and(succeeded(), not(variables['SkipTests']))
 
   - script: |
       python -m site
     displayName: 'Collect site'
+    condition: and(succeeded(), not(variables['SkipTests']))
