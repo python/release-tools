@@ -1,5 +1,6 @@
 parameters:
   ARM64TclTk: true
+  SigningCertificate: ''
 
 steps:
   - template: ./checkout.yml
@@ -80,10 +81,10 @@ steps:
         artifactName: tcltk_lib_arm64
         targetPath: $(Build.BinariesDirectory)\tcltk_lib_arm64
 
-  - powershell: |
-      copy $(Build.BinariesDirectory)\amd64\Activate.ps1 Lib\venv\scripts\common\Activate.ps1 -Force
-    displayName: 'Copy signed files into sources'
-    condition: and(succeeded(), variables['SigningCertificate'])
+  - ${{ if parameters.SigningCertificate }}:
+    - powershell: |
+        copy $(Build.BinariesDirectory)\amd64\Activate.ps1 Lib\venv\scripts\common\Activate.ps1 -Force
+      displayName: 'Copy signed files into sources'
 
   - script: |
       call Tools\msi\get_externals.bat
@@ -98,50 +99,75 @@ steps:
       %PYTHON% -m blurb merge -f Misc\NEWS
     displayName: 'Merge NEWS file'
 
+  - powershell: |
+      ("/p:Py_OutDir=" + $env:BUILD_BINARIESDIRECTORY) | Out-File msbuild.rsp -Encoding UTF8
+      "/p:BuildForRelease=true" | Out-File msbuild.rsp -Append -Encoding UTF8
+      Write-Host "##vso[task.setvariable variable=ResponseFile]$(gi msbuild.rsp)"
+      gc msbuild.rsp
+    displayName: 'Generate response file'
+
+  - ${{ if parameters.SigningCertificate }}:
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'custom'
+        custom: 'tool'
+        arguments: 'install --global azuresigntool'
+      displayName: Install AzureSignTool
+
+    - powershell: |
+        $signcmd = 'AzureSignTool sign -kvu "$(KeyVaultUri)" ' + `
+                   '-kvi "$(KeyVaultApplication)" -kvt "$(KeyVaultDirectory)" -kvs "$(KeyVaultSecret)" ' + `
+                   '-tr http://timestamp.digicert.com/ -td sha256 ' + `
+                   '-kvc "${{ parameters.SigningCertificate }}" -d "$(SigningDescription)" -fd sha256 '
+        "/p:_SignCommand=$signcmd" | Out-File $env:ResponseFile -Append -Encoding UTF8
+      displayName: 'Inject signing command into response file'
+      env:
+        ResponseFile: $(ResponseFile)
+
   - script: |
-      %MSBUILD% Tools\msi\launcher\launcher.wixproj
+      %MSBUILD% Tools\msi\launcher\launcher.wixproj "@$(ResponseFile)"
     displayName: 'Build launcher installer'
     env:
       Platform: x86
-      Py_OutDir: $(Build.BinariesDirectory)
 
   - script: |
-      %MSBUILD% Tools\msi\bundle\releaselocal.wixproj /t:Rebuild /p:RebuildAll=true
+      %MSBUILD% Tools\msi\bundle\releaselocal.wixproj /t:Rebuild /p:RebuildAll=true "@$(ResponseFile)"
     displayName: 'Build win32 installer'
     env:
       Platform: x86
-      Py_OutDir: $(Build.BinariesDirectory)
       PYTHON: $(Build.BinariesDirectory)\win32\python.exe
       PythonForBuild: $(Build.BinariesDirectory)\win32\python.exe
       PYTHONHOME: $(Build.SourcesDirectory)
       TclTkLibraryDir: $(Build.BinariesDirectory)\tcltk_lib_win32
-      BuildForRelease: true
 
   - script: |
-      %MSBUILD% Tools\msi\bundle\releaselocal.wixproj /t:Rebuild /p:RebuildAll=true
+      %MSBUILD% Tools\msi\bundle\releaselocal.wixproj /t:Rebuild /p:RebuildAll=true "@$(ResponseFile)"
     displayName: 'Build amd64 installer'
     env:
       Platform: x64
-      Py_OutDir: $(Build.BinariesDirectory)
       PYTHON: $(Build.BinariesDirectory)\amd64\python.exe
       PythonForBuild: $(Build.BinariesDirectory)\amd64\python.exe
       PYTHONHOME: $(Build.SourcesDirectory)
       TclTkLibraryDir: $(Build.BinariesDirectory)\tcltk_lib_amd64
-      BuildForRelease: true
 
   - script: |
-      %MSBUILD% Tools\msi\bundle\releaselocal.wixproj /t:Rebuild /p:RebuildAll=true
+      %MSBUILD% Tools\msi\bundle\releaselocal.wixproj /t:Rebuild /p:RebuildAll=true "@$(ResponseFile)"
     displayName: 'Build arm64 installer'
     condition: and(succeeded(), eq(variables['PublishARM64'], 'true'))
     env:
       Platform: ARM64
-      Py_OutDir: $(Build.BinariesDirectory)
       PYTHON: $(Build.BinariesDirectory)\win32\python.exe
       PythonForBuild: $(Build.BinariesDirectory)\win32\python.exe
       PYTHONHOME: $(Build.SourcesDirectory)
-      BuildForRelease: true
       ${{ if eq(parameters.ARM64TclTk, true) }}:
         TclTkLibraryDir: $(Build.BinariesDirectory)\tcltk_lib_arm64
+
+  - powershell: |
+      del $env:ResponseFile -ErrorAction Continue
+    displayName: 'Remove response file (always runs)'
+    condition: ne(variables['ResponseFile'], '')
+    env:
+      ResponseFile: $(ResponseFile)
 
   - task: CopyFiles@2
     displayName: 'Assemble artifact: msi (win32)'

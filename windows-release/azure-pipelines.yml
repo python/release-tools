@@ -80,7 +80,6 @@ parameters:
   default: '0'
 
 variables:
-  __RealSigningCertificate: 'Python Software Foundation'
   ${{ if ne(parameters.GitRemote, '(Other)') }}:
     GitRemote: ${{ parameters.GitRemote }}
   ${{ else }}:
@@ -90,6 +89,10 @@ variables:
   ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
     SigningCertificate: ${{ parameters.SigningCertificate }}
   SigningDescription: ${{ parameters.SigningDescription }}
+  ${{ if eq(parameters.SigningCertificate, 'Python Software Foundation') }}:
+    IsRealSigned: true
+  ${{ else }}:
+    IsRealSigned: false
   DoCHM: ${{ parameters.DoCHM }}
   DoLayout: ${{ parameters.DoLayout }}
   DoMSIX: ${{ parameters.DoMSIX }}
@@ -119,6 +122,8 @@ stages:
     dependsOn: Build
     jobs:
     - template: stage-sign.yml
+      parameters:
+        SigningCertificate: ${{ parameters.SigningCertificate }}
 
   - stage: Layout
     displayName: Generate layouts
@@ -134,6 +139,9 @@ stages:
     dependsOn: Layout
     jobs:
     - template: stage-pack-nuget.yml
+      parameters:
+        ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
+          SigningCertificate: ${{ parameters.SigningCertificate }}
 
   - stage: Test
     dependsOn: Pack
@@ -155,6 +163,9 @@ stages:
       dependsOn: Layout_MSIX
       jobs:
       - template: stage-pack-msix.yml
+        parameters:
+          ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
+            SigningCertificate: ${{ parameters.SigningCertificate }}
 
   - ${{ if eq(parameters.DoMSI, 'true') }}:
     - stage: Build_MSI
@@ -164,6 +175,8 @@ stages:
       - template: stage-msi.yml
         parameters:
           ARM64TclTk: ${{ parameters.ARM64TclTk }}
+          ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
+            SigningCertificate: ${{ parameters.SigningCertificate }}
 
     - stage: Test_MSI
       displayName: Test MSI installer

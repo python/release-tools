@@ -34,5 +34,6 @@ jobs:
         artifactName: msixupload
         downloadPath: $(Build.BinariesDirectory)
 
-  # TODO: eq(variables['SigningCertificate'], variables['__RealSigningCertificate'])
-  # If we are not real-signed, DO NOT PUBLISH
+  # TODO: do publish step
+  # If we are *not* real-signed, DO NOT PUBLISH
+  # condition: and(succeeded(), eq(variables['IsRealSigned'], 'true'))

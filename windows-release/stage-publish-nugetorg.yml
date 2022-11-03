@@ -42,7 +42,7 @@ jobs:
 
   - task: NuGetCommand@2
     displayName: Push packages
-    condition: and(succeeded(), eq(variables['SigningCertificate'], variables['__RealSigningCertificate']))
+    condition: and(succeeded(), eq(variables['IsRealSigned'], 'true'))
     inputs:
       command: push
       packagesToPush: '$(Build.BinariesDirectory)\nuget\*.nupkg'

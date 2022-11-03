@@ -56,7 +56,7 @@ steps:
 
 - task: PublishPipelineArtifact@0
   displayName: 'Publish binaries'
-  condition: and(succeeded(), not(and(eq(variables['Configuration'], 'Release'), variables['SigningCertificate'])))
+  condition: and(succeeded(), or(ne(variables['Configuration'], 'Release'), not(variables['SigningCertificate'])))
   inputs:
     targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)'
     artifactName: bin_$(Name)

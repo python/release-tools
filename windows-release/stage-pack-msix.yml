@@ -1,3 +1,6 @@
+parameters:
+  SigningCertificate: ''
+
 jobs:
 - job: Pack_MSIX
   displayName: Pack MSIX bundles
@@ -73,7 +76,7 @@ jobs:
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: MSIX'
-    condition: and(succeeded(), and(eq(variables['ShouldSign'], 'true'), variables['SigningCertificate']))
+    condition: and(succeeded(), eq(variables['ShouldSign'], 'true'), variables['SigningCertificate'])
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\msix'
       ArtifactName: unsigned_msix
@@ -91,58 +94,47 @@ jobs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\msixupload'
       ArtifactName: msixupload
 
+- ${{ if parameters.SigningCertificate }}:
+  - job: Sign_MSIX
+    displayName: Sign side-loadable MSIX bundles
+    dependsOn:
+    - Pack_MSIX
 
-- job: Sign_MSIX
-  displayName: Sign side-loadable MSIX bundles
-  dependsOn:
-  - Pack_MSIX
-  condition: and(succeeded(), variables['SigningCertificate'])
+    pool:
+      vmImage: windows-2022
 
-  pool:
-    name: 'Windows Release'
+    workspace:
+      clean: all
 
-  workspace:
-    clean: all
+    variables:
+    - group: CPythonSign
 
-  steps:
-  - template: ./checkout.yml
-  - template: ./find-sdk.yml
+    steps:
+    - template: ./checkout.yml
 
-  - powershell: |
-      $d = (.\PCbuild\build.bat -V) | %{ if($_ -match '\s+(\w+):\s*(.+)\s*$') { @{$Matches[1] = $Matches[2];} }};
-      Write-Host "##vso[task.setvariable variable=SigningDescription]Python $($d.PythonVersion)"
-    displayName: 'Update signing description'
-    condition: and(succeeded(), not(variables['SigningDescription']))
+    - powershell: |
+        $d = (.\PCbuild\build.bat -V) | %{ if($_ -match '\s+(\w+):\s*(.+)\s*$') { @{$Matches[1] = $Matches[2];} }};
+        Write-Host "##vso[task.setvariable variable=SigningDescription]Python $($d.PythonVersion)"
+      displayName: 'Update signing description'
+      condition: and(succeeded(), not(variables['SigningDescription']))
 
-  - task: DownloadBuildArtifacts@0
-    displayName: 'Download Artifact: unsigned_msix'
-    inputs:
-      artifactName: unsigned_msix
-      downloadPath: $(Build.BinariesDirectory)
+    - task: DownloadBuildArtifacts@0
+      displayName: 'Download Artifact: unsigned_msix'
+      inputs:
+        artifactName: unsigned_msix
+        downloadPath: $(Build.BinariesDirectory)
 
-  # MSIX must be signed and timestamped simultaneously
-  #
-  # Getting "Error: SignerSign() failed." (-2147024885/0x8007000b)"?
-  # It may be that the certificate info collected in stage-sign.yml is wrong. Check that
-  # you do not have multiple matches for the certificate name you have specified.
-  - powershell: |
-      $failed = $true
-      foreach ($retry in 1..3) {
-          signtool sign /a /n "$(SigningCertificate)" /fd sha256 /tr http://timestamp.digicert.com/ /td sha256 /d "$(SigningDescription)" (gi *.msix)
-          if ($?) {
-              $failed = $false
-              break
-          }
-          sleep 1
-      }
-      if ($failed) {
-          throw "Failed to sign MSIX"
-      }
-    displayName: 'Sign MSIX'
-    workingDirectory: $(Build.BinariesDirectory)\unsigned_msix
+    # Getting "Error: SignerSign() failed." (-2147024885/0x8007000b)"?
+    # It may be that the certificate info collected in stage-sign.yml is wrong. Check that
+    # you do not have multiple matches for the certificate name you have specified.
+    - template: sign-files.yml
+      parameters:
+        Include: '*.msix'
+        WorkingDir: $(Build.BinariesDirectory)\unsigned_msix
+        SigningCertificate: ${{ parameters.SigningCertificate }}
 
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publish Artifact: MSIX'
-    inputs:
-      PathtoPublish: '$(Build.BinariesDirectory)\unsigned_msix'
-      ArtifactName: msix
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact: MSIX'
+      inputs:
+        PathtoPublish: '$(Build.BinariesDirectory)\unsigned_msix'
+        ArtifactName: msix
