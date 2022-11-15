@@ -1,5 +1,6 @@
 parameters:
   BuildToPublish: ''
+  HashAlgorithms: ['SHA256', 'MD5']
 
 jobs:
 - job: Publish_Python
@@ -154,7 +155,7 @@ jobs:
     workingDirectory: $(Build.BinariesDirectory)
     displayName: 'Test layouts'
 
-  - ${{ each alg in ['MD5', 'SHA256'] }}:
+  - ${{ each alg in parameters.HashAlgorithms }}:
     - powershell: |
         $files = gci -File "msi\*\*.exe", "embed\*.zip"
         if ("$(DoCHM)" -ieq "true") {
