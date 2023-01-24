@@ -1,5 +1,6 @@
 parameters:
   BuildToPublish: ''
+  HashAlgorithms: ['SHA256', 'MD5']
 
 jobs:
 - job: Publish_Python
@@ -153,23 +154,24 @@ jobs:
     condition: and(succeeded(), eq(variables['IsRealSigned'], 'true'))
     displayName: 'Test layouts'
 
-  - powershell: |
-      $files = gci -File "msi\*\*.exe", "embed\*.zip"
-      if ("$(DoCHM)" -ieq "true") {
-          $files = $files + (gci -File "doc\htmlhelp\python*.chm")
-      }
-      $hashes = $files  | `
-          Sort-Object Name | `
-          Format-Table Name, @{
-            Label="MD5";
-            Expression={(Get-FileHash $_ -Algorithm MD5).Hash}
-          }, Length -AutoSize | `
-          Out-String -Width 4096
-      $d = mkdir "$(Build.ArtifactStagingDirectory)\hashes" -Force
-      $hashes | Out-File "$d\hashes.txt" -Encoding ascii
-      $hashes
-    workingDirectory: $(Build.BinariesDirectory)
-    displayName: 'Generate hashes'
+  - ${{ each alg in parameters.HashAlgorithms }}:
+    - powershell: |
+        $files = gci -File "msi\*\*.exe", "embed\*.zip"
+        if ("$(DoCHM)" -ieq "true") {
+            $files = $files + (gci -File "doc\htmlhelp\python*.chm")
+        }
+        $hashes = $files  | `
+            Sort-Object Name | `
+            Format-Table Name, @{
+              Label="${{ alg }}";
+              Expression={(Get-FileHash $_ -Algorithm ${{ alg }}).Hash}
+            }, Length -AutoSize | `
+            Out-String -Width 4096
+        $d = mkdir "$(Build.ArtifactStagingDirectory)\hashes" -Force
+        $hashes | Out-File "$d\hashes.txt" -Encoding ascii -Append
+        $hashes
+      workingDirectory: $(Build.BinariesDirectory)
+      displayName: 'Generate hashes (${{ alg }})'
 
   - powershell: |
       "Copying:"
