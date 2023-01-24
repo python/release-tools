@@ -19,6 +19,8 @@ steps:
       } else {
         $files = (gi ${{ parameters.Include }})
       }
+      gcm NuGetKeyVaultSignTool
+      NuGetKeyVaultSignTool -h
       NuGetKeyVaultSignTool sign -kvu '$(KeyVaultUri)' `
                     -kvi '$(KeyVaultApplication)' -kvt '$(KeyVaultDirectory)' -kvs '$(KeyVaultSecret)' `
                     -tr http://timestamp.digicert.com/ -td sha256 `
