@@ -1,0 +1,29 @@
+parameters:
+  Include: '*.nupkg'
+  Exclude: ''
+  WorkingDir: '$(Build.BinariesDirectory)'
+  SigningCertificate: ''
+
+steps:
+- ${{ if parameters.SigningCertificate }}:
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'custom'
+      custom: 'tool'
+      arguments: 'install --global NuGetKeyVaultSignTool'
+    displayName: Install NuGetKeyVaultSignTool
+
+  - powershell: |
+      if ("${{ parameters.Exclude }}") {
+        $files = (gi ${{ parameters.Include }} -Exclude ${{ parameters.Exclude }})
+      } else {
+        $files = (gi ${{ parameters.Include }})
+      }
+      NuGetKeyVaultSignTool sign -kvu '$(KeyVaultUri)' `
+                    -kvi '$(KeyVaultApplication)' -kvt '$(KeyVaultDirectory)' -kvs '$(KeyVaultSecret)' `
+                    -tr http://timestamp.digicert.com/ -td sha256 `
+                    -kvc '${{ parameters.SigningCertificate }}' -d '$(SigningDescription)' -fd sha256 `
+                    $files
+    displayName: 'Sign binaries'
+    retryCountOnTaskFailure: 3
+    workingDirectory: ${{ parameters.WorkingDir }}
