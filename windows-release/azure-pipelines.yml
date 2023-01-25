@@ -26,9 +26,9 @@ parameters:
 - name: SigningCertificate
   displayName: "Code signing certificate"
   type: string
-  default: 'Python Software Foundation'
+  default: 'PythonSoftwareFoundation'
   values:
-  - 'Python Software Foundation'
+  - 'PythonSoftwareFoundation'
   - 'TestSign'
   - 'Unsigned'
 - name: SigningDescription
@@ -90,7 +90,7 @@ variables:
   ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
     SigningCertificate: ${{ parameters.SigningCertificate }}
   SigningDescription: ${{ parameters.SigningDescription }}
-  ${{ if eq(parameters.SigningCertificate, 'Python Software Foundation') }}:
+  ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
     IsRealSigned: true
   ${{ else }}:
     IsRealSigned: false
