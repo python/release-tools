@@ -119,9 +119,7 @@ steps:
                    '-kvi "$(KeyVaultApplication)" -kvt "$(KeyVaultDirectory)" -kvs "$(KeyVaultSecret)" ' + `
                    '-tr http://timestamp.digicert.com/ -td sha256 ' + `
                    '-kvc "${{ parameters.SigningCertificate }}" -d "$(SigningDescription)" -fd sha256 '
-        Write-Host "##vso[task.setvariable variable=SignCommandOverride,issecret=true]$signcmd"
-        # Deliberately not substituting here - let MSBuild do the substitution later
-        '/p:_SignCommand="$(SignCommandOverride)"' | Out-File $env:ResponseFile -Append -Encoding UTF8
+        "'/p:_SignCommand=$signcmd'" | Out-File $env:ResponseFile -Append -Encoding UTF8
       displayName: 'Inject signing command into response file'
       env:
         ResponseFile: $(ResponseFile)
