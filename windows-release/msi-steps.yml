@@ -119,7 +119,8 @@ steps:
                    '-kvi "$(KeyVaultApplication)" -kvt "$(KeyVaultDirectory)" -kvs "$(KeyVaultSecret)" ' + `
                    '-tr http://timestamp.digicert.com/ -td sha256 ' + `
                    '-kvc "${{ parameters.SigningCertificate }}" -d "$(SigningDescription)" -fd sha256'
-        "/p:_SignCommand='$signcmd'" | Out-File $env:ResponseFile -Append -Encoding UTF8
+        $signcmd = $signcmd -replace '"', '\"'
+        "/p:_SignCommand=$signcmd" | Out-File $env:ResponseFile -Append -Encoding UTF8
       displayName: 'Inject signing command into response file'
       env:
         ResponseFile: $(ResponseFile)
