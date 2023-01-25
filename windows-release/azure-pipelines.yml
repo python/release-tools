@@ -124,7 +124,8 @@ stages:
     jobs:
     - template: stage-sign.yml
       parameters:
-        SigningCertificate: ${{ parameters.SigningCertificate }}
+        ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
+          SigningCertificate: ${{ parameters.SigningCertificate }}
 
   - stage: Layout
     displayName: Generate layouts
