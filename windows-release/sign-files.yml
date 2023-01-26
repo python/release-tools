@@ -1,0 +1,53 @@
+parameters:
+  Include: '*'
+  Exclude: ''
+  WorkingDir: '$(Build.BinariesDirectory)'
+  ExtractDir: ''
+  SigningCertificate: ''
+
+steps:
+- ${{ if parameters.SigningCertificate }}:
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'custom'
+      custom: 'tool'
+      arguments: 'install --global azuresigntool'
+    displayName: Install AzureSignTool
+
+  - powershell: |
+      if ("${{ parameters.Exclude }}") {
+        $files = (gi ${{ parameters.Include }} -Exclude ${{ parameters.Exclude }})
+      } else {
+        $files = (gi ${{ parameters.Include }})
+      }
+      AzureSignTool sign -kvu '$(KeyVaultUri)' `
+                    -kvi '$(KeyVaultApplication)' -kvt '$(KeyVaultDirectory)' -kvs '$(KeyVaultSecret)' `
+                    -tr http://timestamp.digicert.com/ -td sha256 `
+                    -kvc '${{ parameters.SigningCertificate }}' -d '$(SigningDescription)' -fd sha256 `
+                    $files
+    displayName: 'Sign binaries'
+    retryCountOnTaskFailure: 3
+    workingDirectory: ${{ parameters.WorkingDir }}
+
+- ${{ if parameters.ExtractDir }}:
+  - powershell: |
+      if ("${{ parameters.Exclude }}") {
+        $files = (gi ${{ parameters.Include }} -Exclude ${{ parameters.Exclude }})
+      } else {
+        $files = (gi ${{ parameters.Include }})
+      }
+      $c = $files | %{ (Get-AuthenticodeSignature $_).SignerCertificate } | ?{ $_ -ne $null } | select -First 1
+      if (-not $c) {
+        Write-Host "Failed to find certificate for ${{ parameters.SigningCertificate }}"
+        exit
+      }
+
+      $d = mkdir "${{ parameters.ExtractDir }}" -Force
+      $cf = "$d\cert.cer"
+      [IO.File]::WriteAllBytes($cf, $c.RawData)
+      $csha = (Get-FileHash $cf -Algorithm SHA256).Hash.ToLower()
+
+      $info = @{ Subject=$c.Subject; SHA256=$csha; }
+      $info | ConvertTo-JSON -Compress | Out-File -Encoding utf8 "$d\certinfo.json"
+    displayName: "Extract certificate info"
+    workingDirectory: ${{ parameters.WorkingDir }}

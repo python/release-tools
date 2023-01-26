@@ -116,7 +116,7 @@ jobs:
   timeoutInMinutes: 300
 
   pool:
-    name: 'Windows Release'
+    vmImage: windows-2022
 
   workspace:
     clean: all

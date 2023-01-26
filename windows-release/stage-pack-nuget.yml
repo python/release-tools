@@ -1,10 +1,13 @@
+parameters:
+  SigningCertificate: ''
+
 jobs:
 - job: Pack_Nuget
   displayName: Pack Nuget bundles
   condition: and(succeeded(), eq(variables['DoNuget'], 'true'))
 
   pool:
-    name: 'Windows Release'
+    vmImage: windows-2022
 
   workspace:
     clean: all
@@ -17,6 +20,10 @@ jobs:
         Name: win32
       arm64:
         Name: arm64
+
+  ${{ if parameters.SigningCertificate }}:
+    variables:
+    - group: CPythonSign
 
   steps:
   - checkout: none
@@ -51,13 +58,11 @@ jobs:
     condition: and(succeeded(), variables['OverrideNugetVersion'])
     displayName: 'Create nuget package'
 
-  - powershell: |
-      gci *.nupkg | %{
-        nuget sign "$_" -CertificateSubjectName "$(SigningCertificate)" -Timestamper http://timestamp.digicert.com/ -Overwrite
-      }
-    displayName: 'Sign nuget package'
-    workingDirectory: $(Build.ArtifactStagingDirectory)
-    condition: and(succeeded(), variables['SigningCertificate'])
+  - template: sign-nuget-files.yml
+    parameters:
+      Include: '*.nupkg'
+      WorkingDir: $(Build.ArtifactStagingDirectory)
+      SigningCertificate: ${{ parameters.SigningCertificate }}
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: nuget'
