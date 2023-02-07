@@ -77,7 +77,7 @@ function run-putty-tool {
     }
     $a = "-batch", $a
 
-    Start-Process -Wait -NoNewWindow $p ($a | %{ $_ })
+    Start-Process -Wait -NoNewWindow $p ($a | %{ "$_" })
 }
 
 function pscp {
