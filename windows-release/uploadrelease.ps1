@@ -68,7 +68,7 @@ $plink = find-putty-tool "plink"
 function run-putty-tool {
     param ([string]$p,
            [Parameter(Mandatory=$true,ValueFromRemainingArguments=$true)][string[]]$arguments)
-    $a = $arguments
+    $a = $arguments | %{ "$_" }
     if ($hostkey) {
         $a = "-hostkey", $hostkey, $a
     }
