@@ -65,12 +65,26 @@ $p = gci -r "$build\python-*.exe" | `
 $pscp = find-putty-tool "pscp"
 $plink = find-putty-tool "plink"
 
-$pargs = "-batch"
-if ($hostkey) {
-    $pargs = $pargs, "-hostkey", $hostkey
+function run-putty-tool {
+    param ([string]$p)
+    param ([Parameter(Mandatory=$true,ValueFromRemainingArguments=$true)][psobject[]]$arguments)
+    if ($hostkey) {
+        $arguments = "-hostkey", $hostkey, $arguments
+    }
+    if ($keyfile) {
+        $arguments = "-noagent", "-i", $keyfile, $arguments
+    }
+    $arguments = "-batch", $arguments
+
+    Start-Process -Wait -NoNewWindow $p $arguments
 }
-if ($keyfile) {
-    $pargs = $pargs, "-noagent", "-i", $keyfile
+
+function pscp {
+    run-putty-tool $pscp $args
+}
+
+function plink {
+    run-putty-tool $plink $args
 }
 
 "Upload using $pscp and $plink"
@@ -83,11 +97,11 @@ if ($doc_htmlhelp) {
 }
 
 $d = "$target/$($p[0])/"
-& $plink $pargs $user@$server mkdir $d
-& $plink $pargs $user@$server chgrp downloads $d
-& $plink $pargs $user@$server chmod o+rx $d
+plink $user@$server mkdir $d
+plink $user@$server chgrp downloads $d
+plink $user@$server chmod o+rx $d
 if ($chm) {
-    & $pscp $pargs $chm.FullName "$user@${server}:$d"
+    pscp $chm.FullName "$user@${server}:$d"
     if (-not $?) { throw "Failed to upload $chm" }
 }
 
@@ -104,22 +118,22 @@ foreach ($a in $dirs) {
     popd
 
     if ($exe) {
-        & $pscp -batch $exe.FullName "$user@${server}:$d"
+        pscp $exe.FullName "$user@${server}:$d"
         if (-not $?) { throw "Failed to upload $exe" }
     }
 
     if ($msi) {
         $sd = "$d$($a.Name)$($p[1])/"
-        & $plink $pargs $user@$server mkdir $sd
-        & $plink $pargs $user@$server chgrp downloads $sd
-        & $plink $pargs $user@$server chmod o+rx $sd
-        & $pscp $pargs $msi.FullName "$user@${server}:$sd"
+        plink $user@$server mkdir $sd
+        plink $user@$server chgrp downloads $sd
+        plink $user@$server chmod o+rx $sd
+        pscp $msi.FullName "$user@${server}:$sd"
         if (-not $?) { throw "Failed to upload $msi" }
-        & $plink $pargs $user@$server chgrp downloads $sd*
-        & $plink $pargs $user@$server chmod g-x,o+r $sd*
+        plink $user@$server chgrp downloads $sd*
+        plink $user@$server chmod g-x,o+r $sd*
     }
 }
 
-& $plink $pargs $user@$server chgrp downloads $d*
-& $plink $pargs $user@$server chmod g-x,o+r $d*
-& $pscp $pargs -ls "$user@${server}:$d"
+plink $user@$server chgrp downloads $d*
+plink $user@$server chmod g-x,o+r $d*
+pscp -ls "$user@${server}:$d"
