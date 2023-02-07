@@ -69,16 +69,17 @@ function run-putty-tool {
     param ([string]$p,
            [switch]$allowfail,
            [Parameter(ValueFromRemainingArguments=$true)]$arg)
+    $arg = $arg -join ' '
     if ($hostkey) {
-        $arg = @("-hostkey", $hostkey) + $arg
+        $arg = "-hostkey $hostkey $arg"
     }
     if ($keyfile) {
-        $arg = @("-noagent", "-i", $keyfile) + $arg
+        $arg = "-noagent -i $keyfile $arg"
     }
-    $arg = @("-batch") + $arg
+    $arg = "-batch $arg"
 
     Write-Host "Args were: $p $arg"
-    $pr = Start-Process -Wait -NoNewWindow -PassThru $p ($arg | %{ "$_" })
+    $pr = Start-Process -Wait -NoNewWindow -PassThru $p $arg
     if (-not $allowfail -and $pr.ExitCode) {
         throw "Process returned $($pr.ExitCode)"
     }
