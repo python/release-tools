@@ -67,18 +67,17 @@ $plink = find-putty-tool "plink"
 
 function run-putty-tool {
     param ([string]$p,
-           [Parameter(ValueFromRemainingArguments=$true)]$arguments)
-    $a = $arguments | %{ "$_" }
+           [Parameter(ValueFromRemainingArguments=$true)]$arg)
     if ($hostkey) {
-        $a = "-hostkey", $hostkey, $a
+        $arg = @("-hostkey", $hostkey) + $arg
     }
     if ($keyfile) {
-        $a = "-noagent", "-i", $keyfile, $a
+        $arg = @("-noagent", "-i", $keyfile) + $arg
     }
-    $a = "-batch", $a
+    $arg = @("-batch") + $arg
 
-    Write-Host "Args were: $p $($a | %{ "$_" })"
-    $pr = Start-Process -Wait -NoNewWindow -PassThru $p ($a | %{ "$_" })
+    Write-Host "Args were: $p $arg"
+    $pr = Start-Process -Wait -NoNewWindow -PassThru $p ($arg | %{ "$_" })
     if ($pr.ExitCode) {
         throw "Process returned $($pr.ExitCode)"
     }
