@@ -124,7 +124,7 @@ jobs:
       -user $(PyDotOrgUsername)
       -server $(PyDotOrgServer)
       -hostkey $(PyDotOrgHostKey)
-      -keyfile $(PyDotOrgSSHKey)
+      -keyfile "$(sshkey.secureFilePath)"
       -doc_htmlhelp doc\htmlhelp
       -embed embed
     workingDirectory: $(Build.BinariesDirectory)
