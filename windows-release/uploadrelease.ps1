@@ -67,10 +67,10 @@ $plink = find-putty-tool "plink"
 
 $pargs = "-batch"
 if ($hostkey) {
-    $pargs = "$pargs -hostkey $hostkey"
+    $pargs = $pargs, "-hostkey", $hostkey
 }
 if ($keyfile) {
-    $pargs = "$pargs -noagent -i $keyfile"
+    $pargs = $pargs, "-noagent", "-i", $keyfile
 }
 
 "Upload using $pscp and $plink"
