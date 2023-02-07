@@ -66,8 +66,8 @@ $pscp = find-putty-tool "pscp"
 $plink = find-putty-tool "plink"
 
 function run-putty-tool {
-    param ([string]$p)
-    param ([Parameter(Mandatory=$true,ValueFromRemainingArguments=$true)][psobject[]]$arguments)
+    param ([string]$p,
+           [Parameter(Mandatory=$true,ValueFromRemainingArguments=$true)][psobject[]]$arguments)
     if ($hostkey) {
         $arguments = "-hostkey", $hostkey, $arguments
     }
