@@ -77,7 +77,11 @@ function run-putty-tool {
     }
     $a = "-batch", $a
 
-    Start-Process -Wait -NoNewWindow $p ($a | %{ "$_" })
+    Write-Host "Args were: $p $($a | %{ "$_" })"
+    $pr = Start-Process -Wait -NoNewWindow -PassThru $p ($a | %{ "$_" })
+    if ($pr.ExitCode) {
+        throw "Process returned $($pr.ExitCode)"
+    }
 }
 
 function pscp {
