@@ -10,12 +10,13 @@ jobs:
   pool:
     vmImage: windows-2022
 
+  variables:
+  - group: PythonOrgPublish
+
   workspace:
     clean: all
 
   steps:
-  - template: ./checkout.yml
-
   - task: UsePythonVersion@0
     displayName: 'Use Python 3.6 or later'
     inputs:
@@ -111,23 +112,34 @@ jobs:
     condition: true
 
 
+  - task: DownloadSecureFile@1
+    name: sshkey
+    inputs:
+      secureFile: pydotorg-ssh.ppk
+    displayName: 'Download PuTTY key'
+
+  - powershell: |
+      git clone https://github.com/python/cpython-bin-deps --branch putty --single-branch --depth 1 --progress -v "putty"
+      "##vso[task.prependpath]$(gi putty)"
+    workingDirectory: $(Build.BinariesDirectory)
+    displayName: 'Download PuTTY binaries'
+
   - powershell: >
-      $(Build.SourcesDirectory)\Tools\msi\uploadrelease.ps1
+      $(Build.SourcesDirectory)\windows-release\uploadrelease.ps1
       -build msi
       -user $(PyDotOrgUsername)
       -server $(PyDotOrgServer)
+      -hostkey $(PyDotOrgHostKey)
+      -keyfile "$(sshkey.secureFilePath)"
       -doc_htmlhelp doc\htmlhelp
       -embed embed
-      -skippurge
-      -skiptest
-      -skiphash
     workingDirectory: $(Build.BinariesDirectory)
     condition: and(succeeded(), eq(variables['IsRealSigned'], 'true'))
     displayName: 'Upload files to python.org'
 
   - powershell: >
       python
-      "$(Build.SourcesDirectory)\Tools\msi\purge.py"
+      "$(Build.SourcesDirectory)\windows-release\purge.py"
       (gci msi\*\python-*.exe | %{ $_.Name -replace 'python-(.+?)(-|\.exe).+', '$1' } | select -First 1)
     workingDirectory: $(Build.BinariesDirectory)
     condition: and(succeeded(), eq(variables['IsRealSigned'], 'true'))
