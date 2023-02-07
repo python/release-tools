@@ -67,6 +67,7 @@ $plink = find-putty-tool "plink"
 
 function run-putty-tool {
     param ([string]$p,
+           [switch]$allowfail,
            [Parameter(ValueFromRemainingArguments=$true)]$arg)
     if ($hostkey) {
         $arg = @("-hostkey", $hostkey) + $arg
@@ -78,7 +79,7 @@ function run-putty-tool {
 
     Write-Host "Args were: $p $arg"
     $pr = Start-Process -Wait -NoNewWindow -PassThru $p ($arg | %{ "$_" })
-    if ($pr.ExitCode) {
+    if (-not $allowfail -and $pr.ExitCode) {
         throw "Process returned $($pr.ExitCode)"
     }
 }
@@ -88,7 +89,7 @@ function pscp {
 }
 
 function plink {
-    run-putty-tool $plink $args
+    run-putty-tool -allowfail $plink $args
 }
 
 "Upload using $pscp and $plink"
