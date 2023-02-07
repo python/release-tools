@@ -98,9 +98,9 @@ if ($doc_htmlhelp) {
 }
 
 $d = "$target/$($p[0])/"
-plink $user@$server mkdir $d
-plink $user@$server chgrp downloads $d
-plink $user@$server chmod o+rx $d
+plink "$user@$server" mkdir $d
+plink "$user@$server" chgrp downloads $d
+plink "$user@$server" chmod "o+rx" $d
 if ($chm) {
     pscp $chm.FullName "$user@${server}:$d"
     if (-not $?) { throw "Failed to upload $chm" }
@@ -125,16 +125,16 @@ foreach ($a in $dirs) {
 
     if ($msi) {
         $sd = "$d$($a.Name)$($p[1])/"
-        plink $user@$server mkdir $sd
-        plink $user@$server chgrp downloads $sd
-        plink $user@$server chmod o+rx $sd
+        plink "$user@$server" mkdir $sd
+        plink "$user@$server" chgrp downloads $sd
+        plink "$user@$server" chmod "o+rx" $sd
         pscp $msi.FullName "$user@${server}:$sd"
         if (-not $?) { throw "Failed to upload $msi" }
-        plink $user@$server chgrp downloads $sd*
-        plink $user@$server chmod g-x,o+r $sd*
+        plink "$user@$server" chgrp downloads $sd*
+        plink "$user@$server" chmod "g-x,o+r" $sd*
     }
 }
 
-plink $user@$server chgrp downloads $d*
-plink $user@$server chmod g-x,o+r $d*
+plink "$user@$server" chgrp downloads $d*
+plink "$user@$server" chmod "g-x,o+r" $d*
 pscp -ls "$user@${server}:$d"
