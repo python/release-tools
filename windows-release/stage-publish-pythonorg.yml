@@ -115,7 +115,7 @@ jobs:
   - task: DownloadSecureFile@1
     name: sshkey
     inputs:
-      secureFile: $(PyDotOrgSSHKey)
+      secureFile: pydotorg-ssh.ppk
     displayName: 'Download PuTTY key'
 
   - powershell: >
