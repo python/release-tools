@@ -23,9 +23,9 @@
 param(
     [Parameter(Mandatory=$true)][string]$build,
     [Parameter(Mandatory=$true)][string]$user,
-    [string]$server="python-downloads",
-    [string]$hostkey="",
-    [string]$keyfile="",
+    [Parameter(Mandatory=$true)][string]$server,
+    [Parameter(Mandatory=$true)][string]$hostkey,
+    [Parameter(Mandatory=$true)][string]$keyfile,
     [string]$target="/srv/www.python.org/ftp/python",
     [string]$tests=${env:TEMP},
     [string]$doc_htmlhelp=$null,
@@ -65,34 +65,6 @@ $p = gci -r "$build\python-*.exe" | `
 $pscp = find-putty-tool "pscp"
 $plink = find-putty-tool "plink"
 
-function run-putty-tool {
-    param ([string]$p,
-           [switch]$allowfail,
-           [Parameter(ValueFromRemainingArguments=$true)]$arg)
-    $arg = $arg -join ' '
-    if ($hostkey) {
-        $arg = "-hostkey $hostkey $arg"
-    }
-    if ($keyfile) {
-        $arg = "-noagent -i $keyfile $arg"
-    }
-    $arg = "-batch $arg"
-
-    Write-Host "Args were: $p $arg"
-    $pr = Start-Process -Wait -NoNewWindow -PassThru $p $arg
-    if (-not $allowfail -and $pr.ExitCode) {
-        throw "Process returned $($pr.ExitCode)"
-    }
-}
-
-function pscp {
-    run-putty-tool $pscp $args
-}
-
-function plink {
-    run-putty-tool -allowfail $plink $args
-}
-
 "Upload using $pscp and $plink"
 ""
 
@@ -103,11 +75,11 @@ if ($doc_htmlhelp) {
 }
 
 $d = "$target/$($p[0])/"
-plink "$user@$server" mkdir $d
-plink "$user@$server" chgrp downloads $d
-plink "$user@$server" chmod "o+rx" $d
+& $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" mkdir $d
+& $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chgrp downloads $d
+& $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chmod "o+rx" $d
 if ($chm) {
-    pscp $chm.FullName "$user@${server}:$d"
+    & $pscp -batch -hostkey $hostkey -noagent -i $keyfile $chm.FullName "$user@${server}:$d"
     if (-not $?) { throw "Failed to upload $chm" }
 }
 
@@ -124,22 +96,22 @@ foreach ($a in $dirs) {
     popd
 
     if ($exe) {
-        pscp $exe.FullName "$user@${server}:$d"
+        & $pscp -batch -hostkey $hostkey -noagent -i $keyfile $exe.FullName "$user@${server}:$d"
         if (-not $?) { throw "Failed to upload $exe" }
     }
 
     if ($msi) {
         $sd = "$d$($a.Name)$($p[1])/"
-        plink "$user@$server" mkdir $sd
-        plink "$user@$server" chgrp downloads $sd
-        plink "$user@$server" chmod "o+rx" $sd
-        pscp $msi.FullName "$user@${server}:$sd"
+        & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" mkdir $sd
+        & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chgrp downloads $sd
+        & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chmod "o+rx" $sd
+        & $pscp -batch -hostkey $hostkey -noagent -i $keyfile $msi.FullName "$user@${server}:$sd"
         if (-not $?) { throw "Failed to upload $msi" }
-        plink "$user@$server" chgrp downloads $sd*
-        plink "$user@$server" chmod "g-x,o+r" $sd*
+        & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chgrp downloads $sd*
+        & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chmod "g-x,o+r" $sd*
     }
 }
 
-plink "$user@$server" chgrp downloads $d*
-plink "$user@$server" chmod "g-x,o+r" $d*
-pscp -ls "$user@${server}:$d"
+& $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chgrp downloads $d*
+& $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chmod "g-x,o+r" $d*
+& $pscp -batch -hostkey $hostkey -noagent -i $keyfile -ls "$user@${server}:$d"
