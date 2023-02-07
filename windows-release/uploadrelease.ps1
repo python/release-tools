@@ -67,16 +67,17 @@ $plink = find-putty-tool "plink"
 
 function run-putty-tool {
     param ([string]$p,
-           [Parameter(Mandatory=$true,ValueFromRemainingArguments=$true)][psobject[]]$arguments)
+           [Parameter(Mandatory=$true,ValueFromRemainingArguments=$true)][string[]]$arguments)
+    $a = $arguments
     if ($hostkey) {
-        $arguments = "-hostkey", $hostkey, $arguments
+        $a = "-hostkey", $hostkey, $a
     }
     if ($keyfile) {
-        $arguments = "-noagent", "-i", $keyfile, $arguments
+        $a = "-noagent", "-i", $keyfile, $a
     }
-    $arguments = "-batch", $arguments
+    $a = "-batch", $a
 
-    Start-Process -Wait -NoNewWindow $p $arguments
+    Start-Process -Wait -NoNewWindow $p ($a | %{ $_ })
 }
 
 function pscp {
