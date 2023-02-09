@@ -1,20 +1,42 @@
-name: $(SourceTag)_$(Date:yyyyMMdd)$(Rev:.rr)
+parameters:
+- name: SourceTag
+  displayName: 'OpenSSL Source Tag'
+  type: string
+- name: SigningCertificate
+  displayName: "Code signing certificate"
+  type: string
+  default: 'PythonSoftwareFoundation'
+  values:
+  - 'PythonSoftwareFoundation'
+  - 'TestSign'
+  - 'Unsigned'
+- name: SourcesRepo
+  displayName: 'Sources Repository'
+  type: string
+  default: 'https://github.com/python/cpython-source-deps'
+
+
+name: ${{ parameters.SourceTag }}_$(Date:yyyyMMdd)$(Rev:.rr)
+
 
 variables:
-  IntDir: '$(Build.BinariesDirectory)'
-  OutDir: '$(Build.ArtifactStagingDirectory)'
+- group: CPythonSign
+- name: IntDir
+  value: '$(Build.BinariesDirectory)'
+- name: OutDir
+  value: '$(Build.ArtifactStagingDirectory)'
+- ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
+  - name: SigningCertificate
+    value: ${{ parameters.SigningCertificate }}
+- name: SigningDescription
+  value: 'OpenSSL for Python (${{ parameters.SourceTag }})'
 
-  # MUST BE SET AT QUEUE TIME
-  # SigningCertificate: 'Python Software Foundation'
-  # SourcesRepo: 'https://github.com/python/cpython-source-deps'
-  # SourceTag: 'openssl-1.1.1k'
 
 jobs:
 - job: Build_SSL
   displayName: OpenSSL
   pool:
-    name: 'Windows Release'
-    #vmImage: windows-latest
+    vmImage: windows-latest
 
   strategy:
     matrix:
@@ -44,7 +66,7 @@ jobs:
     - template: ./find-tools.yml
 
     - powershell: |
-        git clone $(SourcesRepo) -b $(SourceTag) --depth 1 .
+        git clone ${{ parameters.SourcesRepo }} -b ${{ parameters.SourceTag }} --depth 1 .
       displayName: 'Check out OpenSSL sources'
 
     - powershell: |
@@ -65,12 +87,11 @@ jobs:
       workingDirectory: '$(IntDir)'
       displayName: 'Build OpenSSL'
 
-    - script: |
-        call "$(vcvarsall)" $(VCPlatform)
-        signtool sign /q /a /n "$(SigningCertificate)" /fd sha256 /tr http://timestamp.digicert.com/ /td sha256 /d "OpenSSL for Python" *.dll
-      workingDirectory: '$(IntDir)'
-      displayName: 'Sign OpenSSL Build'
-      condition: and(succeeded(), variables['SigningCertificate'])
+    - template: sign-files.yml
+      parameters:
+        Include: '**\*.dll'
+        WorkingDir: $(IntDir)
+        SigningCertificate: ${{ parameters.SigningCertificate }}
 
     - task: CopyFiles@2
       displayName: 'Copy built libraries for upload'
