@@ -85,7 +85,7 @@ jobs:
 
     - template: sign-files.yml
       parameters:
-        Include: 'apps\lib*.dll'
+        Include: 'lib*.dll'
         WorkingDir: $(IntDir)
         SigningCertificate: ${{ parameters.SigningCertificate }}
 
@@ -94,9 +94,9 @@ jobs:
       inputs:
         SourceFolder: '$(IntDir)'
         Contents: |
-          apps\lib*.dll
-          apps\lib*.pdb
-          apps\lib*.lib
+          lib*.dll
+          lib*.pdb
+          lib*.lib
           include\openssl\*.h
         TargetFolder: '$(OutDir)'
 
