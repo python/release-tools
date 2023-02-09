@@ -48,10 +48,6 @@ jobs:
         Platform: 'amd64'
         VCPlatform: 'amd64'
         OpenSSLPlatform: 'VC-WIN64A-masm'
-      arm32:
-        Platform: 'arm32'
-        VCPlatform: 'amd64_arm'
-        OpenSSLPlatform: 'VC-WIN32-ARM'
       arm64:
         Platform: 'arm64'
         VCPlatform: 'amd64_arm64'
@@ -89,7 +85,7 @@ jobs:
 
     - template: sign-files.yml
       parameters:
-        Include: '**\*.dll'
+        Include: 'apps\lib*.dll'
         WorkingDir: $(IntDir)
         SigningCertificate: ${{ parameters.SigningCertificate }}
 
@@ -98,9 +94,9 @@ jobs:
       inputs:
         SourceFolder: '$(IntDir)'
         Contents: |
-          lib*.dll
-          lib*.pdb
-          lib*.lib
+          apps\lib*.dll
+          apps\lib*.pdb
+          apps\lib*.lib
           include\openssl\*.h
         TargetFolder: '$(OutDir)'
 
