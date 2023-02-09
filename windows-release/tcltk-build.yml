@@ -1,4 +1,30 @@
-name: tcl$(TkSourceTag)_$(Date:yyyyMMdd)$(Rev:.rr)
+parameters:
+- name: TclSourceTag
+  displayName: 'Tcl Source Tag'
+  type: string
+- name: TkSourceTag
+  displayName: 'Tk Source Tag'
+  type: string
+- name: TixSourceTag
+  displayName: 'Tix Source Tag'
+  type: string
+  default: tix-8.4.3.6
+- name: SigningCertificate
+  displayName: "Code signing certificate"
+  type: string
+  default: 'PythonSoftwareFoundation'
+  values:
+  - 'PythonSoftwareFoundation'
+  - 'TestSign'
+  - 'Unsigned'
+- name: SourcesRepo
+  displayName: 'Sources Repository'
+  type: string
+  default: 'https://github.com/python/cpython-source-deps'
+
+
+name: tcltk$(TkSourceTag)_$(Date:yyyyMMdd)$(Rev:.rr)
+
 
 resources:
   repositories:
@@ -7,25 +33,34 @@ resources:
     name: Python/cpython
     endpoint: "Steve's github repos"
 
+
 variables:
-  IntDir: '$(Build.BinariesDirectory)\obj'
-  ExternalsDir: '$(Build.BinariesDirectory)\externals'
-  OutDir: '$(Build.ArtifactStagingDirectory)'
-  Configuration: 'Release'
-  
-  # MUST BE SET AT QUEUE TIME
-  # SigningCertificate: 'Python Software Foundation'
-  # SourcesRepo: 'https://github.com/python/cpython-source-deps'
-  # TclSourceTag: 'tcl-core-8.6.12.0'
-  # TkSourceTag: 'tk-8.6.12.0'
-  # TixSourceTag: 'tix-8.4.3.6'
+- group: CPythonSign
+- name: IntDir
+  value: '$(Build.BinariesDirectory)\obj'
+- name: ExternalsDir
+  value: '$(Build.BinariesDirectory)\externals'
+- name: OutDir
+  value: '$(Build.ArtifactStagingDirectory)'
+- name: Configuration
+  value: 'Release'
+- name: SigningDescription
+  value: 'Tcl/Tk for Python (${{ parameters.TclSourceTag }})'
+- name: SourcesRepo
+  value: ${{ parameters.SourcesRepo }}
+- name: TclSourceTag
+  value: ${{ parameters.TclSourceTag }}
+- name: TkSourceTag
+  value: ${{ parameters.TkSourceTag }}
+- name: TixSourceTag
+  value: ${{ parameters.TixSourceTag }}
+
 
 jobs:
 - job: Build_TclTk
   displayName: 'Tcl/Tk'
   pool:
-    name: 'Windows Release'
-    #vmImage: windows-latest
+    vmImage: windows-latest
 
   workspace:
     clean: all
@@ -74,6 +109,13 @@ jobs:
         & "$(msbuild)" cpython\PCbuild\tk.vcxproj  "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
         & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
       displayName: 'Build for arm64'
+
+    - ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
+      - template: sign-files.yml
+        parameters:
+          Include: '**\*.dll'
+          WorkingDir: '$(OutDir)'
+          SigningCertificate: ${{ parameters.SigningCertificate }}
 
     - publish: '$(OutDir)'
       artifact: 'tcltk'

@@ -25,9 +25,6 @@ variables:
   value: '$(Build.BinariesDirectory)'
 - name: OutDir
   value: '$(Build.ArtifactStagingDirectory)'
-- ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
-  - name: SigningCertificate
-    value: ${{ parameters.SigningCertificate }}
 - name: SigningDescription
   value: 'OpenSSL for Python (${{ parameters.SourceTag }})'
 
@@ -83,11 +80,12 @@ jobs:
       workingDirectory: '$(IntDir)'
       displayName: 'Build OpenSSL'
 
-    - template: sign-files.yml
-      parameters:
-        Include: 'lib*.dll'
-        WorkingDir: $(IntDir)
-        SigningCertificate: ${{ parameters.SigningCertificate }}
+    - ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
+      - template: sign-files.yml
+        parameters:
+          Include: 'lib*.dll'
+          WorkingDir: $(IntDir)
+          SigningCertificate: ${{ parameters.SigningCertificate }}
 
     - task: CopyFiles@2
       displayName: 'Copy built libraries for upload'
