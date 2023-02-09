@@ -1,13 +1,37 @@
-name: $(SourceTag)_$(Date:yyyyMMdd)$(Rev:.rr)
+parameters:
+- name: SourceTag
+  displayName: 'LibFFI Source Tag'
+  type: string
+- name: SigningCertificate
+  displayName: "Code signing certificate"
+  type: string
+  default: 'PythonSoftwareFoundation'
+  values:
+  - 'PythonSoftwareFoundation'
+  - 'TestSign'
+  - 'Unsigned'
+- name: SourcesRepo
+  displayName: 'Sources Repository'
+  type: string
+  default: 'https://github.com/python/cpython-source-deps'
+- name: LibFFIBuildScript
+  displayName: 'Build script'
+  type: string
+  default: 'https://github.com/python/cpython/raw/main/PCbuild/prepare_libffi.bat'
+
+
+name: ${{ parameters.SourceTag }}_$(Date:yyyyMMdd)$(Rev:.rr)
+
 
 variables:
-  IntDir: '$(Build.BinariesDirectory)'
-  OutDir: '$(Build.ArtifactStagingDirectory)'
+- group: CPythonSign
+- name: IntDir
+  value: '$(Build.BinariesDirectory)'
+- name: OutDir
+  value: '$(Build.ArtifactStagingDirectory)'
+- name: SigningDescription
+  value: 'LibFFI for Python (${{ parameters.SourceTag }})'
 
-  # MUST BE SET AT QUEUE TIME
-  # SigningCertificate: 'Python Software Foundation'
-  # SourcesRepo: 'https://github.com/python/cpython-source-deps'
-  # SourceTag: 'libffi-3.4.2'
 
 jobs:
 - job: Build_LibFFI
@@ -25,12 +49,11 @@ jobs:
 
     - powershell: |
        mkdir -Force "$(IntDir)\script"
-       iwr "https://github.com/python/cpython/raw/main/PCbuild/prepare_libffi.bat" `
-           -outfile "$(IntDir)\script\prepare_libffi.bat"
+       iwr "${{ parameters.LibFFIBuildScript }}" -outfile "$(IntDir)\script\prepare_libffi.bat"
       displayName: 'Download build script'
 
     - powershell: |
-        git clone $(SourcesRepo) -b $(SourceTag) --depth 1 -c core.autocrlf=false -c core.eol=lf .
+        git clone ${{ parameters.SourcesRepo }} -b ${{ parameters.SourceTag }} --depth 1 -c core.autocrlf=false -c core.eol=lf .
       displayName: 'Check out LibFFI sources'
 
     - script: 'prepare_libffi.bat --install-cygwin'
@@ -42,10 +65,10 @@ jobs:
         LIBFFI_OUT: '$(OutDir)'
 
     - powershell: |
-       if ((gci *\*.dll).Count -lt 4) {
+       if ((gci *\*.dll).Count -lt 3) {
            Write-Error "Did not generate enough DLL files"
        }
-       if ((gci *\Include\ffi.h).Count -lt 4) {
+       if ((gci *\Include\ffi.h).Count -lt 3) {
            Write-Error "Did not generate enough include files"
        }
       failOnStderr: true
@@ -56,32 +79,28 @@ jobs:
       artifact: 'unsigned'
       displayName: 'Publish unsigned build'
 
-- job: Sign_LibFFI
-  displayName: Sign LibFFI
-  dependsOn: Build_LibFFI
-  condition: and(succeeded(), variables['SigningCertificate'])
-  pool:
-    name: 'Windows Release'
 
-  workspace:
-    clean: all
+- ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
+  - job: Sign_LibFFI
+    displayName: Sign LibFFI
+    dependsOn: Build_LibFFI
+    pool:
+      vmImage: windows-latest
 
-  steps:
-    - checkout: none
-    - download: current
-      artifact: unsigned
+    workspace:
+      clean: all
 
-    - template: ./find-tools.yml
+    steps:
+      - checkout: none
+      - download: current
+        artifact: unsigned
 
-    - powershell: |
-        signtool sign /q /a `
-            /n "$(SigningCertificate)" `
-            /fd sha256 `
-            /tr http://timestamp.digicert.com/ /td sha256 `
-            /d "LibFFI for Python" `
-            (gci "$(Pipeline.Workspace)\unsigned\*.dll" -r)
-      displayName: 'Sign files'
+      - template: sign-files.yml
+        parameters:
+          Include: '-r *.dll'
+          WorkingDir: '$(Pipeline.Workspace)\unsigned'
+          SigningCertificate: ${{ parameters.SigningCertificate }}
 
-    - publish: '$(Pipeline.Workspace)\unsigned'
-      artifact: 'libffi'
-      displayName: 'Publish libffi'
+      - publish: '$(Pipeline.Workspace)\unsigned'
+        artifact: 'libffi'
+        displayName: 'Publish libffi'

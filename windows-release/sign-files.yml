@@ -16,9 +16,9 @@ steps:
 
   - powershell: |
       if ("${{ parameters.Exclude }}") {
-        $files = (gi ${{ parameters.Include }} -Exclude ${{ parameters.Exclude }})
+        $files = (dir ${{ parameters.Include }} -Exclude ${{ parameters.Exclude }} -File)
       } else {
-        $files = (gi ${{ parameters.Include }})
+        $files = (dir ${{ parameters.Include }} -File)
       }
       AzureSignTool sign -kvu '$(KeyVaultUri)' `
                     -kvi '$(KeyVaultApplication)' -kvt '$(KeyVaultDirectory)' -kvs '$(KeyVaultSecret)' `
@@ -32,9 +32,9 @@ steps:
 - ${{ if parameters.ExtractDir }}:
   - powershell: |
       if ("${{ parameters.Exclude }}") {
-        $files = (gi ${{ parameters.Include }} -Exclude ${{ parameters.Exclude }})
+        $files = (dir ${{ parameters.Include }} -Exclude ${{ parameters.Exclude }} -File)
       } else {
-        $files = (gi ${{ parameters.Include }})
+        $files = (dir ${{ parameters.Include }} -File)
       }
       $c = $files | %{ (Get-AuthenticodeSignature $_).SignerCertificate } | ?{ $_ -ne $null } | select -First 1
       if (-not $c) {
