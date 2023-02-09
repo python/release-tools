@@ -97,7 +97,7 @@ jobs:
 
       - template: sign-files.yml
         parameters:
-          Include: '**\*.dll'
+          Include: '-r *.dll'
           WorkingDir: '$(Pipeline.Workspace)\unsigned'
           SigningCertificate: ${{ parameters.SigningCertificate }}
 

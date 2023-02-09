@@ -113,7 +113,7 @@ jobs:
     - ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
       - template: sign-files.yml
         parameters:
-          Include: '**\*.dll'
+          Include: '-r *.dll'
           WorkingDir: '$(OutDir)'
           SigningCertificate: ${{ parameters.SigningCertificate }}
 
