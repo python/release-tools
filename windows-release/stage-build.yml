@@ -95,7 +95,7 @@ jobs:
     - template: ./build-steps.yml
 
 
-${{ if eq(parameters.DoPGO, 'true') }}:
+- ${{ if eq(parameters.DoPGO, 'true') }}:
   - job: Build_Python_PGO_1
     displayName: Python PGO build
 
