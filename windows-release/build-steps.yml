@@ -54,10 +54,10 @@ steps:
     CAT: $(Build.BinariesDirectory)\bin\$(Arch)\python
     PYTHON_HEXVERSION: $(VersionHex)
 
-  - powershell: |
-      del *.pgc, *.pgd, *.exp
-    displayName: 'Cleanup binaries'
-    workingDirectory: '$(Build.BinariesDirectory)\bin\$(Arch)'
+- powershell: |
+    del *.pgc, *.pgd, *.exp
+  displayName: 'Cleanup binaries'
+  workingDirectory: '$(Build.BinariesDirectory)\bin\$(Arch)'
 
 - task: PublishPipelineArtifact@0
   displayName: 'Publish binaries'
