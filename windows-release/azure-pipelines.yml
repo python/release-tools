@@ -86,7 +86,6 @@ variables:
   ${{ else }}:
     GitRemote: ${{ parameters.GitRemote_Other }}
   SourceTag: ${{ parameters.SourceTag }}
-  DoPGO: ${{ parameters.DoPGO }}
   ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
     SigningCertificate: ${{ parameters.SigningCertificate }}
   SigningDescription: ${{ parameters.SigningDescription }}
@@ -117,6 +116,7 @@ stages:
     - template: stage-build.yml
       parameters:
         ARM64TclTk: ${{ parameters.ARM64TclTk }}
+        DoPGO: ${{ parameters.DoPGO }}
 
   - stage: Sign
     displayName: Sign binaries

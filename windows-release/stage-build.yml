@@ -1,5 +1,6 @@
 parameters:
   ARM64TclTk: true
+  DoPGO: false
 
 jobs:
 - job: Build_Docs
@@ -63,12 +64,20 @@ jobs:
         Platform: x86
         Configuration: Debug
         _HostPython: .\python
+      ${{ if ne(parameters.DoPGO, 'true') }}:
+        amd64:
+          Name: amd64
+          Arch: amd64
+          Platform: x64
+          Configuration: Release
+          _HostPython: .\python
       amd64_d:
         Name: amd64_d
         Arch: amd64
         Platform: x64
         Configuration: Debug
         _HostPython: .\python
+      #${{ if ne(parameters.DoPGO, 'true') }}:
       arm64:
         Name: arm64
         Arch: arm64
@@ -85,55 +94,87 @@ jobs:
   steps:
     - template: ./build-steps.yml
 
-- job: Build_Python_NonPGO
-  displayName: Python non-PGO build
-  condition: and(succeeded(), ne(variables['DoPGO'], 'true'))
 
-  pool:
-    vmImage: windows-2022
+${{ if eq(parameters.DoPGO, 'true') }}:
+  - job: Build_Python_PGO_1
+    displayName: Python PGO build
 
-  workspace:
-    clean: all
+    pool:
+      vmImage: windows-2022
 
-  strategy:
-    matrix:
-      amd64:
-        Name: amd64
-        Arch: amd64
-        Platform: x64
-        Configuration: Release
-        _HostPython: .\python
+    workspace:
+      clean: all
 
-  steps:
-    - template: ./build-steps.yml
+    strategy:
+      matrix:
+        amd64:
+          Name: amd64
+          Arch: amd64
+          Platform: x64
+          _HostPython: .\python
+        #arm64:
+        #  Name: arm64
+        #  Arch: arm64
+        #  Platform: ARM64
+        #  _HostPython: python
+
+    steps:
+      - template: ./build-steps-pgo.yml
+        parameters:
+          PGInstrument: true
+
+  - job: Build_Python_PGO_2
+    displayName: Collect PGO profile
+
+    # Allow up to five hours for PGO run
+    timeoutInMinutes: 300
+
+    pool:
+      vmImage: windows-2022
+
+    workspace:
+      clean: all
+
+    strategy:
+      matrix:
+        amd64:
+          Name: amd64
+          Arch: amd64
+          Platform: x64
+          _HostPython: .\python
+
+    steps:
+      - template: ./build-steps-pgo.yml
+        parameters:
+          PGRun: true
 
 
-- job: Build_Python_PGO
-  displayName: Python PGO build
-  condition: and(succeeded(), eq(variables['DoPGO'], 'true'))
+  - job: Build_Python_PGO_3
+    displayName: Merge PGO profile
 
-  # Allow up to five hours for PGO
-  timeoutInMinutes: 300
+    pool:
+      vmImage: windows-2022
 
-  pool:
-    vmImage: windows-2022
+    workspace:
+      clean: all
 
-  workspace:
-    clean: all
+    strategy:
+      matrix:
+        amd64:
+          Name: amd64
+          Arch: amd64
+          Platform: x64
+          _HostPython: .\python
+        #arm64:
+        #  Name: arm64
+        #  Arch: arm64
+        #  Platform: ARM64
+        #  _HostPython: python
 
-  strategy:
-    matrix:
-      amd64:
-        Name: amd64
-        Arch: amd64
-        Platform: x64
-        Configuration: Release
-        _HostPython: .\python
-
-  steps:
-    - template: ./build-steps.yml
-      parameters:
-        ShouldPGO: true
+    steps:
+      - template: ./build-steps-pgo.yml
+        parameters:
+          PGUpdate: true
 
 
 - job: TclTk_Lib
