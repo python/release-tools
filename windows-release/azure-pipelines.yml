@@ -51,6 +51,10 @@ parameters:
   displayName: "Run PGO"
   type: boolean
   default: true
+- name: DoPGOARM64
+  displayName: "Run ARM64 PGO (requires custom VM)"
+  type: boolean
+  default: true
 - name: DoCHM
   displayName: "Produce compiled help document (pre-3.11)"
   type: boolean
@@ -117,6 +121,7 @@ stages:
       parameters:
         ARM64TclTk: ${{ parameters.ARM64TclTk }}
         DoPGO: ${{ parameters.DoPGO }}
+        DoPGOARM64: ${{ parameters.DoPGOARM64 }}
 
   - stage: Sign
     displayName: Sign binaries
