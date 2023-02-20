@@ -121,6 +121,12 @@ steps:
       CAT: $(Build.BinariesDirectory)\bin\$(Arch)\python
       PYTHON_HEXVERSION: $(VersionHex)
 
+  - powershell: |
+      del instrumented -r -EA 0
+      del *.pgc, *.pgd, *.exp
+    displayName: 'Cleanup build'
+    workingDirectory: '$(Build.BinariesDirectory)\bin\$(Arch)'
+
   - task: PublishPipelineArtifact@0
     displayName: 'Publish binaries'
     condition: and(succeeded(), or(ne(variables['Configuration'], 'Release'), not(variables['SigningCertificate'])))
