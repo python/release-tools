@@ -125,6 +125,7 @@ jobs:
 
   - job: Build_Python_PGO_2
     displayName: Collect PGO profile
+    dependsOn: Build_Python_PGO_1
 
     # Allow up to five hours for PGO run
     timeoutInMinutes: 300
@@ -151,6 +152,7 @@ jobs:
 
   - job: Build_Python_PGO_3
     displayName: Merge PGO profile
+    dependsOn: Build_Python_PGO_2
 
     pool:
       vmImage: windows-2022
