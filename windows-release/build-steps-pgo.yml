@@ -36,7 +36,9 @@ steps:
         artifactName: instrumented_bin_$(Name)
 
     - powershell: |
-        move Python\frozen_modules, Python\deepfreeze PCbuild\obj\
+        if ((Test-Path Python\frozen_modules) -and (Test-Path Python\deepfreeze)) {
+            move Python\frozen_modules, Python\deepfreeze PCbuild\obj\
+        }
       displayName: 'Preserve frozen_modules'
 
     - task: PublishPipelineArtifact@0
@@ -87,8 +89,12 @@ steps:
         targetPath: '$(Build.SourcesDirectory)\PCbuild\obj'
 
     - powershell: |
-        copy -force -r PCbuild\obj\frozen_modules\* (mkdir -Force Python\frozen_modules)
-        copy -force -r PCbuild\obj\deepfreeze\* (mkdir -Force Python\deepfreeze)
+        if (Test-Path PCbuild\obj\frozen_modules) {
+            copy -force -r PCbuild\obj\frozen_modules\* (mkdir -Force Python\frozen_modules)
+        }
+        if (Test-Path PCbuild\obj\deepfreeze) {
+            copy -force -r PCbuild\obj\deepfreeze\* (mkdir -Force Python\deepfreeze)
+        }
       displayName: 'Restore frozen_modules'
 
   - powershell: |
