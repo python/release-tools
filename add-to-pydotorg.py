@@ -159,6 +159,9 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
     # Upload Sigstore certificate
     if os.path.exists(ftp_root + "%s/%s.crt" % (base_version(release), rfile)):
         d["sigstore_cert_file"] = download_root + '%s/%s.crt' % (base_version(release), rfile)
+    # Upload Sigstore bundle
+    if os.path.exists(ftp_root + "%s/%s.sigstore" % (base_version(release), rfile)):
+        d["sigstore_bundle_file"] = download_root + '%s/%s.sigstore' % (base_version(release), rfile)
 
     return d
 
@@ -168,7 +171,7 @@ def list_files(release):
     for rfile in os.listdir(path.join(ftp_root, reldir)):
         if not path.isfile(path.join(ftp_root, reldir, rfile)):
             continue
-        if rfile.endswith(('.asc', '.sig', '.crt')):
+        if rfile.endswith(('.asc', '.sig', '.crt', '.sigstore')):
             continue
         for prefix in ('python', 'Python'):
             if rfile.startswith(prefix):
@@ -232,7 +235,8 @@ def sign_release_files_with_sigstore(release, release_files):
 
     def has_sigstore_signature(filename):
         return (
-            os.path.exists(filename + '.sig') and os.path.exists(filename + '.crt')
+            os.path.exists(filename + '.sigstore') or
+            (os.path.exists(filename + '.sig') and os.path.exists(filename + '.crt'))
         )
 
     # Skip files that already have a signature (likely source distributions)
@@ -246,6 +250,7 @@ def sign_release_files_with_sigstore(release, release_files):
         for file in unsigned_files:
             run_cmd(['chmod', '644', file + '.sig'])
             run_cmd(['chmod', '644', file + '.crt'])
+            run_cmd(['chmod', '644', file + '.sigstore'])
     else:
         print('All release files already signed with Sigstore')
 
