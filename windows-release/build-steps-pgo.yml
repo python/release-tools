@@ -135,14 +135,14 @@ steps:
 
   - task: PublishPipelineArtifact@0
     displayName: 'Publish binaries'
-    condition: and(succeeded(), or(ne(variables['Configuration'], 'Release'), not(variables['SigningCertificate'])))
+    condition: and(succeeded(), not(variables['SigningCertificate']))
     inputs:
       targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)'
       artifactName: bin_$(Name)
 
   - task: PublishPipelineArtifact@0
     displayName: 'Publish binaries for signing'
-    condition: and(succeeded(), and(eq(variables['Configuration'], 'Release'), variables['SigningCertificate']))
+    condition: and(succeeded(), variables['SigningCertificate'])
     inputs:
       targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)'
       artifactName: unsigned_bin_$(Name)
