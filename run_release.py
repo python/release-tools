@@ -29,8 +29,6 @@ from typing import Callable, Iterator, List, Optional, final
 import aiohttp
 import gnupg
 import paramiko
-import sigstore
-import sigstore._cli
 import sigstore.oidc
 from alive_progress import alive_bar
 
@@ -735,15 +733,11 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
 
     auth_info = db["auth_info"]
     assert auth_info is not None
+
     # Do the interactive flow to get an identity for Sigstore
-    args = argparse.Namespace(
-        oidc_disable_ambient_providers=True,
-        oidc_client_secret=None,
-        oidc_issuer=sigstore.oidc.DEFAULT_OAUTH_ISSUER_URL,
-        oidc_client_id="sigstore",
-        staging=False,
-    )
-    identity_token = sigstore._cli._get_identity_token(args)
+    issuer = sigstore.oidc.Issuer(sigstore.oidc.DEFAULT_OAUTH_ISSUER_URL)
+    identity_token = issuer.identity_token()
+
     stdin, stdout, stderr = client.exec_command(
         f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add-to-pydotorg.py {db['release']}"
     )
