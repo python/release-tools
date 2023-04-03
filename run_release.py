@@ -30,8 +30,8 @@ import aiohttp
 import gnupg
 import paramiko
 import sigstore
-from sigstore._cli import _get_identity_token
-from sigstore._internal.oidc.oauth import DEFAULT_OAUTH_ISSUER
+import sigstore._cli
+import sigstore.oidc
 from alive_progress import alive_bar
 
 import release as release_mod
@@ -739,8 +739,9 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
     args = argparse.Namespace(
         oidc_disable_ambient_providers=True,
         oidc_client_secret=None,
-        oidc_issuer=sigstore._internal.oidc.oauth.DEFAULT_OAUTH_ISSUER,
+        oidc_issuer=sigstore.oidc.DEFAULT_OAUTH_ISSUER_URL,
         oidc_client_id="sigstore",
+        staging=False,
     )
     identity_token = sigstore._cli._get_identity_token(args)
     stdin, stdout, stderr = client.exec_command(
