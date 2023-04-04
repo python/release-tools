@@ -73,28 +73,46 @@ tag_cre = re.compile(r'(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$')
 
 headers = {'Authorization': 'ApiKey %s' % auth_info, 'Content-Type': 'application/json'}
 
-rx = re.compile
-# value is (file "name", OS id, file "description")
-file_descriptions = [
-    (rx(r'\.tgz$'),              ('Gzipped source tarball', 3, '')),
-    (rx(r'\.tar\.xz$'),          ('XZ compressed source tarball', 3, '')),
-    (rx(r'-webinstall\.exe$'),   ('', 0, '')),  # OS 0 = ignore on the Web
-    (rx(r'-embed-amd64\.zip$'),  ('Windows embeddable package (64-bit)', 1, '')),
-    (rx(r'-embed-arm64\.zip$'),  ('Windows embeddable package (ARM64)', 1, '')),
-    (rx(r'-arm64\.exe$'),        ('Windows installer (ARM64)', 1, 'Experimental')),
-    (rx(r'-amd64\.exe$'),        ('Windows installer (64-bit)', 1, 'Recommended')),
-    (rx(r'-embed-win32\.zip$'),  ('Windows embeddable package (32-bit)', 1, '')),
-    (rx(r'\.exe$'),              ('Windows installer (32-bit)', 1, '')),
-    (rx(r'\.chm$'),              ('Windows help file', 1, '')),
-    (rx(r'-macosx10\.5(_rev\d)?\.(dm|pk)g$'),  ('macOS 32-bit i386/PPC installer', 2,
-                                  'for Mac OS X 10.5 and later')),
-    (rx(r'-macosx10\.6(_rev\d)?\.(dm|pk)g$'),  ('macOS 64-bit/32-bit Intel installer', 2,
-                                  'for Mac OS X 10.6 and later')),
-    (rx(r'-macos(x)?10\.9\.(dm|pk)g$'),  ('macOS 64-bit Intel-only installer', 2,
-                                  'for macOS 10.9 and later, deprecated')),
-    (rx(r'-macos(x)?1[1-9](\.[0-9]*)?\.pkg$'),  ('macOS 64-bit universal2 installer', 2,
-                                  'for macOS 10.9 and later')),
-]
+def get_file_descriptions(release):
+    v = minor_version_tuple(release)
+    rx = re.compile
+    # value is (file "name", OS id, download button, file "description").
+    # OS=0 means no ReleaseFile object. Only one matching *file* (not regex)
+    # per OS can have download=True.
+    return [
+        (rx(r'\.tgz$'),
+            ('Gzipped source tarball', 3, False, '')),
+        (rx(r'\.tar\.xz$'),
+            ('XZ compressed source tarball', 3, True, '')),
+        (rx(r'-webinstall\.exe$'),
+            ('', 0, False, '')),
+        (rx(r'-embed-amd64\.zip$'),
+            ('Windows embeddable package (64-bit)', 1, False, '')),
+        (rx(r'-embed-arm64\.zip$'),
+            ('Windows embeddable package (ARM64)', 1, False, '')),
+        (rx(r'-arm64\.exe$'),
+            ('Windows installer (ARM64)', 1, False, 'Experimental')),
+        (rx(r'-amd64\.exe$'),
+            ('Windows installer (64-bit)', 1, v >= (3, 9), 'Recommended')),
+        (rx(r'-embed-win32\.zip$'),
+            ('Windows embeddable package (32-bit)', 1, False, '')),
+        (rx(r'\.exe$'),
+            ('Windows installer (32 -bit)', 1, v < (3, 9), '')),
+        (rx(r'\.chm$'),
+            ('Windows help file', 1, False, '')),
+        (rx(r'-macosx10\.5(_rev\d)?\.(dm|pk)g$'),
+            ('macOS 32-bit i386/PPC installer', 2, False,
+             'for Mac OS X 10.5 and later')),
+        (rx(r'-macosx10\.6(_rev\d)?\.(dm|pk)g$'),
+            ('macOS 64-bit/32-bit Intel installer', 2, False,
+             'for Mac OS X 10.6 and later')),
+        (rx(r'-macos(x)?10\.9\.(dm|pk)g$'),
+            ('macOS 64-bit Intel-only installer', 2, False,
+             'for macOS 10.9 and later, deprecated')),
+        (rx(r'-macos(x)?1[1-9](\.[0-9]*)?\.pkg$'),
+            ('macOS 64-bit universal2 installer', 2, True,
+             'for macOS 10.9 and later')),
+    ]
 
 def changelog_for(release):
     new_url = 'http://docs.python.org/release/%s/whatsnew/changelog.html' % release
@@ -125,7 +143,8 @@ def minor_version_tuple(release):
     m = tag_cre.match(release)
     return (int(m.groups()[0]), int(m.groups()[1]))
 
-def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
+def build_file_dict(release, rfile, rel_pk, file_desc, os_pk,
+                    add_download, add_desc):
     """Return a dictionary with all needed fields for a ReleaseFile object."""
     d = dict(
         name = file_desc,
@@ -137,18 +156,7 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_desc):
         url = download_root + '%s/%s' % (base_version(release), rfile),
         md5_sum = md5sum_for(release, rfile),
         filesize = filesize_for(release, rfile),
-        download_button=(
-            ("tar.xz" in rfile)
-            or ("macos11.pkg" in rfile)
-            or (
-                rfile.endswith((".msi", ".exe"))
-                and ("webinstall" not in rfile)
-                and (
-                    ((minor_version_tuple(release) >= (3, 9)) and ("amd64" in rfile))
-                    or ("amd64" not in rfile)
-                )
-            )
-        ),
+        download_button = add_download,
     )
     # Upload GPG signature
     if os.path.exists(ftp_root + "%s/%s.asc" % (base_version(release), rfile)):
@@ -191,10 +199,10 @@ def list_files(release):
             if not rest.startswith((release + '-', release + '.')):
                 print('    File %s/%s has a different version' % (reldir, rfile))
                 continue
-        for rx, info in file_descriptions:
+        for rx, info in get_file_descriptions(release):
             if rx.search(rfile):
-                file_desc, os_pk, add_desc = info
-                yield rfile, file_desc, os_pk, add_desc
+                file_desc, os_pk, add_download, add_desc = info
+                yield rfile, file_desc, os_pk, add_download, add_desc
                 break
         else:
             print('    File %s/%s not recognized' % (reldir, rfile))
@@ -230,7 +238,7 @@ def post_object(objtype, datadict):
 def sign_release_files_with_sigstore(release, release_files):
     filenames = [
         ftp_root + "%s/%s" % (base_version(release), rfile)
-        for rfile, file_desc, os_pk, add_desc in release_files
+        for rfile, file_desc, os_pk, add_download, add_desc in release_files
     ]
 
     def has_sigstore_signature(filename):
@@ -263,8 +271,9 @@ def main():
     sign_release_files_with_sigstore(rel, release_files)
     n = 0
     file_dicts = {}
-    for rfile, file_desc, os_pk, add_desc in release_files:
-        file_dict = build_file_dict(rel, rfile, rel_pk, file_desc, os_pk, add_desc)
+    for rfile, file_desc, os_pk, add_download, add_desc in release_files:
+        file_dict = build_file_dict(rel, rfile, rel_pk, file_desc, os_pk,
+                                    add_download, add_desc)
         key = file_dict['slug']
         if not os_pk:
             continue
