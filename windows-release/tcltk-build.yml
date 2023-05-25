@@ -5,6 +5,10 @@ parameters:
 - name: TkSourceTag
   displayName: 'Tk Source Tag'
   type: string
+- name: IncludeTix
+  displayName: 'Include Tix (pre-3.13)'
+  type: boolean
+  default: false
 - name: TixSourceTag
   displayName: 'Tix Source Tag'
   type: string
@@ -35,7 +39,8 @@ resources:
 
 
 variables:
-- group: CPythonSign
+- ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
+  - group: CPythonSign
 - name: IntDir
   value: '$(Build.BinariesDirectory)\obj'
 - name: ExternalsDir
@@ -78,9 +83,10 @@ jobs:
         git clone $(SourcesRepo) -b $(TkSourceTag) --depth 1 "$(ExternalsDir)\$(TkSourceTag)"
       displayName: 'Check out Tk sources'
 
-    - powershell: |
-        git clone $(SourcesRepo) -b $(TixSourceTag) --depth 1 "$(ExternalsDir)\$(TixSourceTag)"
-      displayName: 'Check out Tix sources'
+    - ${{ if eq(parameters.IncludeTix, 'true') }}:
+      - powershell: |
+          git clone $(SourcesRepo) -b $(TixSourceTag) --depth 1 "$(ExternalsDir)\$(TixSourceTag)"
+        displayName: 'Check out Tix sources'
 
     # This msbuild.rsp file will be used by the build to forcibly override these variables
     - powershell: |
@@ -95,20 +101,24 @@ jobs:
     - powershell: |
         & "$(msbuild)" cpython\PCbuild\tcl.vcxproj "@msbuild.rsp" /p:Platform=Win32 /p:tcltkDir="$(OutDir)\win32"
         & "$(msbuild)" cpython\PCbuild\tk.vcxproj  "@msbuild.rsp" /p:Platform=Win32 /p:tcltkDir="$(OutDir)\win32"
-        & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=Win32 /p:tcltkDir="$(OutDir)\win32"
       displayName: 'Build for win32'
 
     - powershell: |
         & "$(msbuild)" cpython\PCbuild\tcl.vcxproj "@msbuild.rsp" /p:Platform=x64 /p:tcltkDir="$(OutDir)\amd64"
         & "$(msbuild)" cpython\PCbuild\tk.vcxproj  "@msbuild.rsp" /p:Platform=x64 /p:tcltkDir="$(OutDir)\amd64"
-        & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=x64 /p:tcltkDir="$(OutDir)\amd64"
       displayName: 'Build for amd64'
 
     - powershell: |
         & "$(msbuild)" cpython\PCbuild\tcl.vcxproj "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
         & "$(msbuild)" cpython\PCbuild\tk.vcxproj  "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
-        & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
       displayName: 'Build for arm64'
+
+    - ${{ if eq(parameters.IncludeTix, 'true') }}:
+      - powershell: |
+          & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=Win32 /p:tcltkDir="$(OutDir)\win32"
+          & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=x64 /p:tcltkDir="$(OutDir)\amd64"
+          & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
+        displayName: 'Build Tix'
 
     - ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
       - template: sign-files.yml
