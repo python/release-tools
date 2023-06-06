@@ -9,6 +9,9 @@ jobs:
   pool:
     vmImage: windows-2022
 
+  variables:
+  - group: MSFTStorePublish
+
   workspace:
     clean: all
 
@@ -34,6 +37,59 @@ jobs:
         artifactName: msixupload
         downloadPath: $(Build.BinariesDirectory)
 
-  # TODO: do publish step
-  # If we are *not* real-signed, DO NOT PUBLISH
-  # condition: and(succeeded(), eq(variables['IsRealSigned'], 'true'))
+  - task: UseDotNet@2
+    displayName: Setup .NET Runtime
+    inputs:
+      packageType: runtime
+
+  - task: UseMSStoreCLI@0
+    displayName: Setup Microsoft Store Developer CLI
+
+  - powershell: >
+      msstore
+      reconfigure
+      --tenantId $(MSSTORE_TENANT_ID)
+      --sellerId $(MSSTORE_SELLER_ID)
+      --clientId $(MSSTORE_CLIENT_ID)
+      --clientSecret $(MSSTORE_CLIENT_SECRET)
+    displayName: Configure Microsoft Store Developer CLI
+
+  - powershell: |
+      dir *.msix, *.msixupload | `
+      %{ if ($_ -match 'python-(\d+\.\d+).+') { $Matches[1] } } | `
+      ?{ $_ } | `
+      select -Unique | `
+      %{
+        $id = @{
+          '3.13'='9PNRBTZXMB4Z';
+          '3.12'='9NCVDN91XZQP';
+          '3.11'='9NRWMJP3717K';
+          '3.10'='9PJPW5LDXLZ5';
+          '3.9'='9P7QFQMJRFP7';
+          '3.8'='9MSSZTT1N39L';
+        }[$_];
+        @{
+          files = (dir "python-$_*.msix", "python-$_*.msixupload").FullName;
+          product = "Python $_";
+          id = $id;
+          current = ConvertFrom-Json (msstore submission get -v $id);
+          meta = ConvertFrom-Json (msstore submission getlistingassets -v $id);
+        }
+      } | `
+      ?{ $_.id } | `
+      %{
+        Write-Host "Generating publish file for $($_.product) ($($_.id))"
+        $p1 = ConvertTo-Json $_.current -Compress
+        $p2 = ConvertTo-Json $_.meta -Compress
+        # If we are *not* real-signed, DO NOT PUBLISH
+        if ($env:IsRealSigned -eq 'true') {
+          msstore submission update -v $_.id $p1
+          msstore submission updatemetadata -v $_.id $p2
+        } else {
+          Write-Host "Skipping publish of $($_.id)"
+          Write-Verbose "msstore submission update -v $_.id $p1"
+          Write-Verbose "msstore submission updatemetadata -v $_.id $p2"
+        }
+      }
+    displayName: Publish Store package update
+    workingDirectory: $(Build.BinariesDirectory)/msixupload
