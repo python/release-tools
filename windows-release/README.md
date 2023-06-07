@@ -24,7 +24,7 @@ This helps prevent "surprise" builds from using the official certificate.
 Some additional points to be aware of:
 
 * packages are not automatically published to the Microsoft Store
-* successful builds should be retained by selecting "Retain" under the ... menu in the top-right
+* successful builds should be retained by selecting "Retain" under the "..." menu in the top-right
 
 The `msixupload` artifacts should be uploaded to the Microsoft Store at
 https://partner.microsoft.com/en-us/dashboard/apps-and-games/overview.
