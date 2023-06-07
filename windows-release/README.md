@@ -21,6 +21,22 @@ When signing is enabled (any value besides "Unsigned"), authorised approvers wil
 will need to approve each stage that requires the signing certificate (typically three).
 This helps prevent "surprise" builds from using the official certificate.
 
+Some additional points to be aware of:
+
+* packages are not automatically published to the Microsoft Store
+* successful builds should be retained by selecting "Retain" under the ... menu in the top-right
+
+The `msixupload` artifacts should be uploaded to the Microsoft Store at
+https://partner.microsoft.com/en-us/dashboard/apps-and-games/overview.
+Access to this site is very limited.
+We also usually update the screenshots so that the version information they show matches the release.
+
+Azure DevOps no longer has a per-pipeline option for retention,
+and so the only way to permanently retain a build is to manually select the "Retain" option.
+Without this, the build records will be lost after 30 days.
+
+## Finding/updating certificates
+
 The code signing certificate is stored in Azure Key Vault, and is authenticated using the
 variables in a Variable group called CPythonSign. The variable group is what triggers approvals.
 The group is at https://dev.azure.com/Python/cpython/_library?itemType=VariableGroups&view=VariableGroupView&variableGroupId=1&path=CPythonSign
