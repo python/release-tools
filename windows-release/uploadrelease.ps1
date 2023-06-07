@@ -77,7 +77,7 @@ if ($doc_htmlhelp) {
 $d = "$target/$($p[0])/"
 & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" mkdir $d
 & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chgrp downloads $d
-& $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chmod "o+rx" $d
+& $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chmod "a+rx" $d
 if ($chm) {
     & $pscp -batch -hostkey $hostkey -noagent -i $keyfile $chm.FullName "$user@${server}:$d"
     if (-not $?) { throw "Failed to upload $chm" }
@@ -104,7 +104,7 @@ foreach ($a in $dirs) {
         $sd = "$d$($a.Name)$($p[1])/"
         & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" mkdir $sd
         & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chgrp downloads $sd
-        & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chmod "o+rx" $sd
+        & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chmod "a+rx" $sd
         & $pscp -batch -hostkey $hostkey -noagent -i $keyfile $msi.FullName "$user@${server}:$sd"
         if (-not $?) { throw "Failed to upload $msi" }
         & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chgrp downloads $sd*
