@@ -53,6 +53,13 @@ jobs:
       artifactName: tcltk_lib_$(Name)
       targetPath: $(Build.BinariesDirectory)\tcltk_lib
 
+  - task: DownloadPipelineArtifact@1
+    displayName: 'Download artifact: cert'
+    condition: and(succeeded(), variables['SigningCertificate'])
+    inputs:
+      artifactName: cert
+      targetPath: $(Build.BinariesDirectory)\cert
+
   - powershell: |
       copy "$(Build.BinariesDirectory)\bin\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
     displayName: 'Copy signed files into sources'
@@ -66,19 +73,6 @@ jobs:
     displayName: 'Generate store APPX layout'
     env:
       TCL_LIBRARY: $(TclLibrary)
-
-  - task: PublishPipelineArtifact@0
-    displayName: 'Publish Artifact: layout_appxstore_$(Name)'
-    inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)\appx-store'
-      artifactName: layout_appxstore_$(Name)
-
-  - task: DownloadPipelineArtifact@1
-    displayName: 'Download artifact: cert'
-    condition: and(succeeded(), variables['SigningCertificate'])
-    inputs:
-      artifactName: cert
-      targetPath: $(Build.BinariesDirectory)\cert
 
   - powershell: |
       $info = (gc "$(Build.BinariesDirectory)\cert\certinfo.json" | ConvertFrom-JSON)
@@ -94,6 +88,12 @@ jobs:
     displayName: 'Generate sideloading APPX layout'
     env:
       TCL_LIBRARY: $(TclLibrary)
+
+  - task: PublishPipelineArtifact@0
+    displayName: 'Publish Artifact: layout_appxstore_$(Name)'
+    inputs:
+      targetPath: '$(Build.ArtifactStagingDirectory)\appx-store'
+      artifactName: layout_appxstore_$(Name)
 
   - task: PublishPipelineArtifact@0
     displayName: 'Publish Artifact: layout_appx_$(Name)'

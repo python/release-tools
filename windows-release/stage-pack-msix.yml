@@ -67,6 +67,12 @@ jobs:
     displayName: 'Build appxsym'
     workingDirectory: $(Build.BinariesDirectory)\symbols\$(Name)
 
+  - powershell: |
+      7z a -tzip "$(Build.ArtifactStagingDirectory)\msixupload\$(Filename).msixupload" *
+    displayName: 'Build msixupload'
+    condition: and(succeeded(), eq(variables['Upload'], 'true'))
+    workingDirectory: $(Build.ArtifactStagingDirectory)\msix
+
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: MSIX'
     condition: and(succeeded(), or(ne(variables['ShouldSign'], 'true'), not(variables['SigningCertificate'])))
@@ -80,12 +86,6 @@ jobs:
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\msix'
       ArtifactName: unsigned_msix
-
-  - powershell: |
-      7z a -tzip "$(Build.ArtifactStagingDirectory)\msixupload\$(Filename).msixupload" *
-    displayName: 'Build msixupload'
-    condition: and(succeeded(), eq(variables['Upload'], 'true'))
-    workingDirectory: $(Build.ArtifactStagingDirectory)\msix
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: MSIXUpload'
