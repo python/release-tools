@@ -53,6 +53,13 @@ jobs:
       artifactName: tcltk_lib_$(Name)
       targetPath: $(Build.BinariesDirectory)\tcltk_lib
 
+  - task: DownloadPipelineArtifact@1
+    displayName: 'Download artifact: cert'
+    condition: and(succeeded(), variables['SigningCertificate'])
+    inputs:
+      artifactName: cert
+      targetPath: $(Build.BinariesDirectory)\cert
+
   - powershell: |
       copy "$(Build.BinariesDirectory)\bin\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
     displayName: 'Copy signed files into sources'
@@ -72,13 +79,6 @@ jobs:
     inputs:
       targetPath: '$(Build.ArtifactStagingDirectory)\appx-store'
       artifactName: layout_appxstore_$(Name)
-
-  - task: DownloadPipelineArtifact@1
-    displayName: 'Download artifact: cert'
-    condition: and(succeeded(), variables['SigningCertificate'])
-    inputs:
-      artifactName: cert
-      targetPath: $(Build.BinariesDirectory)\cert
 
   - powershell: |
       $info = (gc "$(Build.BinariesDirectory)\cert\certinfo.json" | ConvertFrom-JSON)
