@@ -74,12 +74,6 @@ jobs:
     env:
       TCL_LIBRARY: $(TclLibrary)
 
-  - task: PublishPipelineArtifact@0
-    displayName: 'Publish Artifact: layout_appxstore_$(Name)'
-    inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)\appx-store'
-      artifactName: layout_appxstore_$(Name)
-
   - powershell: |
       $info = (gc "$(Build.BinariesDirectory)\cert\certinfo.json" | ConvertFrom-JSON)
       Write-Host "Side-loadable APPX must be signed with '$($info.Subject)'"
@@ -94,6 +88,12 @@ jobs:
     displayName: 'Generate sideloading APPX layout'
     env:
       TCL_LIBRARY: $(TclLibrary)
+
+  - task: PublishPipelineArtifact@0
+    displayName: 'Publish Artifact: layout_appxstore_$(Name)'
+    inputs:
+      targetPath: '$(Build.ArtifactStagingDirectory)\appx-store'
+      artifactName: layout_appxstore_$(Name)
 
   - task: PublishPipelineArtifact@0
     displayName: 'Publish Artifact: layout_appx_$(Name)'
