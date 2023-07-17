@@ -73,6 +73,21 @@ tag_cre = re.compile(r'(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$')
 
 headers = {'Authorization': 'ApiKey %s' % auth_info, 'Content-Type': 'application/json'}
 
+github_oidc_provider = 'https://github.com/login/oauth'
+google_oidc_provider = 'https://accounts.google.com'
+
+# Update this list when new release managers are added.
+release_to_sigstore_identity_and_oidc_issuer = {
+    '3.7': ('nad@python.org', github_oidc_provider),
+    # TODO: 3.8 and 3.9 don't match documented identity of 'lukasz@python.org'
+    '3.8': ('lukasz@langa.pl', github_oidc_provider),
+    '3.9': ('lukasz@langa.pl', github_oidc_provider),
+    '3.10': ('pablogsal@python.org', google_oidc_provider),
+    '3.11': ('pablogsal@python.org', google_oidc_provider),
+    '3.12': ('thomas@python.org', google_oidc_provider),
+    '3.13': ('thomas@python.org', google_oidc_provider),
+}
+
 def get_file_descriptions(release):
     v = minor_version_tuple(release)
     rx = re.compile
@@ -261,6 +276,38 @@ def sign_release_files_with_sigstore(release, release_files):
             run_cmd(['chmod', '644', file + '.sigstore'])
     else:
         print('All release files already signed with Sigstore')
+
+    # Verify all the files we expect to be signed with sigstore
+    # against the documented release manager identities and providers.
+    try:
+        sigstore_identity_and_oidc_issuer = release_to_sigstore_identity_and_oidc_issuer[base_version(release)]
+    except KeyError:
+        error(["No release manager defined for Python release " + release])
+    sigstore_identity, sigstore_oidc_issuer = sigstore_identity_and_oidc_issuer
+
+    print('Verifying release files were signed correctly with Sigstore')
+    sigstore_verify_argv = [
+        'python3', '-m', 'sigstore', 'verify', 'identity',
+        '--cert-identity', sigstore_identity,
+        '--cert-oidc-issuer', sigstore_oidc_issuer,
+    ]
+    for filename in filenames:
+        filename_crt = filename + '.crt'
+        filename_sig = filename + '.sig'
+        filename_sigstore = filename + '.sigstore'
+
+        if os.path.exists(filename_sigstore):
+            run_cmd(
+                sigstore_verify_argv
+                + ['--bundle', filename_sigstore, filename]
+            )
+
+        # We use an 'or' here to error out if one of the files is missing.
+        if os.path.exists(filename_sig) or os.path.exists(filename_crt):
+            run_cmd(
+                sigstore_verify_argv
+                + ['--certificate', filename_crt, '--signature', filename_sig, filename]
+            )
 
 def main():
     rel = sys.argv[1]
