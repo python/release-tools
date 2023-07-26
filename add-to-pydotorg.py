@@ -153,6 +153,10 @@ def base_version(release):
     m = tag_cre.match(release)
     return ".".join(m.groups()[:3])
 
+def minor_version(release):
+    m = tag_cre.match(release)
+    return ".".join(m.groups()[:2])
+
 def minor_version_tuple(release):
     m = tag_cre.match(release)
     return (int(m.groups()[0]), int(m.groups()[1]))
@@ -279,7 +283,7 @@ def sign_release_files_with_sigstore(release, release_files):
     # Verify all the files we expect to be signed with sigstore
     # against the documented release manager identities and providers.
     try:
-        sigstore_identity_and_oidc_issuer = release_to_sigstore_identity_and_oidc_issuer[base_version(release)]
+        sigstore_identity_and_oidc_issuer = release_to_sigstore_identity_and_oidc_issuer[minor_version(release)]
     except KeyError:
         error(["No release manager defined for Python release " + release])
     sigstore_identity, sigstore_oidc_issuer = sigstore_identity_and_oidc_issuer
