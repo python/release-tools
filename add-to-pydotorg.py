@@ -79,7 +79,6 @@ google_oidc_provider = 'https://accounts.google.com'
 # Update this list when new release managers are added.
 release_to_sigstore_identity_and_oidc_issuer = {
     '3.7': ('nad@python.org', github_oidc_provider),
-    # TODO: 3.8 and 3.9 don't match documented identity of 'lukasz@python.org'
     '3.8': ('lukasz@langa.pl', github_oidc_provider),
     '3.9': ('lukasz@langa.pl', github_oidc_provider),
     '3.10': ('pablogsal@python.org', google_oidc_provider),
