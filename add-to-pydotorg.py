@@ -283,7 +283,6 @@ def sign_release_files_with_sigstore(release, release_files):
     # Verify all the files we expect to be signed with sigstore
     # against the documented release manager identities and providers.
     try:
-        print(base_version(release))
         sigstore_identity_and_oidc_issuer = release_to_sigstore_identity_and_oidc_issuer[minor_version(release)]
     except KeyError:
         error(["No release manager defined for Python release " + release])
