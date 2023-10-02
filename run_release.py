@@ -484,7 +484,7 @@ def test_release_artifacts(db: DbfilenameShelf) -> None:
         subprocess.check_call(["make", "-j"], cwd=the_dir / filename)
         subprocess.check_call(["make", "install", "-j"], cwd=the_dir / filename)
         process = subprocess.run(
-            ["./bin/python3", "-m", "test"],
+            ["./bin/python3", "-m", "test", "-uall"],
             cwd=str(the_dir / "installation"),
             text=True,
         )
