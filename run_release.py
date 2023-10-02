@@ -50,8 +50,7 @@ WHATS_NEW_TEMPLATE = """
   What's New In Python {version}
 ****************************
 
-:Release: |release|
-:Date: |today|
+:Editor: TBD
 
 .. Rules for maintenance:
 
