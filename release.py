@@ -464,7 +464,7 @@ def make_tag(tag):
     if bad_files or not good_files:
         print('It doesn\'t look like you ran "blurb release" yet.')
         if bad_files:
-            print('There are still ReST files in NEWS.d/next/...')
+            print('There are still reST files in NEWS.d/next/...')
         if not good_files:
             print(f'There is no Misc/NEWS.d/{tag}.rst file.')
         if input('Are you sure you want to tag? (y/n) > ') not in ("y", "yes"):
