@@ -462,7 +462,11 @@ def make_tag(tag):
     bad_files = list(glob.glob("Misc/NEWS.d/next/*/0*.rst"))
     bad_files.extend(glob.glob("Misc/NEWS.d/next/*/2*.rst"))
     if bad_files or not good_files:
-        print('It doesn\'t look like you didn\'t run "blurb release" yet.')
+        print('It doesn\'t look like you ran "blurb release" yet.')
+        if bad_files:
+            print('There are still reST files in NEWS.d/next/...')
+        if not good_files:
+            print(f'There is no Misc/NEWS.d/{tag}.rst file.')
         if input('Are you sure you want to tag? (y/n) > ') not in ("y", "yes"):
             print("Aborting.")
             return False
