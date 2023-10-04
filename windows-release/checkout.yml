@@ -23,7 +23,7 @@ steps:
 - powershell: |
     $checkout_commit = (git rev-parse HEAD)
     if ($checkout_commit -ne '$(SourceCommit)') {
-        throw "Expected git commit '$(SourceCommit)' didn't match tagged commit '$(checkout_commit)'"
+        throw "Expected git commit '$(SourceCommit)' didn't match tagged commit '$checkout_commit'"
     }
   displayName: "Verify CPython commit matches tag"
   condition: and(succeeded(), variables['SourceCommit'])
