@@ -19,3 +19,11 @@ steps:
 - script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(Build.SourceBranchName) --single-branch $(Build.Repository.Uri) .
   displayName: 'git clone'
   condition: and(succeeded(), and(not(variables['GitRemote']), not(variables['SourceTag'])))
+
+- powershell: |
+    $checkout_commit = (git rev-parse HEAD)
+    if ($checkout_commit -ne $GitCommit) {
+        throw "Expected git commit '$(GitCommit)' didn't match tagged commit '$(checkout_commit)'"
+    }
+  displayName: "Verify CPython commit matches tag"
+  condition: and(succeeded(), and(variables['GitCommit']))

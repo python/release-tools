@@ -19,6 +19,10 @@ parameters:
   displayName: "Git tag"
   type: string
   default: main
+- name: SourceCommit
+  displayName: "Git commit (empty to disable commit SHA check)"
+  type: string
+  default: ''
 - name: DoPublish
   displayName: "Publish release"
   type: boolean
@@ -90,6 +94,7 @@ variables:
   ${{ else }}:
     GitRemote: ${{ parameters.GitRemote_Other }}
   SourceTag: ${{ parameters.SourceTag }}
+  SourceCommit: ${{ parameters.SourceCommit }}
   ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
     SigningCertificate: ${{ parameters.SigningCertificate }}
   SigningDescription: ${{ parameters.SigningDescription }}
