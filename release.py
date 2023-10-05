@@ -6,6 +6,7 @@ Original code by Benjamin Peterson
 Additions by Barry Warsaw, Georg Brandl and Benjamin Peterson
 """
 
+import datetime
 import glob
 import hashlib
 import optparse
@@ -241,15 +242,30 @@ def make_dist(name):
     else:
         print('created dist directory %s' % name)
 
-def tarball(source):
+def tarball(source, clamp_mtime):
     """Build tarballs for a directory."""
     print('Making .tgz')
     base = os.path.basename(source)
     tgz = os.path.join('src', base + '.tgz')
     xz = os.path.join('src', base + '.tar.xz')
-    run_cmd(["tar", "cf", tgz, "--use-compress-program", "gzip -9", source], shell=False)
+    # Recommended options for creating reproducible tarballs from:
+    # https://www.gnu.org/software/tar/manual/html_node/Reproducibility.html#Reproducibility
+    # and https://reproducible-builds.org/docs/archives/
+    repro_options = [
+        # Sorts the entries in the tarball by name.
+        "--sort=name",
+        # Sets a maximum 'modified time' of entries in tarball.
+        "--mtime=%s" % (clamp_mtime,), "--clamp-mtime",
+        # Sets the owner uid and gid to 0.
+        "--owner=0", "--group=0", "--numeric-owner",
+        # Omits process ID, file access, and status change times.
+        "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
+        # Omit irrelevant info about file permissions.
+        "--mode=go+u,go-w"
+    ]
+    run_cmd(["tar", "cf", tgz, *repro_options, "--use-compress-program", "gzip --no-name -9", source], shell=False)
     print("Making .tar.xz")
-    run_cmd(["tar", "cJf", xz, source], shell=False)
+    run_cmd(["tar", "cJf", xz, *repro_options, source], shell=False)
     print('Calculating md5 sums')
     checksum_tgz = hashlib.md5()
     with open(tgz, 'rb') as data:
@@ -352,7 +368,7 @@ def export(tag, silent=False):
             run_cmd(["find . -name '*.py[co]' -exec rm -f {} ';'"], silent=silent)
 
         os.mkdir('src')
-        tarball(archivename)
+        tarball(archivename, tag.committed_at.strftime("%Y-%m-%d %H:%M:%SZ"))
     print()
     print('**Now extract the archives in %s/src and run the tests**' % tag.text)
     print('**You may also want to run make install and re-test**')
@@ -454,6 +470,14 @@ class Tag(object):
 
     def as_tuple(self):
         return (self.major, self.minor, self.patch, self.level, self.serial)
+
+    @property
+    def committed_at(self):
+        # Fetch the epoch of the tagged commit for build reproducibility.
+        proc = subprocess.run(["git", "log", self.gitname, "-1", "--pretty=%ct"], stdout=subprocess.PIPE)
+        if proc.returncode != 0:
+            error("Couldn't fetch the epoch of tag %s" % (self.gitname,))
+        return datetime.datetime.fromtimestamp(int(proc.stdout.decode().strip()), tz=datetime.timezone.utc)
 
 
 def make_tag(tag):
