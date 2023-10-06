@@ -1,0 +1,10 @@
+parameters:
+  Remote: https://github.com/python/cpython-bin-deps
+  Ref: vcruntime
+
+steps:
+- powershell: |
+    git clone --progress -v --depth 1 --branch ${{ parameters.Ref }} --single-branch ${{ parameters.Remote }} vcruntime
+    $files = (dir "vcruntime\$(arch)\*.dll").FullName -join ";"
+    "##vso[task.setvariable variable=VCRuntimeDLL]$files"
+  displayName: 'Import VC redist'
