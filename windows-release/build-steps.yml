@@ -3,6 +3,7 @@ parameters:
 
 steps:
 - template: ./checkout.yml
+- template: ./acquire-vcruntime.yml
 
 - powershell: |
     $d = (.\PCbuild\build.bat -V) | %{ if($_ -match '\s+(\w+):\s*(.+)\s*$') { @{$Matches[1] = $Matches[2];} }};
