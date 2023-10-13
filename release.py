@@ -34,7 +34,7 @@ def error(*msgs):
     sys.exit(1)
 
 
-def run_cmd(cmd, silent=False, shell=True, **kwargs):
+def run_cmd(cmd, silent=False, shell=False, **kwargs):
     if shell:
         cmd = SPACE.join(cmd)
     if not silent:
@@ -98,7 +98,7 @@ def chdir_to_repo_root():
 
 
 def get_output(args):
-    return subprocess.check_output(SPACE.join(args), shell=True)
+    return subprocess.check_output(args)
 
 
 def check_env():
@@ -263,9 +263,10 @@ def tarball(source, clamp_mtime):
         # Omit irrelevant info about file permissions.
         "--mode=go+u,go-w"
     ]
-    run_cmd(["tar", "cf", tgz, *repro_options, "--use-compress-program", "gzip --no-name -9", source], shell=False)
+    run_cmd(["tar", "cf", tgz, *repro_options, "--use-compress-program",
+             "gzip --no-name -9", source])
     print("Making .tar.xz")
-    run_cmd(["tar", "cJf", xz, *repro_options, source], shell=False)
+    run_cmd(["tar", "cJf", xz, *repro_options, source])
     print('Calculating md5 sums')
     checksum_tgz = hashlib.md5()
     with open(tgz, 'rb') as data:
@@ -282,13 +283,14 @@ def tarball(source, clamp_mtime):
     uid = os.environ.get("GPG_KEY_FOR_RELEASE")
     if not uid:
         print('List of available private keys:')
-        run_cmd(['gpg -K | grep -A 1 "^sec"'])
+        run_cmd(['gpg -K | grep -A 1 "^sec"'], shell=True)
         uid = input('Please enter key ID to use for signing: ')
-    os.system('gpg -bas -u ' + uid + ' ' + tgz)
-    os.system('gpg -bas -u ' + uid + ' ' + xz)
+    run_cmd(['gpg', '-bas', '-u', uid, tgz])
+    run_cmd(['gpg', '-bas', '-u', uid, xz])
 
     print('Signing tarballs with Sigstore')
-    run_cmd(['python3', '-m', 'sigstore', 'sign', '--oidc-disable-ambient-providers', tgz, xz])
+    run_cmd(['python3', '-m', 'sigstore', 'sign',
+             '--oidc-disable-ambient-providers', tgz, xz], shell=False)
 
 
 def export(tag, silent=False):
@@ -364,8 +366,10 @@ def export(tag, silent=False):
 
         with pushd(archivename):
             print('Zapping pycs')
-            run_cmd(["find . -depth -name '__pycache__' -exec rm -rf {} ';'"], silent=silent)
-            run_cmd(["find . -name '*.py[co]' -exec rm -f {} ';'"], silent=silent)
+            run_cmd(['find', '.', '-depth', '-name', '__pycache__',
+                     '-exec', 'rm', '-rf', '{}', ';'], silent=silent)
+            run_cmd(['find', '.', '-name', '*.py[co]',
+                     '-exec', 'rm', '-f', '{}', ';'], silent=silent)
 
         os.mkdir('src')
         tarball(archivename, tag.committed_at.strftime("%Y-%m-%d %H:%M:%SZ"))
@@ -384,7 +388,8 @@ def build_docs():
         sphinx_build = os.path.join(venv, 'bin', 'sphinx-build')
         blurb = os.path.join(venv, 'bin', 'blurb')
         with pushd('Doc'):
-            run_cmd(['make', 'dist', 'SPHINXBUILD=' + sphinx_build, 'BLURB=' + blurb],
+            run_cmd(['make', 'dist', 'SPHINXBUILD=' + sphinx_build,
+                     'BLURB=' + blurb],
                     env={**os.environ, "SPHINXOPTS": "-j10"})
             return os.path.abspath('dist')
 
@@ -392,7 +397,7 @@ def upload(tag, username):
     """scp everything to dinsdale"""
     address ='"%s@dinsdale.python.org:' % username
     def scp(from_loc, to_loc):
-        run_cmd(['scp %s %s' % (from_loc, address + to_loc)])
+        run_cmd(['scp', from_loc, address + to_loc])
     with pushd(tag.text):
         print("Uploading source tarballs")
         scp('src', '/data/python-releases/%s' % tag.nickname)
@@ -508,9 +513,10 @@ def make_tag(tag):
     uid = os.environ.get("GPG_KEY_FOR_RELEASE")
     if not uid:
         print('List of available private keys:')
-        run_cmd(['gpg -K | grep -A 1 "^sec"'])
+        run_cmd(['gpg -K | grep -A 1 "^sec"'], shell=True)
         uid = input('Please enter key ID to use for signing: ')
-    run_cmd(['git', 'tag', '-s', '-u', uid, tag.gitname, '-m', 'Python ' + str(tag)], shell=False)
+    run_cmd(['git', 'tag', '-s', '-u', uid, tag.gitname, '-m',
+            'Python ' + str(tag)])
     return True
 
 
