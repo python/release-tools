@@ -841,7 +841,7 @@ def post_release_tagging(db: DbfilenameShelf) -> None:
     )
 
 
-def maybe_prepare_new_master_branch(db: DbfilenameShelf) -> None:
+def maybe_prepare_new_main_branch(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
 
     if not release_tag.is_feature_freeze_release:
@@ -1044,8 +1044,8 @@ fix these things in this script so it also support your platform.
         Task(branch_new_versions, "Branch out new versions and prepare main branch"),
         Task(post_release_tagging, "Final touches for the release"),
         Task(
-            maybe_prepare_new_master_branch,
-            "prepare new master branch for feature freeze",
+            maybe_prepare_new_main_branch,
+            "prepare new main branch for feature freeze",
         ),
         Task(push_to_upstream, "Push new tags and branches to upstream"),
         Task(remove_temporary_branch, "Removing temporary release branch"),
