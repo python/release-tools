@@ -279,19 +279,6 @@ def tarball(source, clamp_mtime):
     print('  %s  %8s  %s' % (
         checksum_xz.hexdigest(), int(os.path.getsize(xz)), xz))
 
-    print('Signing tarballs with GPG')
-    uid = os.environ.get("GPG_KEY_FOR_RELEASE")
-    if not uid:
-        print('List of available private keys:')
-        run_cmd(['gpg -K | grep -A 1 "^sec"'], shell=True)
-        uid = input('Please enter key ID to use for signing: ')
-    run_cmd(['gpg', '-bas', '-u', uid, tgz])
-    run_cmd(['gpg', '-bas', '-u', uid, xz])
-
-    print('Signing tarballs with Sigstore')
-    run_cmd(['python3', '-m', 'sigstore', 'sign',
-             '--oidc-disable-ambient-providers', tgz, xz], shell=False)
-
 
 def export(tag, silent=False):
     make_dist(tag.text)

@@ -295,7 +295,6 @@ def check_tool(db: DbfilenameShelf, tool: str) -> None:
 
 
 check_git = functools.partial(check_tool, tool="git")
-check_latexmk = functools.partial(check_tool, tool="latexmk")
 check_make = functools.partial(check_tool, tool="make")
 check_blurb = functools.partial(check_tool, tool="blurb")
 check_autoconf = functools.partial(check_tool, tool="autoconf")
@@ -460,39 +459,62 @@ def create_tag(db: DbfilenameShelf) -> None:
     )
 
 
-def build_release_artifacts(db: DbfilenameShelf) -> None:
-    with cd(db["git_repo"]):
-        release_mod.export(db["release"])
+def wait_for_source_and_docs_artifacts(db: DbfilenameShelf) -> None:
+    # Determine if we need to wait for docs or only source artifacts.
+    release_tag = db["release"]
+    should_wait_for_docs = release_tag.is_final or release_tag.is_release_candiate
+
+    # Create the directory so it's easier to place the artifacts there.
+    release_path = pathlib.Path(db["git_repo"] / str(db["release"]))
+    release_path.mkdir(parents=True, exist_ok=True)
+
+    # Build the list of filepaths we're expecting.
+    wait_for_paths = [
+        release_path / "src" / f"Python-{db['release']}.tgz",
+        release_path / "src" / f"Python-{db['release']}.tar.xz"
+    ]
+    if should_wait_for_docs:
+        wait_for_paths.extend([
+            release_path / "docs" / f"python-{db['release']}-docs.epub",
+            release_path / "docs" / f"python-{db['release']}-docs-html.tar.bz2",
+            release_path / "docs" / f"python-{db['release']}-docs-html.zip",
+            release_path / "docs" / f"python-{db['release']}-docs-pdf-a4.tar.bz2",
+            release_path / "docs" / f"python-{db['release']}-docs-pdf-a4.zip",
+            release_path / "docs" / f"python-{db['release']}-docs-pdf-letter.tar.bz2",
+            release_path / "docs" / f"python-{db['release']}-docs-pdf-letter.zip",
+            release_path / "docs" / f"python-{db['release']}-docs-texinfo.tar.bz2",
+            release_path / "docs" / f"python-{db['release']}-docs-texinfo.zip",
+            release_path / "docs" / f"python-{db['release']}-docs-text.tar.bz2",
+            release_path / "docs" / f"python-{db['release']}-docs-text.zip",
+        ])
+
+    print(f"Waiting for source{' and docs' if should_wait_for_docs else ''} artifacts to be built")
+    print(f"Artifacts should be placed at '{release_path}':")
+    for path in wait_for_paths:
+        print(f"- '{os.path.relpath(path, release_path)}'")
+
+    while not all(path.exists() for path in wait_for_paths):
+        time.sleep(1)
 
 
-def test_release_artifacts(db: DbfilenameShelf) -> None:
-    with tempfile.TemporaryDirectory() as tmppath:
-        the_dir = pathlib.Path(tmppath)
-        the_dir.mkdir(exist_ok=True)
-        filename = f"Python-{db['release']}"
-        tarball = f"Python-{db['release']}.tgz"
-        shutil.copy2(
-            db["git_repo"] / str(db["release"]) / "src" / tarball,
-            the_dir / tarball,
-        )
-        subprocess.check_call(["tar", "xvf", tarball], cwd=the_dir)
-        subprocess.check_call(
-            ["./configure", "--prefix", str(the_dir / "installation")],
-            cwd=the_dir / filename,
-        )
-        subprocess.check_call(["make", "-j"], cwd=the_dir / filename)
-        subprocess.check_call(["make", "install", "-j"], cwd=the_dir / filename)
-        process = subprocess.run(
-            ["./bin/python3", "-m", "test", "-uall"],
-            cwd=str(the_dir / "installation"),
-            text=True,
-        )
+def sign_source_artifacts(db: DbfilenameShelf) -> None:
+    print('Signing tarballs with GPG')
+    uid = os.environ.get("GPG_KEY_FOR_RELEASE")
+    if not uid:
+        print('List of available private keys:')
+        subprocess.check_call('gpg -K | grep -A 1 "^sec"', shell=True)
+        uid = input('Please enter key ID to use for signing: ')
 
-    if process.returncode == 0:
-        return
+    tarballs_path = pathlib.Path(db["git_repo"] / str(db["release"]) / "src")
+    tgz = str(tarballs_path / ("Python-%s.tgz" % db["release"]))
+    xz = str(tarballs_path / ("Python-%s.tar.xz" % db["release"]))
 
-    if not ask_question("Some test_failed! Do you want to continue?"):
-        raise ReleaseException("Test failed!")
+    subprocess.check_call(['gpg', '-bas', '-u', uid, tgz])
+    subprocess.check_call(['gpg', '-bas', '-u', uid, xz])
+
+    print('Signing tarballs with Sigstore')
+    subprocess.check_call(['python3', '-m', 'sigstore', 'sign',
+                           '--oidc-disable-ambient-providers', tgz, xz])
 
 
 class MySFTPClient(paramiko.SFTPClient):
@@ -664,9 +686,55 @@ def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
     execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
 
 
+def start_build_of_source_and_docs(db: DbfilenameShelf) -> None:
+    # Get the git commit SHA for the tag
+    commit_sha = subprocess.check_output(
+        ["git", "rev-list", "-n", "1", db["release"].gitname],
+        cwd=db["git_repo"]
+    ).decode().strip()
+
+    # Get the owner of the GitHub repo (first path segment in a 'github.com' remote URL)
+    # This works for both 'https' and 'ssh' style remote URLs.
+    origin_remote_url = subprocess.check_output(
+        ["git", "ls-remote", "--get-url", "origin"],
+        cwd=db["git_repo"]
+    ).decode().strip()
+    match = re.match(r"github\.com/([^/]+)/", origin_remote_url)
+    if not match:
+        raise ReleaseException(f"Could not parse GitHub owner from 'origin' remote URL: {origin_remote_url}")
+    origin_remote_github_owner = match.group(1)
+
+    # We ask for human verification at this point since this commit SHA is 'locked in'
+    print()
+    print(f"Go to https://github.com/{origin_remote_github_owner}/cpython/commit/{commit_sha}")
+    print("- Ensure that there is no warning that the commit does not belong to this repository.")
+    print("- Ensure that the commit diff does not contain any unexpected changes.")
+    print("- For the next step, ensure the commit SHA matches the one you verified on GitHub in this step.")
+    print()
+    if not ask_question(
+        "Have you verified the release commit hasn't been tampered with on GitHub?"
+    ):
+        raise ReleaseException("Commit must be visually reviewed before starting build")
+
+    # After visually confirming the release manager can start the build process
+    # with the known good commit SHA.
+    print()
+    print("Go to https://github.com/python/release-tools/actions/workflows/source-and-docs-release.yml")
+    print("Select 'Run workflow' and enter the following values:")
+    print(f"- Git remote to checkout: {origin_remote_github_owner}")
+    print(f"- Git commit to target for the release: {commit_sha}")
+    print(f"- CPython release number: {db['release']}")
+    print()
+
+    if not ask_question(
+        "Have you started the source and docs build?"
+    ):
+        raise ReleaseException("Source and docs build must be started")
+
+
 def send_email_to_platform_release_managers(db: DbfilenameShelf) -> None:
     if not ask_question(
-        "Have you notified the platform release managers about the availability of artifacts?"
+        "Have you notified the platform release managers about the availability of the commit SHA and tag?"
     ):
         raise ReleaseException("Platform release managers muy be notified")
 
@@ -1008,7 +1076,6 @@ fix these things in this script so it also support your platform.
     auth_key = args.auth_key or os.getenv("AUTH_INFO")
     tasks = [
         Task(check_git, "Checking git is available"),
-        Task(check_latexmk, "Checking latexmk is available"),
         Task(check_make, "Checking make is available"),
         Task(check_blurb, "Checking blurb is available"),
         Task(check_docker, "Checking docker is available"),
@@ -1027,17 +1094,18 @@ fix these things in this script so it also support your platform.
         Task(bump_version, "Bump version"),
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
         Task(create_tag, "Create tag"),
-        Task(build_release_artifacts, "Building release artifacts"),
-        Task(test_release_artifacts, "Test release artifacts"),
+        Task(push_to_local_fork, "Push new tags and branches to private fork"),
+        Task(start_build_of_source_and_docs, "Start the builds for source and docs artifacts"),
+        Task(
+            send_email_to_platform_release_managers,
+            "Platform release managers have been notified of the commit SHA",
+        ),
+        Task(wait_for_source_and_docs_artifacts, "Wait for source and docs artifacts to build"),
+        Task(sign_source_artifacts, "Sign source artifacts"),
         Task(upload_files_to_server, "Upload files to the PSF server"),
         Task(place_files_in_download_folder, "Place files in the download folder"),
         Task(upload_docs_to_the_docs_server, "Upload docs to the PSF docs server"),
         Task(unpack_docs_in_the_docs_server, "Place docs files in the docs folder"),
-        Task(push_to_local_fork, "Push new tags and branches to private fork"),
-        Task(
-            send_email_to_platform_release_managers,
-            "Platform release managers have been notified of the release artifacts",
-        ),
         Task(wait_util_all_files_are_in_folder, "Wait until all files are ready"),
         Task(create_release_object_in_db, "The django release object has been created"),
         Task(post_release_merge, "Merge the tag into the release branch"),
