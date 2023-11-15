@@ -455,7 +455,7 @@ class Tag(object):
         return self.level == "a"
 
     @property
-    def is_release_candiate(self):
+    def is_release_candidate(self):
         return self.level == "rc"
 
     @property

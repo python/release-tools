@@ -580,7 +580,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
     # Docs
 
     release_tag: release_mod.Tag = db["release"]
-    if release_tag.is_final or release_tag.is_release_candiate:
+    if release_tag.is_final or release_tag.is_release_candidate:
         source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
         destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
 
@@ -599,7 +599,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
 
 def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
-    if not (release_tag.is_final or release_tag.is_release_candiate):
+    if not (release_tag.is_final or release_tag.is_release_candidate):
         return
 
     client = paramiko.SSHClient()
@@ -635,7 +635,7 @@ def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
 
 def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
-    if not (release_tag.is_final or release_tag.is_release_candiate):
+    if not (release_tag.is_final or release_tag.is_release_candidate):
         return
 
     client = paramiko.SSHClient()
