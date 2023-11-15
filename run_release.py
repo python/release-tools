@@ -298,7 +298,6 @@ check_git = functools.partial(check_tool, tool="git")
 check_latexmk = functools.partial(check_tool, tool="latexmk")
 check_make = functools.partial(check_tool, tool="make")
 check_blurb = functools.partial(check_tool, tool="blurb")
-check_autoconf = functools.partial(check_tool, tool="autoconf")
 check_docker = functools.partial(check_tool, tool="docker")
 
 
@@ -411,14 +410,16 @@ def prepare_pydoc_topics(db: DbfilenameShelf) -> None:
 
 
 def run_autoconf(db: DbfilenameShelf) -> None:
+    # Manifest corresponds to quay.io/tiran/cpython_autoconf:271
+    cpython_autoconf_manifest = "1ad139f48cd382f59de0752446aea173a2311a92093d7aa9f73f77eb9726d727"
     subprocess.check_call(
         [
             "docker",
             "run",
             "--rm",
-            "--pull=always",
+            "--pull=missing",
             f"-v{db['git_repo']}:/src",
-            "quay.io/tiran/cpython_autoconf:cp311",
+            f"quay.io/tiran/cpython_autoconf@sha256:{cpython_autoconf_manifest}",
         ],
         cwd=db["git_repo"],
     )
@@ -1012,7 +1013,6 @@ fix these things in this script so it also support your platform.
         Task(check_make, "Checking make is available"),
         Task(check_blurb, "Checking blurb is available"),
         Task(check_docker, "Checking docker is available"),
-        Task(check_autoconf, "Checking autoconf is available"),
         Task(check_gpg_keys, "Checking GPG keys"),
         Task(check_ssh_connection, f"Validating ssh connection to {DOWNLOADS_SERVER}"),
         Task(check_buildbots, "Check buildbots are good"),
