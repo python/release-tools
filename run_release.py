@@ -580,7 +580,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
     # Docs
 
     release_tag: release_mod.Tag = db["release"]
-    if release_tag.is_final or release_tag.is_release_candiate:
+    if release_tag.is_final or release_tag.is_release_candidate:
         source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
         destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
 
@@ -599,7 +599,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
 
 def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
-    if not (release_tag.is_final or release_tag.is_release_candiate):
+    if not (release_tag.is_final or release_tag.is_release_candidate):
         return
 
     client = paramiko.SSHClient()
@@ -635,7 +635,7 @@ def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
 
 def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
-    if not (release_tag.is_final or release_tag.is_release_candiate):
+    if not (release_tag.is_final or release_tag.is_release_candidate):
         return
 
     client = paramiko.SSHClient()
@@ -1023,7 +1023,7 @@ fix these things in this script so it also support your platform.
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(run_autoconf, "Running autoconf"),
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
-        Task(check_pyspecific, "Chech pyspecific"),
+        Task(check_pyspecific, "Checking pyspecific"),
         Task(bump_version, "Bump version"),
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
         Task(create_tag, "Create tag"),
