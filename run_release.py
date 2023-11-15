@@ -1023,7 +1023,7 @@ fix these things in this script so it also support your platform.
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(run_autoconf, "Running autoconf"),
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
-        Task(check_pyspecific, "Chech pyspecific"),
+        Task(check_pyspecific, "Checking pyspecific"),
         Task(bump_version, "Bump version"),
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
         Task(create_tag, "Create tag"),
