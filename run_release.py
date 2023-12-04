@@ -470,22 +470,23 @@ def wait_for_source_and_docs_artifacts(db: DbfilenameShelf) -> None:
 
     # Build the list of filepaths we're expecting.
     wait_for_paths = [
-        release_path / "src" / f"Python-{db['release']}.tgz",
-        release_path / "src" / f"Python-{db['release']}.tar.xz"
+        release_path / "src" / f"Python-{release_tag}.tgz",
+        release_path / "src" / f"Python-{release_tag}.tar.xz"
     ]
     if should_wait_for_docs:
+        docs_path = release_path / "docs"
         wait_for_paths.extend([
-            release_path / "docs" / f"python-{db['release']}-docs.epub",
-            release_path / "docs" / f"python-{db['release']}-docs-html.tar.bz2",
-            release_path / "docs" / f"python-{db['release']}-docs-html.zip",
-            release_path / "docs" / f"python-{db['release']}-docs-pdf-a4.tar.bz2",
-            release_path / "docs" / f"python-{db['release']}-docs-pdf-a4.zip",
-            release_path / "docs" / f"python-{db['release']}-docs-pdf-letter.tar.bz2",
-            release_path / "docs" / f"python-{db['release']}-docs-pdf-letter.zip",
-            release_path / "docs" / f"python-{db['release']}-docs-texinfo.tar.bz2",
-            release_path / "docs" / f"python-{db['release']}-docs-texinfo.zip",
-            release_path / "docs" / f"python-{db['release']}-docs-text.tar.bz2",
-            release_path / "docs" / f"python-{db['release']}-docs-text.zip",
+            docs_path / f"python-{release_tag}-docs.epub",
+            docs_path / f"python-{release_tag}-docs-html.tar.bz2",
+            docs_path / f"python-{release_tag}-docs-html.zip",
+            docs_path / f"python-{release_tag}-docs-pdf-a4.tar.bz2",
+            docs_path / f"python-{release_tag}-docs-pdf-a4.zip",
+            docs_path / f"python-{release_tag}-docs-pdf-letter.tar.bz2",
+            docs_path / f"python-{release_tag}-docs-pdf-letter.zip",
+            docs_path / f"python-{release_tag}-docs-texinfo.tar.bz2",
+            docs_path / f"python-{release_tag}-docs-texinfo.zip",
+            docs_path / f"python-{release_tag}-docs-text.tar.bz2",
+            docs_path / f"python-{release_tag}-docs-text.zip",
         ])
 
     print(f"Waiting for source{' and docs' if should_wait_for_docs else ''} artifacts to be built")
