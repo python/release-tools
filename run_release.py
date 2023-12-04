@@ -465,7 +465,7 @@ def wait_for_source_and_docs_artifacts(db: DbfilenameShelf) -> None:
     should_wait_for_docs = release_tag.is_final or release_tag.is_release_candiate
 
     # Create the directory so it's easier to place the artifacts there.
-    release_path = pathlib.Path(db["git_repo"] / str(db["release"]))
+    release_path = pathlib.Path(db["git_repo"] / str(release_tag))
     release_path.mkdir(parents=True, exist_ok=True)
 
     # Build the list of filepaths we're expecting.
