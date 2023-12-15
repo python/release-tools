@@ -412,17 +412,8 @@ def prepare_pydoc_topics(db: DbfilenameShelf) -> None:
 
 def run_autoconf(db: DbfilenameShelf) -> None:
     subprocess.check_call(
-        [
-            "docker",
-            "run",
-            "--rm",
-            "--pull=always",
-            f"-v{db['git_repo']}:/src",
-            "quay.io/tiran/cpython_autoconf:cp311",
-        ],
-        cwd=db["git_repo"],
+        ["make", "regen-configure"], cwd=db["git_repo"],
     )
-    subprocess.check_call(["docker", "rmi", "quay.io/tiran/cpython_autoconf", "-f"])
     subprocess.check_call(
         ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
     )
