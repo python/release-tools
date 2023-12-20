@@ -1,3 +1,6 @@
+parameters:
+  DoFreethreaded: false
+
 jobs:
 - job: Make_Nuget_Layout
   displayName: Make Nuget layout
@@ -45,8 +48,20 @@ jobs:
       $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\nuget" --preset-nuget
     displayName: 'Generate nuget layout'
 
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - powershell: |
+        $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\nuget_freethreaded" --preset-nuget --include-freethreaded
+      displayName: 'Generate freethreaded nuget layout'
+
   - task: PublishPipelineArtifact@0
     displayName: 'Publish Artifact: layout_nuget_$(Name)'
     inputs:
       targetPath: '$(Build.ArtifactStagingDirectory)\nuget'
       artifactName: layout_nuget_$(Name)
+
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - task: PublishPipelineArtifact@0
+      displayName: 'Publish Artifact: layout_nuget_freethreaded_$(Name)'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)\nuget_freethreaded'
+        artifactName: layout_nuget_freethreaded_$(Name)

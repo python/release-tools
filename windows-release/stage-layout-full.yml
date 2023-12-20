@@ -1,5 +1,6 @@
 parameters:
   ARM64TclTk: true
+  DoFreethreaded: false
 
 jobs:
 - job: Make_Layouts
@@ -73,8 +74,22 @@ jobs:
     env:
       TCL_LIBRARY: $(TclLibrary)
 
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - powershell: |
+        $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\layout_freethreaded" --preset-default --include-freethreaded
+      displayName: 'Generate full freethreaded layout'
+      env:
+        TCL_LIBRARY: $(TclLibrary)
+
   - task: PublishPipelineArtifact@0
     displayName: 'Publish Artifact: layout_full_$(Name)'
     inputs:
       targetPath: '$(Build.ArtifactStagingDirectory)\layout'
       artifactName: layout_full_$(Name)
+
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - task: PublishPipelineArtifact@0
+      displayName: 'Publish Artifact: layout_full_freethreaded_$(Name)'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)\layout_freethreaded'
+        artifactName: layout_full_freethreaded_$(Name)

@@ -1,5 +1,6 @@
 parameters:
   ShouldPGO: false
+  DoFreethreaded: false
 
 steps:
 - template: ./checkout.yml
@@ -24,6 +25,15 @@ steps:
       IncludeUwp: true
       Py_OutDir: '$(Build.BinariesDirectory)\bin'
 
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - powershell: |
+        $env:SigningCertificate = $null
+        .\PCbuild\build.bat -v -p $(Platform) -c $(Configuration) --disable-gil
+      displayName: 'Run free-threaded build'
+      env:
+        IncludeUwp: true
+        Py_OutDir: '$(Build.BinariesDirectory)\bin'
+
 - ${{ if eq(parameters.ShouldPGO, 'true') }}:
   - powershell: |
       $env:SigningCertificate = $null
@@ -32,6 +42,15 @@ steps:
     env:
       IncludeUwp: true
       Py_OutDir: '$(Build.BinariesDirectory)\bin'
+
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - powershell: |
+        $env:SigningCertificate = $null
+        .\PCbuild\build.bat -v -p $(Platform) --pgo --disable-gil
+      displayName: 'Run free-threaded build'
+      env:
+        IncludeUwp: true
+        Py_OutDir: '$(Build.BinariesDirectory)\bin'
 
 - powershell: |
     $kitroot = (gp 'HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots\').KitsRoot10
