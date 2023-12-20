@@ -82,7 +82,7 @@ jobs:
     displayName: 'Collect site'
     condition: and(succeeded(), not(variables['SkipTests']))
 
-  ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
     - powershell: |
         $p = (gci "$(Build.BinariesDirectory)\Python\python3*t.exe" | select -First 1)
         Write-Host "Found $p"
