@@ -84,7 +84,7 @@ steps:
       displayName: 'Collect free-threaded profile'
       env:
         PYTHONHOME: '$(Build.SourcesDirectory)'
-  
+
 
   - ${{ if ne(parameters.PGUpdate, 'true') }}:
     # Not finishing in this job, so publish the binaries
