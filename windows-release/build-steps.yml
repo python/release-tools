@@ -16,6 +16,12 @@ steps:
     Write-Host "##vso[build.addbuildtag]$($d.PythonVersion)-$(Name)"
   displayName: 'Extract version numbers'
 
+- ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+  - powershell: |
+      Write-Host "##vso[build.addbuildtag]freethreaded"
+      Write-Host "##vso[build.addbuildtag]$(VersionText)-freethreaded"
+    displayName: 'Add freethreaded tags'
+
 - ${{ if eq(parameters.ShouldPGO, 'false') }}:
   - powershell: |
       $env:SigningCertificate = $null
