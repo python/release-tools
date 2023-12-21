@@ -1,5 +1,6 @@
 parameters:
   ARM64TclTk: true
+  DoFreethreaded: false
   SigningCertificate: ''
 
 jobs:
@@ -48,3 +49,4 @@ jobs:
     - template: msi-steps.yml
       parameters:
         ARM64TclTk: ${{ parameters.ARM64TclTk }}
+        DoFreethreaded: ${{ parameters.DoFreethreaded }}
