@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import tarfile
 
@@ -19,7 +20,7 @@ def spdx_id(value: str) -> str:
 
 def calculate_package_verification_codes(sbom) -> None:
     """
-    Calculate SPDX 'PackageVerificationCode' values for
+    Calculate SPDX 'packageVerificationCode' values for
     each package with 'filesAnalyzed' set to 'true'.
     Mutates the values within the passed structure.
 
@@ -90,6 +91,14 @@ def calculate_package_verification_codes(sbom) -> None:
         }
 
 
+def get_release_tools_commit_sha() -> str:
+    """Gets the git commit SHA of the release-tools repository"""
+    git_prefix = os.path.abspath(os.path.dirname(__file__))
+    stdout = subprocess.check_output(["git", "rev-parse", "--prefix", git_prefix, "HEAD"]).decode("ascii")
+    assert re.match(r"^[a-f0-9]{40,}$", stdout)
+    return stdout
+
+
 def create_sbom_for_source_tarball(tarball_path: str):
     """Stitches together an SBOM for a source tarball"""
     tarball_name = os.path.basename(tarball_path)
@@ -114,7 +123,8 @@ def create_sbom_for_source_tarball(tarball_path: str):
 
     # There should be an SBOM included in the tarball.
     # If there's not we can't create an SBOM.
-    sbom_bytes = tarball.extractfile(tarball.getmember("Misc/sbom.spdx.json")).read()
+    sbom_tarball_member = tarball.getmember(f"Python-{cpython_version}/Misc/sbom.spdx.json")
+    sbom_bytes = tarball.extractfile(sbom_tarball_member).read()
 
     sbom = json.loads(sbom_bytes)
     sbom.update({
@@ -132,7 +142,7 @@ def create_sbom_for_source_tarball(tarball_path: str):
             ),
             "creators": [
                 "Person: Python Release Managers",
-                "Tool: python/release-tools@f58cfa6611dd13f2fb4e4790a8c54f06dddab6bc",
+                f"Tool: ReleaseTools-{get_release_tools_commit_sha()}",
             ],
             # Version of the SPDX License ID list.
             # This shouldn't need to be updated often, if ever.
@@ -161,6 +171,15 @@ def create_sbom_for_source_tarball(tarball_path: str):
         "downloadLocation": tarball_download_location,
         "checksums": [{"algorithm": "SHA256", "checksumValue": tarball_checksum_sha256}],
     }
+
+    # The top-level CPython package depends on every vendored sub-package.
+    for sbom_package in sbom["packages"]:
+        sbom["relationships"].append({
+            "spdxElementId": sbom_cpython_package["SPDXID"],
+            "relatedSpdxElement": sbom_package["SPDXID"],
+            "relationshipType": "DEPENDS_ON",
+        })
+
     sbom["packages"].append(sbom_cpython_package)
 
     # Extract all currently known files from the SBOM with their checksums.
@@ -168,19 +187,10 @@ def create_sbom_for_source_tarball(tarball_path: str):
     for sbom_file in sbom["files"]:
         sbom_filename = sbom_file["fileName"]
 
-        # We use the name we're expecting in the tarball here
-        # which is to prefix the name with 'Python-{version}/...'.
-        expected_tar_filename = f"Python-{cpython_version}/{sbom_filename}"
-
-        # We also want to update our SBOM to use the same filenames
-        # as the ones in the tarball. We maintain the SPDXIDs though
-        # to not need to rewrite SBOM relationships.
-        sbom_file["fileName"] = expected_tar_filename
-
         # Look for the expected SHA256 checksum.
         for sbom_file_checksum in sbom_file["checksums"]:
             if sbom_file_checksum["algorithm"] == "SHA256":
-                known_sbom_files[expected_tar_filename] = (
+                known_sbom_files[sbom_filename] = (
                     sbom_file_checksum["checksumValue"]
                 )
                 break
@@ -206,21 +216,23 @@ def create_sbom_for_source_tarball(tarball_path: str):
         actual_file_checksum_sha1 = hashlib.sha1(file_bytes).hexdigest()
         actual_file_checksum_sha256 = hashlib.sha256(file_bytes).hexdigest()
 
+        # Remove the 'Python-{version}/...' prefix for the SPDXID and fileName.
+        member_name_no_prefix = member.name.split('/', 1)[1]
+
         # We've already seen this file, so we check it hasn't been modified and continue on.
-        if member.name in known_sbom_files:
+        if member_name_no_prefix in known_sbom_files:
             # If there's a hash mismatch we raise an error, something isn't right!
-            expected_file_checksum_sha256 = known_sbom_files.pop(member.name)
+            expected_file_checksum_sha256 = known_sbom_files.pop(member_name_no_prefix)
             if expected_file_checksum_sha256 != actual_file_checksum_sha256:
-                raise ValueError(f"Mismatched checksum for file '{member.name}'")
+                raise ValueError(f"Mismatched checksum for file '{member_name_no_prefix}'")
 
         # If this is a new file, then it's a part of the 'CPython' SBOM package.
         else:
-            # Remove the 'Python-{version}/...' prefix for the SPDXID.
-            sbom_file_spdx_id = spdx_id(f"SPDXRef-FILE-{member.name.split('/', 1)[1]}")
+            sbom_file_spdx_id = spdx_id(f"SPDXRef-FILE-{member_name_no_prefix}")
             sbom["files"].append(
                 {
                     "SPDXID": sbom_file_spdx_id,
-                    "fileName": member.name,
+                    "fileName": member_name_no_prefix,
                     "checksums": [
                         {
                             "algorithm": "SHA1",
