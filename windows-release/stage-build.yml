@@ -3,6 +3,7 @@ parameters:
   DoPGO: false
   # DoPGOARM64 only applies if DoPGO is also true
   DoPGOARM64: true
+  DoFreethreaded: false
 
 jobs:
 - job: Build_Docs
@@ -95,6 +96,8 @@ jobs:
 
   steps:
     - template: ./build-steps.yml
+      parameters:
+        DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
 
 - ${{ if eq(parameters.DoPGO, 'true') }}:
@@ -118,6 +121,7 @@ jobs:
     steps:
       - template: ./build-steps-pgo.yml
         parameters:
+          DoFreethreaded: ${{ parameters.DoFreethreaded }}
           PGInstrument: true
           PGRun: true
           PGUpdate: true
@@ -143,6 +147,7 @@ jobs:
       steps:
         - template: ./build-steps-pgo.yml
           parameters:
+            DoFreethreaded: ${{ parameters.DoFreethreaded }}
             PGInstrument: true
 
     - job: Build_Python_PGO_2
@@ -168,6 +173,7 @@ jobs:
       steps:
         - template: ./build-steps-pgo.yml
           parameters:
+            DoFreethreaded: ${{ parameters.DoFreethreaded }}
             PGRun: true
 
     - job: Build_Python_PGO_3
@@ -191,6 +197,7 @@ jobs:
       steps:
         - template: ./build-steps-pgo.yml
           parameters:
+            DoFreethreaded: ${{ parameters.DoFreethreaded }}
             PGUpdate: true
 
 

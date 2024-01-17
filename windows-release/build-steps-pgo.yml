@@ -2,6 +2,7 @@ parameters:
   PGInstrument: false
   PGRun: false
   PGUpdate: false
+  DoFreethreaded: false
 
 steps:
 - template: ./checkout.yml
@@ -27,6 +28,15 @@ steps:
     env:
       IncludeUwp: true
       Py_OutDir: '$(Build.BinariesDirectory)\bin'
+
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - powershell: |
+        $env:SigningCertificate = $null
+        .\PCbuild\build.bat -v -p $(Platform) -c PGInstrument --disable-gil
+      displayName: 'Run free-threaded build'
+      env:
+        IncludeUwp: true
+        Py_OutDir: '$(Build.BinariesDirectory)\bin'
 
   - ${{ if ne(parameters.PGRun, 'true') }}:
     # Not running in this job, so we publish our entire build and object files
@@ -65,6 +75,16 @@ steps:
     displayName: 'Collect profile'
     env:
       PYTHONHOME: '$(Build.SourcesDirectory)'
+
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - powershell: |
+        $exe = (gci "$(Build.BinariesDirectory)\bin\$(Arch)\instrumented\python3*t.exe" | select -First 1)
+        & $exe -m test --pgo
+      ignoreLASTEXITCODE: true
+      displayName: 'Collect free-threaded profile'
+      env:
+        PYTHONHOME: '$(Build.SourcesDirectory)'
+
 
   - ${{ if ne(parameters.PGUpdate, 'true') }}:
     # Not finishing in this job, so publish the binaries
@@ -106,6 +126,15 @@ steps:
     env:
       IncludeUwp: true
       Py_OutDir: '$(Build.BinariesDirectory)\bin'
+
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - powershell: |
+        $env:SigningCertificate = $null
+        .\PCbuild\build.bat -v -p $(Platform) -c PGUpdate --disable-gil
+      displayName: 'Run free-threaded build with PGO'
+      env:
+        IncludeUwp: true
+        Py_OutDir: '$(Build.BinariesDirectory)\bin'
 
   - powershell: |
       $kitroot = (gp 'HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots\').KitsRoot10

@@ -1,4 +1,5 @@
 parameters:
+  DoFreethreaded: false
   SigningCertificate: ''
 
 jobs:
@@ -34,6 +35,13 @@ jobs:
       artifactName: layout_nuget_$(Name)
       targetPath: $(Build.BinariesDirectory)\layout
 
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - task: DownloadPipelineArtifact@1
+      displayName: 'Download artifact: layout_nuget_freethreaded_$(Name)'
+      inputs:
+        artifactName: layout_nuget_freethreaded_$(Name)
+        targetPath: $(Build.BinariesDirectory)\layout_freethreaded
+
   - task: NugetToolInstaller@0
     displayName: 'Install Nuget'
     inputs:
@@ -57,6 +65,26 @@ jobs:
       -Version "$(OverrideNugetVersion)"
     condition: and(succeeded(), variables['OverrideNugetVersion'])
     displayName: 'Create nuget package'
+
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - powershell: >
+        nuget pack
+        "$(Build.BinariesDirectory)\layout_freethreaded\python.nuspec"
+        -OutputDirectory $(Build.ArtifactStagingDirectory)
+        -NoPackageAnalysis
+        -NonInteractive
+      condition: and(succeeded(), not(variables['OverrideNugetVersion']))
+      displayName: 'Create freethreaded nuget package'
+
+    - powershell: >
+        nuget pack
+        "$(Build.BinariesDirectory)\layout_freethreaded\python.nuspec"
+        -OutputDirectory $(Build.ArtifactStagingDirectory)
+        -NoPackageAnalysis
+        -NonInteractive
+        -Version "$(OverrideNugetVersion)"
+      condition: and(succeeded(), variables['OverrideNugetVersion'])
+      displayName: 'Create freethreaded nuget package'
 
   - template: sign-nuget-files.yml
     parameters:

@@ -1,5 +1,6 @@
 parameters:
   ARM64TclTk: true
+  DoFreethreaded: false
   SigningCertificate: ''
 
 steps:
@@ -90,7 +91,7 @@ steps:
       call Tools\msi\get_externals.bat
       call PCbuild\find_python.bat
       echo ##vso[task.setvariable variable=PYTHON]%PYTHON%
-      call PCbuild/find_msbuild.bat
+      call PCbuild\find_msbuild.bat
       echo ##vso[task.setvariable variable=MSBUILD]%MSBUILD%
     displayName: 'Get external dependencies'
 
@@ -105,6 +106,12 @@ steps:
       Write-Host "##vso[task.setvariable variable=ResponseFile]$(gi msbuild.rsp)"
       gc msbuild.rsp
     displayName: 'Generate response file'
+
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - powershell: |
+        "/p:IncludeFreethreaded=true" | Out-File "$(ResponseFile)" -Append -Encoding UTF8
+        gc "$(ResponseFile)"
+      displayName: 'Add Include_freethreaded to response file'
 
   - ${{ if parameters.SigningCertificate }}:
     - task: DotNetCoreCLI@2

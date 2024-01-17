@@ -39,6 +39,10 @@ parameters:
   displayName: "Signature description"
   type: string
   default: 'Built: $(Build.BuildNumber)'
+- name: DoFreethreaded
+  displayName: "Include free-threaded builds (3.13 and later)"
+  type: boolean
+  default: true
 - name: DoARM64
   displayName: "Publish ARM64 build (3.11 and later)"
   type: boolean
@@ -106,6 +110,7 @@ variables:
   ${{ else }}:
     IsRealSigned: false
   DoCHM: ${{ parameters.DoCHM }}
+  DoFreethreaded: ${{ parameters.DoFreethreaded }}
   DoLayout: ${{ parameters.DoLayout }}
   DoMSIX: ${{ parameters.DoMSIX }}
   DoNuget: ${{ parameters.DoNuget }}
@@ -128,6 +133,7 @@ stages:
     - template: stage-build.yml
       parameters:
         ARM64TclTk: ${{ parameters.ARM64TclTk }}
+        DoFreethreaded: ${{ parameters.DoFreethreaded }}
         DoPGO: ${{ parameters.DoPGO }}
         DoPGOARM64: ${{ parameters.DoPGOARM64 }}
 
@@ -147,8 +153,11 @@ stages:
     - template: stage-layout-full.yml
       parameters:
         ARM64TclTk: ${{ parameters.ARM64TclTk }}
+        DoFreethreaded: ${{ parameters.DoFreethreaded }}
     - template: stage-layout-embed.yml
     - template: stage-layout-nuget.yml
+      parameters:
+        DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
   - stage: Pack
     dependsOn: Layout
@@ -157,12 +166,15 @@ stages:
       parameters:
         ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
           SigningCertificate: ${{ parameters.SigningCertificate }}
+        DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
   - stage: Test
     dependsOn: Pack
     jobs:
     - template: stage-test-embed.yml
     - template: stage-test-nuget.yml
+      parameters:
+        DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
   - ${{ if eq(parameters.DoMSIX, 'true') }}:
     - stage: Layout_MSIX
@@ -192,12 +204,15 @@ stages:
           ARM64TclTk: ${{ parameters.ARM64TclTk }}
           ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
             SigningCertificate: ${{ parameters.SigningCertificate }}
+          DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
     - stage: Test_MSI
       displayName: Test MSI installer
       dependsOn: Build_MSI
       jobs:
       - template: stage-test-msi.yml
+        parameters:
+          DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
   - ${{ if eq(parameters.DoPublish, 'true') }}:
     - ${{ if eq(parameters.DoMSI, 'true') }}:

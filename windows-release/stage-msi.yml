@@ -1,15 +1,16 @@
 parameters:
   ARM64TclTk: true
+  DoFreethreaded: false
   SigningCertificate: ''
 
 jobs:
 - ${{ if parameters.SigningCertificate }}:
   - job: Make_Signed_MSI
     displayName: Make signed MSI
-  
+
     pool:
       vmImage: windows-2022
-  
+
     variables:
     - group: CPythonSign
     - name: ReleaseUri
@@ -18,10 +19,10 @@ jobs:
       value: https://www.python.org/ftp/python/{version}/{arch}{releasename}/{msi}
     - name: Py_OutDir
       value: $(Build.BinariesDirectory)
-  
+
     workspace:
       clean: all
-  
+
     steps:
     - template: msi-steps.yml
       parameters:
@@ -32,19 +33,20 @@ jobs:
 - ${{ else }}:
   - job: Make_MSI
     displayName: Make MSI
-  
+
     pool:
       vmImage: windows-2022
-  
+
     variables:
       ReleaseUri: http://www.python.org/{arch}
       DownloadUrl: https://www.python.org/ftp/python/{version}/{arch}{releasename}/{msi}
       Py_OutDir: $(Build.BinariesDirectory)
-  
+
     workspace:
       clean: all
-  
+
     steps:
     - template: msi-steps.yml
       parameters:
         ARM64TclTk: ${{ parameters.ARM64TclTk }}
+        DoFreethreaded: ${{ parameters.DoFreethreaded }}
