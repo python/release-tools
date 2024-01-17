@@ -1,6 +1,9 @@
 """
 Utility which creates Software Bill-of-Materials (SBOM)
-for CPython release artifacts.
+for CPython release artifacts. Can also be run manually with:
+
+    $ python sbom.py <artifact>
+
 """
 
 import datetime
@@ -94,7 +97,10 @@ def calculate_package_verification_codes(sbom) -> None:
 def get_release_tools_commit_sha() -> str:
     """Gets the git commit SHA of the release-tools repository"""
     git_prefix = os.path.abspath(os.path.dirname(__file__))
-    stdout = subprocess.check_output(["git", "rev-parse", "--prefix", git_prefix, "HEAD"]).decode("ascii")
+    stdout = subprocess.check_output(
+        ["git", "rev-parse", "--prefix", git_prefix, "HEAD"],
+        cwd=git_prefix
+    ).decode("ascii")
     assert re.match(r"^[a-f0-9]{40,}$", stdout)
     return stdout
 
@@ -117,13 +123,18 @@ def create_sbom_for_source_tarball(tarball_path: str):
     cpython_version_without_suffix = re.match(r"^([0-9.]+)", cpython_version).group(1)
     tarball_download_location = f"https://www.python.org/ftp/python/{cpython_version_without_suffix}/{tarball_name}"
 
-    # Take some hashes of the tarball
+    # Take a hash of the tarball
     with open(tarball_path, mode="rb") as f:
         tarball_checksum_sha256 = hashlib.sha256(f.read()).hexdigest()
 
     # There should be an SBOM included in the tarball.
     # If there's not we can't create an SBOM.
-    sbom_tarball_member = tarball.getmember(f"Python-{cpython_version}/Misc/sbom.spdx.json")
+    try:
+        sbom_tarball_member = tarball.getmember(f"Python-{cpython_version}/Misc/sbom.spdx.json")
+    except KeyError:
+        raise ValueError(
+            "Tarball doesn't contain an SBOM at 'Misc/sbom.spdx.json'"
+        ) from None
     sbom_bytes = tarball.extractfile(sbom_tarball_member).read()
 
     sbom = json.loads(sbom_bytes)
