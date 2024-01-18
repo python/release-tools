@@ -411,9 +411,30 @@ def prepare_pydoc_topics(db: DbfilenameShelf) -> None:
 
 
 def run_autoconf(db: DbfilenameShelf) -> None:
-    subprocess.check_call(
-        ["make", "regen-configure"], cwd=db["git_repo"],
-    )
+    # Python 3.12 and newer have a script that runs autoconf.
+    regen_configure_sh = db["git_repo"] / "Tools/scripts/regen-configure.sh"
+    if regen_configure_sh.exists():
+        subprocess.check_call(
+            [regen_configure_sh], cwd=db["git_repo"],
+        )
+    # Python 3.11 and prior rely on autoconf built within a container
+    # in order to maintain stability of autoconf generation.
+    else:
+        # Corresponds to the tag '269' and 'cp311'
+        cpython_autoconf_sha256 = "f370fee95eefa3d57b00488bce4911635411fa83e2d293ced8cf8a3674ead939"
+        subprocess.check_call(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "--pull=always",
+                f"-v{db['git_repo']}:/src",
+                f"quay.io/tiran/cpython_autoconf@sha256:{cpython_autoconf_sha256}",
+            ],
+            cwd=db["git_repo"],
+        )
+        subprocess.check_call(["docker", "rmi", "quay.io/tiran/cpython_autoconf", "-f"])
+
     subprocess.check_call(
         ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
     )
