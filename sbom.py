@@ -4,6 +4,10 @@ for CPython release artifacts. Can also be run manually with:
 
     $ python sbom.py <artifact>
 
+For example:
+
+    $ python sbom.py ./Python-3.13.0a3.tar.xz
+
 """
 
 import datetime
