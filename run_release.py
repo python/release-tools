@@ -490,7 +490,7 @@ def test_release_artifacts(db: DbfilenameShelf) -> None:
 
 def build_sbom_artifacts(db):
 
-    # Skip building an SBOM if there isn't an 'Misc/sbom.spdx.json' file.
+    # Skip building an SBOM if there isn't a 'Misc/sbom.spdx.json' file.
     if not (db["git_repo"] / "Misc/sbom.spdx.json").exists():
         print("Skipping building an SBOM, missing 'Misc/sbom.spdx.json'")
         return

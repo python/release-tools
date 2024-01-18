@@ -293,10 +293,10 @@ def create_sbom_for_source_tarball(tarball_path: str):
     return sbom
 
 
-if __name__ == "__main__":
+def main() -> None:
     tarball_path = sys.argv[1]
-    print(
-        json.dumps(
-            create_sbom_for_source_tarball(tarball_path), indent=2, sort_keys=True
-        )
-    )
+    sbom_data = create_sbom_for_source_tarball(tarball_path)
+    print(json.dumps(sbom_data, indent=2, sort_keys=True))
+
+if __name__ == "__main__":
+    main()
