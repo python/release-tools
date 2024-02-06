@@ -12,6 +12,7 @@ import contextlib
 import functools
 import getpass
 import itertools
+import json
 import os
 import pathlib
 import re
@@ -34,6 +35,7 @@ from alive_progress import alive_bar
 
 import release as release_mod
 from buildbotapi import BuildBotAPI
+import sbom
 
 API_KEY_REGEXP = re.compile(r"(?P<major>\w+):(?P<minor>\w+)")
 
@@ -505,6 +507,26 @@ def test_release_artifacts(db: DbfilenameShelf) -> None:
 
     if not ask_question("Some test_failed! Do you want to continue?"):
         raise ReleaseException("Test failed!")
+
+
+def build_sbom_artifacts(db):
+
+    # Skip building an SBOM if there isn't a 'Misc/sbom.spdx.json' file.
+    if not (db["git_repo"] / "Misc/sbom.spdx.json").exists():
+        print("Skipping building an SBOM, missing 'Misc/sbom.spdx.json'")
+        return
+
+    release_version = db["release"]
+    # For each source tarball build an SBOM.
+    for ext in (".tgz", ".tar.xz"):
+        tarball_name = f"Python-{release_version}{ext}"
+        tarball_path = str(db["git_repo"] / str(db["release"]) / "src" / tarball_name)
+
+        print(f"Building an SBOM for artifact '{tarball_name}'")
+        sbom_data = sbom.create_sbom_for_source_tarball(tarball_path)
+
+        with open(tarball_path + ".spdx.json", mode="w") as f:
+            f.write(json.dumps(sbom_data, indent=2, sort_keys=True))
 
 
 class MySFTPClient(paramiko.SFTPClient):
@@ -1041,6 +1063,7 @@ fix these things in this script so it also support your platform.
         Task(create_tag, "Create tag"),
         Task(build_release_artifacts, "Building release artifacts"),
         Task(test_release_artifacts, "Test release artifacts"),
+        Task(build_sbom_artifacts, "Building SBOM artifacts"),
         Task(upload_files_to_server, "Upload files to the PSF server"),
         Task(place_files_in_download_folder, "Place files in the download folder"),
         Task(upload_docs_to_the_docs_server, "Upload docs to the PSF docs server"),
