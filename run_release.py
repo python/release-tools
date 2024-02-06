@@ -414,7 +414,7 @@ def prepare_pydoc_topics(db: DbfilenameShelf) -> None:
 
 def run_autoconf(db: DbfilenameShelf) -> None:
     # Python 3.12 and newer have a script that runs autoconf.
-    regen_configure_sh = db["git_repo"] / "Tools/scripts/regen-configure.sh"
+    regen_configure_sh = db["git_repo"] / "Tools/build/regen-configure.sh"
     if regen_configure_sh.exists():
         subprocess.check_call(
             [regen_configure_sh], cwd=db["git_repo"],
