@@ -163,18 +163,18 @@ def minor_version_tuple(release):
 def build_file_dict(release, rfile, rel_pk, file_desc, os_pk,
                     add_download, add_desc):
     """Return a dictionary with all needed fields for a ReleaseFile object."""
-    d = dict(
-        name = file_desc,
-        slug = slug_for(release) + '-' + make_slug(file_desc)[:40],
-        os = '/api/v1/downloads/os/%s/' % os_pk,
-        release = '/api/v1/downloads/release/%s/' % rel_pk,
-        description = add_desc,
-        is_source = os_pk == 3,
-        url = download_root + '%s/%s' % (base_version(release), rfile),
-        md5_sum = md5sum_for(release, rfile),
-        filesize = filesize_for(release, rfile),
-        download_button = add_download,
-    )
+    d = {
+        'name': file_desc,
+        'slug': slug_for(release) + '-' + make_slug(file_desc)[:40],
+        'os': '/api/v1/downloads/os/%s/' % os_pk,
+        'release': '/api/v1/downloads/release/%s/' % rel_pk,
+        'description': add_desc,
+        'is_source': os_pk == 3,
+        'url': download_root + '%s/%s' % (base_version(release), rfile),
+        'md5_sum': md5sum_for(release, rfile),
+        'filesize': filesize_for(release, rfile),
+        'download_button': add_download,
+    }
     # Upload GPG signature
     if os.path.exists(ftp_root + "%s/%s.asc" % (base_version(release), rfile)):
         d["gpg_signature_file"] = sigfile_for(base_version(release), rfile)

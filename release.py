@@ -167,12 +167,12 @@ def tweak_patchlevel(tag, done=False):
 
 /* Version as a string */
 #define PY_VERSION      \t\"{tag.text}{plus}"'''.strip()
-    level_def = dict(
-        a   = 'PY_RELEASE_LEVEL_ALPHA',
-        b   = 'PY_RELEASE_LEVEL_BETA',
-        rc  = 'PY_RELEASE_LEVEL_GAMMA',
-        f   = 'PY_RELEASE_LEVEL_FINAL',
-        )[tag.level]
+    level_def = {
+        'a': 'PY_RELEASE_LEVEL_ALPHA',
+        'b': 'PY_RELEASE_LEVEL_BETA',
+        'rc': 'PY_RELEASE_LEVEL_GAMMA',
+        'f': 'PY_RELEASE_LEVEL_FINAL',
+        }[tag.level]
     new_constants = template.format(tag=tag, level_def=level_def,
                                     plus=done and '+' or '')
     if tag.as_tuple() >= (3, 7, 0, 'a', 3):

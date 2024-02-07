@@ -10,8 +10,8 @@ DOT = '.'
 
 
 # For consistency with historical use.
-sort_order = dict((ext, i) for i, ext in enumerate(
-    ('tgz', 'tar.bz2', 'tar.xz', 'pdb.zip', 'amd64.msi', 'msi', 'chm', 'dmg')))
+sort_order = {ext: i for i, ext in enumerate(
+    ('tgz', 'tar.bz2', 'tar.xz', 'pdb.zip', 'amd64.msi', 'msi', 'chm', 'dmg'))}
 
 
 def ignore(filename):
