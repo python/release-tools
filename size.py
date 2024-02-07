@@ -35,4 +35,4 @@ for filename in sorted(sys.argv[1:], key=key):
     with open(filename, 'rb') as fp:
         md5.update(fp.read())
     size = os.stat(filename).st_size
-    print('  {}  {:8}  {}'.format(md5.hexdigest(), size, filename))
+    print(f'  {md5.hexdigest()}  {size:8}  {filename}')

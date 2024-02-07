@@ -441,7 +441,7 @@ def run_autoconf(db: DbfilenameShelf) -> None:
 
 def check_pyspecific(db):
     with open(
-        db["git_repo"] / "Doc" / "tools" / "extensions" / "pyspecific.py", "r"
+        db["git_repo"] / "Doc" / "tools" / "extensions" / "pyspecific.py"
     ) as pyspecific:
         for line in pyspecific:
             if "SOURCE_URI =" in line:
@@ -568,7 +568,7 @@ class MySFTPClient(paramiko.SFTPClient):
     def mkdir(self, path, mode=511, ignore_existing=False):
         try:
             super().mkdir(path, mode)
-        except IOError:
+        except OSError:
             if ignore_existing:
                 pass
             else:

@@ -71,7 +71,7 @@ def chdir_to_repo_root():
         def test_first_line(filename, test):
             if not os.path.exists(filename):
                 return False
-            with open(filename, "rt") as f:
+            with open(filename) as f:
                 lines = f.read().split('\n')
                 if not (lines and test(lines[0])):
                     return False
@@ -392,7 +392,7 @@ def upload(tag, username):
             "writable by the webmaster group. *")
 
 
-class Tag(object):
+class Tag:
 
     def __init__(self, tag_name):
         # if tag is ".", use current directory name as tag
@@ -420,7 +420,7 @@ class Tag(object):
         self.level = data[3]
         self.serial = int(data[4])
         # This has the effect of normalizing the version.
-        self.text = "{}.{}.{}".format(self.major, self.minor, self.patch)
+        self.text = f"{self.major}.{self.minor}.{self.patch}"
         if self.level != "f":
             self.text += self.level + str(self.serial)
         self.basic_version = '%s.%s' % (self.major, self.minor)
@@ -429,7 +429,7 @@ class Tag(object):
         return self.text
 
     def normalized(self):
-        return "{}.{}.{}".format(self.major, self.minor, self.patch)
+        return f"{self.major}.{self.minor}.{self.patch}"
 
     @property
     def branch(self):

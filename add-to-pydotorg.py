@@ -22,7 +22,6 @@ To use (RELEASE is something like 3.3.5rc2):
 
 Georg Brandl, March 2014.
 """
-from __future__ import print_function
 
 import hashlib
 import json
