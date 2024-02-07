@@ -18,10 +18,9 @@ import re
 import shelve
 import shutil
 import subprocess
-import tempfile
+import sys
 import time
 import urllib.request
-import sys
 from dataclasses import dataclass
 from shelve import DbfilenameShelf
 from typing import Callable, Iterator, List, Optional
@@ -33,8 +32,8 @@ import sigstore.oidc
 from alive_progress import alive_bar
 
 import release as release_mod
-from buildbotapi import BuildBotAPI
 import sbom
+from buildbotapi import BuildBotAPI
 
 API_KEY_REGEXP = re.compile(r"(?P<major>\w+):(?P<minor>\w+)")
 

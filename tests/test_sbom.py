@@ -1,6 +1,6 @@
+import hashlib
 import json
 import random
-import hashlib
 import unittest.mock
 
 import pytest

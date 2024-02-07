@@ -2,9 +2,9 @@
 
 """Dump the sizes for the given files, suitable for pasting into content.ht"""
 
+import hashlib
 import os
 import sys
-import hashlib
 
 DOT = '.'
 

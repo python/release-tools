@@ -27,12 +27,13 @@ from __future__ import print_function
 import hashlib
 import json
 import os
-from os import path
 import re
-import sys
 import subprocess
+import sys
+from os import path
 
 import requests
+
 
 # Copied from release.py
 def error(*msgs):
