@@ -253,7 +253,7 @@ def tarball(source, clamp_mtime):
         # Sorts the entries in the tarball by name.
         "--sort=name",
         # Sets a maximum 'modified time' of entries in tarball.
-        "--mtime=%s" % (clamp_mtime,), "--clamp-mtime",
+        f"--mtime={clamp_mtime}", "--clamp-mtime",
         # Sets the owner uid and gid to 0.
         "--owner=0", "--group=0", "--numeric-owner",
         # Omits process ID, file access, and status change times.
@@ -423,7 +423,7 @@ class Tag:
         self.text = f"{self.major}.{self.minor}.{self.patch}"
         if self.level != "f":
             self.text += self.level + str(self.serial)
-        self.basic_version = '%s.%s' % (self.major, self.minor)
+        self.basic_version = f'{self.major}.{self.minor}'
 
     def __str__(self):
         return self.text
@@ -466,7 +466,7 @@ class Tag:
         # Fetch the epoch of the tagged commit for build reproducibility.
         proc = subprocess.run(["git", "log", self.gitname, "-1", "--pretty=%ct"], stdout=subprocess.PIPE)
         if proc.returncode != 0:
-            error("Couldn't fetch the epoch of tag %s" % (self.gitname,))
+            error(f"Couldn't fetch the epoch of tag {self.gitname}")
         return datetime.datetime.fromtimestamp(int(proc.stdout.decode().strip()), tz=datetime.timezone.utc)
 
 

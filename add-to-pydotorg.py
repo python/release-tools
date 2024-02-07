@@ -137,7 +137,7 @@ def slug_for(release):
         ('-' +  release[len(base_version(release)):] if release[len(base_version(release)):] else '')
 
 def sigfile_for(release, rfile):
-    return download_root + '%s/%s.asc' % (release, rfile)
+    return download_root + f'{release}/{rfile}.asc'
 
 def md5sum_for(release, rfile):
     return hashlib.md5(open(ftp_root + base_version(release) + '/' + rfile, 'rb').read()).hexdigest()
@@ -170,26 +170,26 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk,
         'release': '/api/v1/downloads/release/%s/' % rel_pk,
         'description': add_desc,
         'is_source': os_pk == 3,
-        'url': download_root + '%s/%s' % (base_version(release), rfile),
+        'url': download_root + f'{base_version(release)}/{rfile}',
         'md5_sum': md5sum_for(release, rfile),
         'filesize': filesize_for(release, rfile),
         'download_button': add_download,
     }
     # Upload GPG signature
-    if os.path.exists(ftp_root + "%s/%s.asc" % (base_version(release), rfile)):
+    if os.path.exists(ftp_root + f"{base_version(release)}/{rfile}.asc"):
         d["gpg_signature_file"] = sigfile_for(base_version(release), rfile)
     # Upload Sigstore signature
-    if os.path.exists(ftp_root + "%s/%s.sig" % (base_version(release), rfile)):
-        d["sigstore_signature_file"] = download_root + '%s/%s.sig' % (base_version(release), rfile)
+    if os.path.exists(ftp_root + f"{base_version(release)}/{rfile}.sig"):
+        d["sigstore_signature_file"] = download_root + f'{base_version(release)}/{rfile}.sig'
     # Upload Sigstore certificate
-    if os.path.exists(ftp_root + "%s/%s.crt" % (base_version(release), rfile)):
-        d["sigstore_cert_file"] = download_root + '%s/%s.crt' % (base_version(release), rfile)
+    if os.path.exists(ftp_root + f"{base_version(release)}/{rfile}.crt"):
+        d["sigstore_cert_file"] = download_root + f'{base_version(release)}/{rfile}.crt'
     # Upload Sigstore bundle
-    if os.path.exists(ftp_root + "%s/%s.sigstore" % (base_version(release), rfile)):
-        d["sigstore_bundle_file"] = download_root + '%s/%s.sigstore' % (base_version(release), rfile)
+    if os.path.exists(ftp_root + f"{base_version(release)}/{rfile}.sigstore"):
+        d["sigstore_bundle_file"] = download_root + f'{base_version(release)}/{rfile}.sigstore'
     # Upload SPDX SBOM file
-    if os.path.exists(ftp_root + "%s/%s.spdx.json" % (base_version(release), rfile)):
-        d["sbom_spdx2_file"] = download_root + '%s/%s.spdx.json' % (base_version(release), rfile)
+    if os.path.exists(ftp_root + f"{base_version(release)}/{rfile}.spdx.json"):
+        d["sbom_spdx2_file"] = download_root + f'{base_version(release)}/{rfile}.spdx.json'
 
     return d
 
@@ -205,11 +205,11 @@ def list_files(release):
             if rfile.startswith(prefix):
                 break
         else:
-            print('    File %s/%s has wrong prefix' % (reldir, rfile))
+            print(f'    File {reldir}/{rfile} has wrong prefix')
             continue
         if rfile.endswith('.chm'):
             if rfile[:-4] != 'python' + release.replace('.', ''):
-                print('    File %s/%s has a different version' % (reldir, rfile))
+                print(f'    File {reldir}/{rfile} has a different version')
                 continue
         else:
             try:
@@ -217,7 +217,7 @@ def list_files(release):
             except:
                 prefix, rest = rfile, ''
             if not rest.startswith((release + '-', release + '.')):
-                print('    File %s/%s has a different version' % (reldir, rfile))
+                print(f'    File {reldir}/{rfile} has a different version')
                 continue
         for rx, info in get_file_descriptions(release):
             if rx.search(rfile):
@@ -225,16 +225,16 @@ def list_files(release):
                 yield rfile, file_desc, os_pk, add_download, add_desc
                 break
         else:
-            print('    File %s/%s not recognized' % (reldir, rfile))
+            print(f'    File {reldir}/{rfile} not recognized')
             continue
 
 def query_object(objtype, **params):
     """Find an API object by query parameters."""
     uri = base_url + 'downloads/%s/' % objtype
-    uri += '?' + '&'.join('%s=%s' % v for v in params.items())
+    uri += '?' + '&'.join('{}={}'.format(*v) for v in params.items())
     resp = requests.get(uri, headers=headers)
     if resp.status_code != 200 or not json.loads(resp.text)['objects']:
-        raise RuntimeError('no object for %s params=%r' % (objtype, params))
+        raise RuntimeError(f'no object for {objtype} params={params!r}')
     obj = json.loads(resp.text)['objects'][0]
     return int(obj['resource_uri'].strip('/').split('/')[-1])
 
@@ -249,7 +249,7 @@ def post_object(objtype, datadict):
             print(info.get('traceback', ''))
         except:
             pass
-        print('Creating %s failed: %s' % (objtype, resp.status_code))
+        print(f'Creating {objtype} failed: {resp.status_code}')
         return -1
     newloc = resp.headers['Location']
     pk = int(newloc.strip('/').split('/')[-1])
@@ -257,7 +257,7 @@ def post_object(objtype, datadict):
 
 def sign_release_files_with_sigstore(release, release_files):
     filenames = [
-        ftp_root + "%s/%s" % (base_version(release), rfile)
+        ftp_root + f"{base_version(release)}/{rfile}"
         for rfile, file_desc, os_pk, add_download, add_desc in release_files
     ]
 

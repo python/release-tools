@@ -555,13 +555,13 @@ class MySFTPClient(paramiko.SFTPClient):
         for item in os.listdir(source):
             if os.path.isfile(os.path.join(source, item)):
                 progress.text(item)
-                self.put(os.path.join(source, item), "%s/%s" % (target, item))
+                self.put(os.path.join(source, item), f"{target}/{item}")
                 progress()
             else:
-                self.mkdir("%s/%s" % (target, item), ignore_existing=True)
+                self.mkdir(f"{target}/{item}", ignore_existing=True)
                 self.put_dir(
                     os.path.join(source, item),
-                    "%s/%s" % (target, item),
+                    f"{target}/{item}",
                     progress=progress,
                 )
 
