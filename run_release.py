@@ -11,7 +11,6 @@ import builtins
 import contextlib
 import functools
 import getpass
-import itertools
 import json
 import os
 import pathlib
@@ -25,7 +24,7 @@ import urllib.request
 import sys
 from dataclasses import dataclass
 from shelve import DbfilenameShelf
-from typing import Callable, Iterator, List, Optional, final
+from typing import Callable, Iterator, List, Optional
 
 import aiohttp
 import gnupg

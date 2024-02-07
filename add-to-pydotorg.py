@@ -30,7 +30,6 @@ import os
 from os import path
 import re
 import sys
-import time
 import subprocess
 
 import requests
