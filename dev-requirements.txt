@@ -23,6 +23,12 @@ pluggy==1.4.0 \
 pytest==8.0.0 \
     --hash=sha256:249b1b0864530ba251b7438274c4d251c58d868edaaec8762893ad4a0d71c36c \
     --hash=sha256:50fb9cbe836c3f20f0dfa99c565201fb75dc54c8d76373cd1bde06b06657bdb6
+    # via
+    #   -r dev-requirements.in
+    #   pytest-mock
+pytest-mock==3.12.0 \
+    --hash=sha256:0972719a7263072da3a21c7f4773069bcc7486027d7e8e1f81d98a47e701bc4f \
+    --hash=sha256:31a40f038c22cad32287bb43932054451ff5583ff094bca6f675df2f8bc1a6e9
     # via -r dev-requirements.in
 tomli==2.0.1 \
     --hash=sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc \
