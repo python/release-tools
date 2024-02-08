@@ -104,7 +104,7 @@ def get_release_tools_commit_sha() -> str:
     stdout = subprocess.check_output(
         ["git", "rev-parse", "--prefix", git_prefix, "HEAD"],
         cwd=git_prefix
-    ).decode("ascii")
+    ).decode("ascii").strip()
     assert re.match(r"^[a-f0-9]{40,}$", stdout)
     return stdout
 
