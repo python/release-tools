@@ -109,6 +109,29 @@ def get_release_tools_commit_sha() -> str:
     return stdout
 
 
+def normalize_sbom_data(sbom_data):
+    """
+    Normalize SBOM data in-place by recursion
+    and sorting lists by some repeatable key.
+    """
+    def recursive_sort_in_place(value):
+        if isinstance(value, list):
+            # We need to recurse first so bottom-most elements are sorted first.
+            for item in value:
+                recursive_sort_in_place(item)
+
+            # Otherwise this key might change depending on the unsorted order of items.
+            value.sort(key=lambda item: json.dumps(item, sort_keys=True))
+
+        # Dictionaries are the only other containers and keys
+        # are already handled by json.dumps(sort_keys=True).
+        elif isinstance(value, dict):
+            for dict_val in value.values():
+                recursive_sort_in_place(dict_val)
+
+    recursive_sort_in_place(sbom_data)
+
+
 def create_sbom_for_source_tarball(tarball_path: str):
     """Stitches together an SBOM for a source tarball"""
     tarball_name = os.path.basename(tarball_path)
@@ -293,6 +316,9 @@ def create_sbom_for_source_tarball(tarball_path: str):
 
     # Calculate the 'packageVerificationCode' values for files in packages.
     calculate_package_verification_codes(sbom)
+
+    # Normalize SBOM structures for reproducibility.
+    normalize_sbom_data(sbom)
 
     return sbom
 

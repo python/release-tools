@@ -42,3 +42,14 @@ def test_calculate_package_verification_code(package_sha1s, package_verification
     assert input_sbom["packages"][0]["packageVerificationCode"] == {
         "packageVerificationCodeValue": package_verification_code
     }
+
+
+def test_normalization():
+    # Test that arbitrary JSON data can be normalized.
+    # Normalization doesn't have to make too much sense,
+    # only needs to be reproducible.
+    data = {
+        "a": [1, 2, 3, {"b": [4, "c", [7, True, "2", {}]]}]
+    }
+    sbom.normalize_sbom_data(data)
+    assert data == {'a': [1, 2, 3, {'b': ['c', 4, ['2', 7, True, {}]]}]}
