@@ -1,9 +1,10 @@
 import json
+import random
+import hashlib
 import unittest.mock
 
 import pytest
-import random
-import hashlib
+
 import sbom
 
 
