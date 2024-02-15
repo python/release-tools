@@ -86,7 +86,13 @@ jobs:
     - powershell: |
         $p = (gci "$(Build.BinariesDirectory)\Python\python3*t.exe" | select -First 1)
         Write-Host "Found $p"
-        & $p -c "import sys; print(sys.version)"
+        if (-not $p) {
+            Write-Host "Did not find python3*t.exe in:"
+            dir "$(Build.BinariesDirectory)\Python"
+            throw "Free-threaded binaries were not installed"
+        } else {
+            & $p -c "import sys; print(sys.version)"
+        }
       displayName: 'Collect free-threaded version number'
       condition: and(succeeded(), not(variables['SkipTests']))
 
