@@ -95,8 +95,6 @@ def chdir_to_repo_root():
     return root
 
 
-
-
 def get_output(args):
     return subprocess.check_output(args)
 
