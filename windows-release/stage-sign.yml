@@ -2,6 +2,7 @@ parameters:
   Include: '*.exe, *.dll, *.pyd, *.cat, *.ps1'
   Exclude: 'vcruntime*, libffi*, libcrypto*, libssl*'
   SigningCertificate: ''
+  DoFreethreaded: 'false'
 
 jobs:
 - ${{ if parameters.SigningCertificate }}:
@@ -22,6 +23,13 @@ jobs:
           Name: amd64
         arm64:
           Name: arm64
+        ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+          win32_t:
+            Name: win32_t
+          amd64_t:
+            Name: amd64_t
+          arm64_t:
+            Name: arm64_t
 
     variables:
     - group: CPythonSign

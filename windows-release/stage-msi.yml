@@ -1,5 +1,6 @@
 parameters:
   ARM64TclTk: true
+  DoARM64: true
   DoFreethreaded: false
   SigningCertificate: ''
 
@@ -26,10 +27,59 @@ jobs:
     steps:
     - template: msi-steps.yml
       parameters:
-        ARM64TclTk: ${{ parameters.ARM64TclTk }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
         SigningCertificate: ${{ parameters.SigningCertificate }}
-
+        Artifacts:
+        - artifact: doc
+          target: $(Build.SourcesDirectory)\Doc\build
+        - artifact: bin_win32
+          target: $(Build.BinariesDirectory)\win32
+        - artifact: bin_win32_d
+          target: $(Build.BinariesDirectory)\win32
+        - artifact: tcltk_lib_win32
+        - artifact: bin_amd64
+          target: $(Build.BinariesDirectory)\amd64
+        - artifact: bin_amd64_d
+          target: $(Build.BinariesDirectory)\amd64
+        - artifact: tcltk_lib_amd64
+        - ${{ if eq(parameters.DoARM64, 'true') }}:
+          - artifact: bin_arm64
+            target: $(Build.BinariesDirectory)\arm64
+          - artifact: bin_arm64_d
+            target: $(Build.BinariesDirectory)\arm64
+          - ${{ if eq(parameters.ARM64TclTk, 'true') }}:
+            - artifact: tcltk_lib_arm64
+        # Freethreaded binaries copy into the same target directory, but files
+        # are not overwritten.
+        - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+          - artifact: bin_win32_t
+            target: $(Build.BinariesDirectory)\win32
+          - artifact: bin_win32_td
+            target: $(Build.BinariesDirectory)\win32
+          - artifact: bin_amd64_t
+            target: $(Build.BinariesDirectory)\amd64
+          - artifact: bin_amd64_td
+            target: $(Build.BinariesDirectory)\amd64
+          - ${{ if eq(parameters.DoARM64, 'true') }}:
+            - artifact: bin_arm64_t
+              target: $(Build.BinariesDirectory)\arm64
+            - artifact: bin_arm64_td
+              target: $(Build.BinariesDirectory)\arm64
+        Bundles:
+        - bundle: win32
+          Platform: x86
+          PythonForBuild: win32
+          TclTkArtifact: tcltk_lib_win32
+        - bundle: amd64
+          Platform: x64
+          PythonForBuild: amd32
+          TclTkArtifact: tcltk_lib_amd32
+        - ${{ if eq(parameters.DoARM64, 'true') }}:
+          - bundle: arm64
+            Platform: ARM86
+            PythonForBuild: win32
+            ${{ if eq(parameters.ARM64TclTk, 'true') }}:
+              TclTkArtifact: tcltk_lib_arm64
 
 - ${{ else }}:
   - job: Make_MSI
@@ -49,5 +99,55 @@ jobs:
     steps:
     - template: msi-steps.yml
       parameters:
-        ARM64TclTk: ${{ parameters.ARM64TclTk }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
+        Artifacts:
+        - artifact: doc
+          target: $(Build.SourcesDirectory)\Doc\build
+        - artifact: bin_win32
+          target: $(Build.BinariesDirectory)\win32
+        - artifact: bin_win32_d
+          target: $(Build.BinariesDirectory)\win32
+        - artifact: tcltk_lib_win32
+        - artifact: bin_amd64
+          target: $(Build.BinariesDirectory)\amd64
+        - artifact: bin_amd64_d
+          target: $(Build.BinariesDirectory)\amd64
+        - artifact: tcltk_lib_amd64
+        - ${{ if eq(parameters.DoARM64, 'true') }}:
+          - artifact: bin_arm64
+            target: $(Build.BinariesDirectory)\arm64
+          - artifact: bin_arm64_d
+            target: $(Build.BinariesDirectory)\arm64
+          - ${{ if eq(parameters.ARM64TclTk, 'true') }}:
+            - artifact: tcltk_lib_arm64
+        # Freethreaded binaries copy into the same target directory, but files
+        # are not overwritten.
+        - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+          - artifact: bin_win32_t
+            target: $(Build.BinariesDirectory)\win32
+          - artifact: bin_win32_td
+            target: $(Build.BinariesDirectory)\win32
+          - artifact: bin_amd64_t
+            target: $(Build.BinariesDirectory)\amd64
+          - artifact: bin_amd64_td
+            target: $(Build.BinariesDirectory)\amd64
+          - ${{ if eq(parameters.DoARM64, 'true') }}:
+            - artifact: bin_arm64_t
+              target: $(Build.BinariesDirectory)\arm64
+            - artifact: bin_arm64_td
+              target: $(Build.BinariesDirectory)\arm64
+        Bundles:
+        - bundle: win32
+          Platform: x86
+          PythonForBuild: bin_win32
+          TclTkArtifact: tcltk_lib_win32
+        - bundle: amd64
+          Platform: x64
+          PythonForBuild: bin_amd64
+          TclTkArtifact: tcltk_lib_amd64
+        - ${{ if eq(parameters.DoARM64, 'true') }}:
+          - bundle: arm64
+            Platform: ARM64
+            PythonForBuild: bin_win32
+            ${{ if eq(parameters.ARM64TclTk, 'true') }}:
+              TclTkArtifact: tcltk_lib_arm64

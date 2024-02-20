@@ -11,57 +11,52 @@ jobs:
   workspace:
     clean: all
 
+  variables:
+    PYTHONHOME: $(Build.SourcesDirectory)
+
   strategy:
     matrix:
       #win32:
       #  Name: win32
-      #  Python: $(Build.BinariesDirectory)\bin\python.exe
-      #  PYTHONHOME: $(Build.SourcesDirectory)
-      #  TclLibrary: $(Build.BinariesDirectory)\tcltk_lib\tcl8
+      #  TclLibrary: tcltk_lib_win32
+      #  ExtraOptions: --precompile
       amd64:
         Name: amd64
-        Python: $(Build.BinariesDirectory)\bin\python.exe
-        PYTHONHOME: $(Build.SourcesDirectory)
-        TclLibrary: $(Build.BinariesDirectory)\tcltk_lib\tcl8
+        Arch: amd64
+        TclLibrary: tcltk_lib_amd64
+        ExtraOptions: --precompile
       arm64:
         Name: arm64
+        Arch: arm64
         HostArch: amd64
-        Python: $(Build.BinariesDirectory)\bin_amd64\python.exe
-        PYTHONHOME: $(Build.SourcesDirectory)
-        ${{ if eq(parameters.ARM64TclTk, true) }}:
-          TclLibrary: $(Build.BinariesDirectory)\tcltk_lib\tcl8
+        ExtraOptions: --precompile
+        ${{ if eq(parameters.ARM64TclTk, 'true') }}:
+          TclLibrary: tcltk_lib_arm64
 
   steps:
   - template: ./checkout.yml
 
-  - task: DownloadPipelineArtifact@1
+  - download: current
+    artifact: bin_$(Name)
     displayName: 'Download artifact: bin_$(Name)'
-    inputs:
-      artifactName: bin_$(Name)
-      targetPath: $(Build.BinariesDirectory)\bin
 
-  - task: DownloadPipelineArtifact@1
-    displayName: 'Download artifact: bin_$(Name)_d'
-    inputs:
-      artifactName: bin_$(Name)_d
-      targetPath: $(Build.BinariesDirectory)\bin
-
-  - task: DownloadPipelineArtifact@1
-    displayName: 'Download artifact: tcltk_lib_$(Name)'
+  - download: current
+    artifact: $(TclLibrary)
+    displayName: 'Download artifact: $(TclLibrary)'
     condition: and(succeeded(), variables['TclLibrary'])
-    inputs:
-      artifactName: tcltk_lib_$(Name)
-      targetPath: $(Build.BinariesDirectory)\tcltk_lib
-
-  - task: DownloadPipelineArtifact@1
-    displayName: 'Download artifact: cert'
-    condition: and(succeeded(), variables['SigningCertificate'])
-    inputs:
-      artifactName: cert
-      targetPath: $(Build.BinariesDirectory)\cert
 
   - powershell: |
-      copy "$(Build.BinariesDirectory)\bin\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
+      Write-Host "##vso[task.setvariable variable=TCL_LIBRARY]$(Pipeline.Workspace)\$(TclLibrary)\tcl8"
+    displayName: 'Update TCL_LIBRARY'
+    condition: and(succeeded(), variables['TclLibrary'])
+
+  - download: current
+    artifact: cert
+    displayName: 'Download artifact: cert'
+    condition: and(succeeded(), variables['SigningCertificate'])
+
+  - powershell: |
+      copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
     displayName: 'Copy signed files into sources'
     condition: and(succeeded(), variables['SigningCertificate'])
 
@@ -69,13 +64,13 @@ jobs:
 
   - powershell: |
      Remove-Item "$(Build.ArtifactStagingDirectory)\appx-store" -Recurse -Force -EA 0
-      $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\appx-store" --preset-appx --precompile
+      $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\appx-store" --preset-appx $(ExtraOptions)
     displayName: 'Generate store APPX layout'
     env:
       TCL_LIBRARY: $(TclLibrary)
 
   - powershell: |
-      $info = (gc "$(Build.BinariesDirectory)\cert\certinfo.json" | ConvertFrom-JSON)
+      $info = (gc "$(Pipeline.Workspace)\cert\certinfo.json" | ConvertFrom-JSON)
       Write-Host "Side-loadable APPX must be signed with '$($info.Subject)'"
       Write-Host "##vso[task.setvariable variable=APPX_DATA_PUBLISHER]$($info.Subject)"
       Write-Host "##vso[task.setvariable variable=APPX_DATA_SHA256]$($info.SHA256)"
@@ -84,19 +79,15 @@ jobs:
 
   - powershell: |
       Remove-Item "$(Build.ArtifactStagingDirectory)\appx" -Recurse -Force -EA 0
-      $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\appx" --preset-appx --precompile --include-symbols --include-tests
+      $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\appx" --preset-appx --include-symbols --include-tests $(ExtraOptions)
     displayName: 'Generate sideloading APPX layout'
     env:
       TCL_LIBRARY: $(TclLibrary)
 
-  - task: PublishPipelineArtifact@0
+  - publish: '$(Build.ArtifactStagingDirectory)\appx-store'
+    artifact: layout_appxstore_$(Name)
     displayName: 'Publish Artifact: layout_appxstore_$(Name)'
-    inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)\appx-store'
-      artifactName: layout_appxstore_$(Name)
 
-  - task: PublishPipelineArtifact@0
+  - publish: '$(Build.ArtifactStagingDirectory)\appx'
+    artifact: layout_appx_$(Name)
     displayName: 'Publish Artifact: layout_appx_$(Name)'
-    inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)\appx'
-      artifactName: layout_appx_$(Name)

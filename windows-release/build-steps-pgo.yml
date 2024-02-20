@@ -35,7 +35,8 @@ steps:
         .\PCbuild\build.bat -v -p $(Platform) -c PGInstrument --disable-gil
       displayName: 'Run free-threaded build'
       env:
-        IncludeUwp: true
+        # gh-115545: Don't build UWP executables for free-threaded
+        IncludeUwp: false
         Py_OutDir: '$(Build.BinariesDirectory)\bin'
 
   - ${{ if ne(parameters.PGRun, 'true') }}:
@@ -133,7 +134,8 @@ steps:
         .\PCbuild\build.bat -v -p $(Platform) -c PGUpdate --disable-gil
       displayName: 'Run free-threaded build with PGO'
       env:
-        IncludeUwp: true
+        # gh-115545: Don't build UWP executables for free-threaded
+        IncludeUwp: false
         Py_OutDir: '$(Build.BinariesDirectory)\bin'
 
   - powershell: |
