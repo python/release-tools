@@ -23,21 +23,11 @@ steps:
 - ${{ if eq(parameters.PGInstrument, 'true') }}:
   - powershell: |
       $env:SigningCertificate = $null
-      .\PCbuild\build.bat -v -p $(Platform) -c PGInstrument
+      .\PCbuild\build.bat -v -p $(Platform) -c PGInstrument $(ExtraOptions)
     displayName: 'Run build'
     env:
       IncludeUwp: true
       Py_OutDir: '$(Build.BinariesDirectory)\bin'
-
-  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
-    - powershell: |
-        $env:SigningCertificate = $null
-        .\PCbuild\build.bat -v -p $(Platform) -c PGInstrument --disable-gil
-      displayName: 'Run free-threaded build'
-      env:
-        # gh-115545: Don't build UWP executables for free-threaded
-        IncludeUwp: false
-        Py_OutDir: '$(Build.BinariesDirectory)\bin'
 
   - ${{ if ne(parameters.PGRun, 'true') }}:
     # Not running in this job, so we publish our entire build and object files
@@ -70,14 +60,15 @@ steps:
         artifactName: instrumented_bin_$(Name)
         targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
 
-  - powershell: |
-      & "$(Build.BinariesDirectory)\bin\$(Arch)\instrumented\python.exe" -m test --pgo
-    ignoreLASTEXITCODE: true
-    displayName: 'Collect profile'
-    env:
-      PYTHONHOME: '$(Build.SourcesDirectory)'
+  - ${{ if ne(parameters.DoFreethreaded, 'true') }}:
+    - powershell: |
+        & "$(Build.BinariesDirectory)\bin\$(Arch)\instrumented\python.exe" -m test --pgo
+      ignoreLASTEXITCODE: true
+      displayName: 'Collect profile'
+      env:
+        PYTHONHOME: '$(Build.SourcesDirectory)'
 
-  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+  - ${{ else }}:
     - powershell: |
         $exe = (gci "$(Build.BinariesDirectory)\bin\$(Arch)\instrumented\python3*t.exe" | select -First 1)
         & $exe -m test --pgo
@@ -122,21 +113,11 @@ steps:
 
   - powershell: |
       $env:SigningCertificate = $null
-      .\PCbuild\build.bat -v -p $(Platform) -c PGUpdate
+      .\PCbuild\build.bat -v -p $(Platform) -c PGUpdate $(ExtraOptions)
     displayName: 'Run build with PGO'
     env:
       IncludeUwp: true
       Py_OutDir: '$(Build.BinariesDirectory)\bin'
-
-  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
-    - powershell: |
-        $env:SigningCertificate = $null
-        .\PCbuild\build.bat -v -p $(Platform) -c PGUpdate --disable-gil
-      displayName: 'Run free-threaded build with PGO'
-      env:
-        # gh-115545: Don't build UWP executables for free-threaded
-        IncludeUwp: false
-        Py_OutDir: '$(Build.BinariesDirectory)\bin'
 
   - powershell: |
       $kitroot = (gp 'HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots\').KitsRoot10
