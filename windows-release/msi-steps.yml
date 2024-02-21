@@ -23,6 +23,7 @@ steps:
         inputs:
           sourceFolder: $(Pipeline.Workspace)\${{ a.artifact }}
           targetFolder: ${{ a.target }}
+          overwrite: false
 
   - ${{ if parameters.SigningCertificate }}:
     - powershell: |
@@ -67,7 +68,7 @@ steps:
         $signcmd = 'AzureSignTool sign -kvu "$(KeyVaultUri)" ' + `
                    '-kvi "$(KeyVaultApplication)" -kvt "$(KeyVaultDirectory)" -kvs "$(KeyVaultSecret)" ' + `
                    '-tr http://timestamp.digicert.com/ -td sha256 ' + `
-                   '-kvc "${{ parameters.SigningCertificate }}" -d "$(SigningDescription)" -fd sha256'
+                   '-kvc "$(KeyVaultCertificateName)" -d "$(SigningDescription)" -fd sha256'
         $signcmd = $signcmd -replace '"', '\"'
         "/p:_SignCommand=""$signcmd""" | Out-File $env:ResponseFile -Append -Encoding UTF8
       displayName: 'Inject signing command into response file'

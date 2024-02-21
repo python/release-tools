@@ -40,10 +40,27 @@ Without this, the build records will be lost after 30 days.
 The code signing certificate is stored in Azure Key Vault, and is authenticated using the
 variables in a Variable group called CPythonSign. The variable group is what triggers approvals.
 The group is at https://dev.azure.com/Python/cpython/_library?itemType=VariableGroups&view=VariableGroupView&variableGroupId=1&path=CPythonSign
+A second group called CPythonTestSign exists without approvals, but only has access to a test signing certificate.
+
+The five variables in the Variable Group identify the Entra ID
+[App registration](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app) with access,
+and the name of the certificate to use.
+
+* `KeyVaultApplication` - the "Application (client) ID" of the App registration
+* `KeyVaultDirectory` - the "Directory (tenant) ID" of the App registration
+* `KeyVaultSecret` - the current "Client secret" of the App registration
+* `KeyVaultUri` - the base `https://*.vault.azure.net/` URI of the Key Vault
+* `KeyVaultCertificateName` - the name of the certificate. This is not a secret
+
+The Key Vault should be configured to use Azure role-based access control (soon to be the only option),
+and the App registration should have the "Key Vault Certificate User" and "Key Vault Crypto User" roles.
+The trusted owner of the Key Vault should have the "Owner" role, but the App registration should not.
 
 To upload a new code signing certificate (which will be provided by the PSF),
-or to change to a new Azure Keyvault instance,
-see the documentation at https://github.com/vcsjones/AzureSignTool/blob/main/WALKTHROUGH.md.
+you need the certificate in encrypted .pfx format.
+This can then be uploaded directly through the Azure Portal into the Key Vault along with the passphrase.
+If reusing an existing Key Vault, upload it as a new version of the existing certificate.
+If it is uploaded as a new certificate, the Variable Group must be updated.
 
 GPG signature generation uses a GPG key stored in the Secure Files library.
 This can be found at https://dev.azure.com/Python/cpython/_library?itemType=SecureFiles

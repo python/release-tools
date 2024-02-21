@@ -70,15 +70,15 @@ jobs:
       Bundles:
       - bundle: win32
         Platform: x86
-        PythonForBuild: win32
+        PythonForBuild: bin_win32
         TclTkArtifact: tcltk_lib_win32
       - bundle: amd64
         Platform: x64
-        PythonForBuild: amd32
-        TclTkArtifact: tcltk_lib_amd32
+        PythonForBuild: bin_amd64
+        TclTkArtifact: tcltk_lib_amd64
       - ${{ if eq(parameters.DoARM64, 'true') }}:
         - bundle: arm64
-          Platform: ARM86
-          PythonForBuild: win32
+          Platform: ARM64
+          PythonForBuild: bin_win32
           ${{ if eq(parameters.ARM64TclTk, 'true') }}:
             TclTkArtifact: tcltk_lib_arm64
