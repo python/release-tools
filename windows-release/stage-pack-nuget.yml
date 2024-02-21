@@ -29,9 +29,11 @@ jobs:
         arm64_t:
           Name: arm64_t
 
-  ${{ if parameters.SigningCertificate }}:
-    variables:
+  variables:
+  - ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
     - group: CPythonSign
+  - ${{ if eq(parameters.SigningCertificate, 'TestSign') }}:
+    - group: CPythonTestSign
 
   steps:
   - checkout: none

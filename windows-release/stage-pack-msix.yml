@@ -105,7 +105,10 @@ jobs:
       clean: all
 
     variables:
-    - group: CPythonSign
+    - ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
+      - group: CPythonSign
+    - ${{ if eq(parameters.SigningCertificate, 'TestSign') }}:
+      - group: CPythonTestSign
 
     steps:
     - template: ./checkout.yml
