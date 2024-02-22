@@ -1,0 +1,45 @@
+jobs:
+- job: SBOM_Files
+  displayName: Create SBOMs for Python binaries
+
+  pool:
+    vmImage: windows-2022
+
+  workspace:
+    clean: all
+
+  strategy:
+    matrix:
+      win32:
+        Name: win32
+      amd64:
+        Name: amd64
+      arm64:
+        Name: arm64
+
+  steps:
+  - task: UsePythonVersion@0
+    displayName: 'Use Python 3.6 or later'
+    inputs:
+      versionSpec: '>=3.6'
+
+  - template: ./checkout.yml
+
+  - task: DownloadPipelineArtifact@1
+    displayName: 'Download artifact: bin_$(Name)'
+    inputs:
+      artifactName: bin_$(Name)
+      targetPath: $(Build.BinariesDirectory)\bin
+
+  - powershell: >
+      python
+      "$(Build.SourcesDirectory)\sbom.py"
+      (gci msi\*\python-*.exe | select -First 1)
+    workingDirectory: $(Build.BinariesDirectory)
+    displayName: 'Create SBOMs for binaries'
+
+  - task: PublishPipelineArtifact@0
+    displayName: 'Publish artifact: sbom'
+    inputs:
+      targetPath: '$(Build.BinariesDirectory)\sbom'
+      artifactName: sbom

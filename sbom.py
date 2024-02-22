@@ -525,10 +525,115 @@ def create_sbom_for_source_tarball(tarball_path: str):
     return sbom_data
 
 
+def create_sbom_for_windows_artifact(exe_path):
+    exe_name = os.path.basename(exe_path)
+    cpython_version = re.match(r"^python-([0-9abrc.]+)(?:-|\.exe)", exe_name).group(1)
+    cpython_version_without_suffix = re.match(r"^([0-9.]+)", cpython_version).group(1)
+    exe_download_location = f"https://www.python.org/ftp/python/{cpython_version_without_suffix}/{exe_name}"
+
+    with open(exe_path, mode="rb") as f:
+        exe_checksum_sha256 = hashlib.sha256(f.read()).hexdigest()
+
+    # Start with the CPython source SBOM as a base
+    with open("Misc/externals.spdx.json") as f:
+        sbom_data = json.loads(f.read())
+
+    # Add all the packages from the source SBOM
+    # We want to skip the file information because
+    # the files aren't available in Windows artifacts.
+    with open("Misc/sbom.spdx.json") as f:
+        source_sbom_data = json.loads(f.read())
+        for sbom_package in source_sbom_data["packages"]:
+            sbom_data["packages"].append(sbom_package)
+
+    sbom_data["relationships"] = []
+    sbom_data["files"] = []
+
+    sbom_data.update({
+        "SPDXID": "SPDXRef-DOCUMENT",
+        "spdxVersion": "SPDX-2.3",
+        "name": "CPython SBOM",
+        "dataLicense": "CC0-1.0",
+        # Naming done according to OpenSSF SBOM WG recommendations.
+        # See: https://github.com/ossf/sbom-everywhere/blob/main/reference/sbom_naming.md
+        "documentNamespace": f"{exe_download_location}.spdx.json",
+        "creationInfo": {
+            "created": (
+                datetime.datetime.now(tz=datetime.timezone.utc)
+                .strftime("%Y-%m-%dT%H:%M:%SZ")
+            ),
+            "creators": [
+                "Person: Python Release Managers",
+                f"Tool: ReleaseTools-{get_release_tools_commit_sha()}",
+            ],
+            # Version of the SPDX License ID list.
+            # This shouldn't need to be updated often, if ever.
+            "licenseListVersion": "3.22",
+        },
+    })
+
+    # Create the SBOM entry for the CPython package. We use
+    # the SPDXID later on for creating relationships to files.
+    sbom_cpython_package = {
+        "SPDXID": "SPDXRef-PACKAGE-cpython",
+        "name": "CPython",
+        "versionInfo": cpython_version,
+        "licenseConcluded": "PSF-2.0",
+        "originator": "Organization: Python Software Foundation",
+        "supplier": "Organization: Python Software Foundation",
+        "packageFileName": exe_name,
+        "externalRefs": [
+            {
+                "referenceCategory": "SECURITY",
+                "referenceLocator": f"cpe:2.3:a:python:python:{cpython_version}:*:*:*:*:*:*:*",
+                "referenceType": "cpe23Type",
+            }
+        ],
+        "primaryPackagePurpose": "APPLICATION",
+        "downloadLocation": exe_download_location,
+        "checksums": [{"algorithm": "SHA256", "checksumValue": exe_checksum_sha256}],
+    }
+
+    # The top-level CPython package depends on every vendored sub-package.
+    for sbom_package in sbom_data["packages"]:
+        sbom_data["relationships"].append({
+            "spdxElementId": sbom_cpython_package["SPDXID"],
+            "relatedSpdxElement": sbom_package["SPDXID"],
+            "relationshipType": "DEPENDS_ON",
+        })
+
+    sbom_data["packages"].append(sbom_cpython_package)
+
+    # Final relationship, this SBOM describes the CPython package.
+    sbom_data["relationships"].append(
+        {
+            "spdxElementId": "SPDXRef-DOCUMENT",
+            "relatedSpdxElement": sbom_cpython_package["SPDXID"],
+            "relationshipType": "DESCRIBES",
+        }
+    )
+
+    # Apply the 'supplier' tag to every package since we're shipping
+    # the package in the tarball itself. Originator field is used for maintainers.
+    for sbom_package in sbom_data["packages"]:
+        sbom_package["supplier"] = "Organization: Python Software Foundation"
+        # Source packages have been compiled.
+        if sbom_package["primaryPackagePurpose"] == "SOURCE":
+            sbom_package["primaryPackagePurpose"] = "LIBRARY"
+
+    normalize_sbom_data(sbom_data)
+
+    return sbom_data
+
+
 def main() -> None:
-    tarball_path = sys.argv[1]
-    sbom_data = create_sbom_for_source_tarball(tarball_path)
+    artifact_path = sys.argv[1]
+    if artifact_path.endswith(".exe"):
+        sbom_data = create_sbom_for_windows_artifact(artifact_path)
+    else:
+        sbom_data = create_sbom_for_source_tarball(artifact_path)
     print(json.dumps(sbom_data, indent=2, sort_keys=True))
+
 
 if __name__ == "__main__":
     main()
