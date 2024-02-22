@@ -165,6 +165,7 @@ jobs:
           Arch: amd64
           Platform: x64
           _HostPython: .\python
+          PythonExePattern: python.exe
           ExtraOptions: ''
         ${{ if eq(parameters.DoFreethreaded, 'true') }}:
           amd64_t:
@@ -172,12 +173,12 @@ jobs:
             Arch: amd64
             Platform: x64
             _HostPython: .\python
+            PythonExePattern: python3*t.exe
             ExtraOptions: --disable-gil
 
     steps:
       - template: ./build-steps-pgo.yml
         parameters:
-          DoFreethreaded: ${{ parameters.DoFreethreaded }}
           PGInstrument: true
           PGRun: true
           PGUpdate: true
@@ -201,16 +202,17 @@ jobs:
         matrix:
           arm64:
             Name: arm64
+            PythonExePattern: python.exe
             ExtraOptions: ''
           ${{ if eq(parameters.DoFreethreaded, 'true') }}:
             arm64_t:
               Name: arm64_t
+              PythonExePattern: python3*t.exe
               ExtraOptions: --disable-gil
 
       steps:
         - template: ./build-steps-pgo.yml
           parameters:
-            DoFreethreaded: ${{ parameters.DoFreethreaded }}
             PGInstrument: true
 
     - job: Build_Python_PGO_2
@@ -234,14 +236,15 @@ jobs:
         matrix:
           arm64:
             Name: arm64
+            PythonExePattern: python.exe
           ${{ if eq(parameters.DoFreethreaded, 'true') }}:
             arm64_t:
               Name: arm64_t
+              PythonExePattern: python3*t.exe
 
       steps:
         - template: ./build-steps-pgo.yml
           parameters:
-            DoFreethreaded: ${{ parameters.DoFreethreaded }}
             PGRun: true
 
     - job: Build_Python_PGO_3
@@ -263,16 +266,17 @@ jobs:
         matrix:
           arm64:
             Name: arm64
+            PythonExePattern: python.exe
             ExtraOptions: ''
           ${{ if eq(parameters.DoFreethreaded, 'true') }}:
             arm64_t:
               Name: arm64_t
+              PythonExePattern: python3*t.exe
               ExtraOptions: --disable-gil
 
       steps:
         - template: ./build-steps-pgo.yml
           parameters:
-            DoFreethreaded: ${{ parameters.DoFreethreaded }}
             PGUpdate: true
 
 

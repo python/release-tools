@@ -2,7 +2,6 @@ parameters:
   PGInstrument: false
   PGRun: false
   PGUpdate: false
-  DoFreethreaded: false
 
 steps:
 - template: ./checkout.yml
@@ -60,22 +59,13 @@ steps:
         artifactName: instrumented_bin_$(Name)
         targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
 
-  - ${{ if ne(parameters.DoFreethreaded, 'true') }}:
-    - powershell: |
-        & "$(Build.BinariesDirectory)\bin\$(Arch)\instrumented\python.exe" -m test --pgo
-      ignoreLASTEXITCODE: true
-      displayName: 'Collect profile'
-      env:
-        PYTHONHOME: '$(Build.SourcesDirectory)'
-
-  - ${{ else }}:
-    - powershell: |
-        $exe = (gci "$(Build.BinariesDirectory)\bin\$(Arch)\instrumented\python3*t.exe" | select -First 1)
-        & $exe -m test --pgo
-      ignoreLASTEXITCODE: true
-      displayName: 'Collect free-threaded profile'
-      env:
-        PYTHONHOME: '$(Build.SourcesDirectory)'
+  - powershell: |
+      $exe = (gci "$(Build.BinariesDirectory)\bin\$(Arch)\instrumented\$(PythonExePattern)" | select -First 1)
+      & $exe -m test --pgo
+    ignoreLASTEXITCODE: true
+    displayName: 'Collect profile'
+    env:
+      PYTHONHOME: '$(Build.SourcesDirectory)'
 
 
   - ${{ if ne(parameters.PGUpdate, 'true') }}:
