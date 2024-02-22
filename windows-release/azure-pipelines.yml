@@ -147,6 +147,12 @@ stages:
           SigningCertificate: ${{ parameters.SigningCertificate }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
+  - stage: SBOM
+    displayName: Create SBOMs
+    dependsOn: Build
+    jobs:
+    - template: stage-sbom.yml
+
   - stage: Layout
     displayName: Generate layouts
     dependsOn: Sign
@@ -220,7 +226,7 @@ stages:
     - ${{ if eq(parameters.DoMSI, 'true') }}:
       - stage: PublishPyDotOrg
         displayName: Publish to python.org
-        dependsOn: ['Test_MSI', 'Test']
+        dependsOn: ['SBOM', 'Test_MSI', 'Test']
         jobs:
         - template: stage-publish-pythonorg.yml
 
