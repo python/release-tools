@@ -226,7 +226,7 @@ stages:
     - ${{ if eq(parameters.DoMSI, 'true') }}:
       - stage: PublishPyDotOrg
         displayName: Publish to python.org
-        dependsOn: ['SBOM', 'Test_MSI', 'Test']
+        dependsOn: ['Test_MSI', 'Test']
         jobs:
         - template: stage-publish-pythonorg.yml
 

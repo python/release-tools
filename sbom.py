@@ -627,12 +627,16 @@ def create_sbom_for_windows_artifact(exe_path):
 
 
 def main() -> None:
-    artifact_path = sys.argv[1]
-    if artifact_path.endswith(".exe"):
-        sbom_data = create_sbom_for_windows_artifact(artifact_path)
-    else:
-        sbom_data = create_sbom_for_source_tarball(artifact_path)
-    print(json.dumps(sbom_data, indent=2, sort_keys=True))
+    artifact_paths = sys.argv[1:]
+    for artifact_path in artifact_paths:
+        if artifact_path.endswith(".exe"):
+            sbom_data = create_sbom_for_windows_artifact(artifact_path)
+        else:
+            sbom_data = create_sbom_for_source_tarball(artifact_path)
+
+        with open(artifact_path + ".spdx.json", mode="w") as f:
+            f.truncate()
+            f.write(json.dumps(sbom_data, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

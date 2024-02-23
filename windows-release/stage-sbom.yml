@@ -34,12 +34,19 @@ jobs:
   - powershell: >
       python
       "$(Build.SourcesDirectory)\sbom.py"
-      (gci msi\*\python-*.exe | select -First 1)
+      (gci msi\*\python-*.exe)
     workingDirectory: $(Build.BinariesDirectory)
     displayName: 'Create SBOMs for binaries'
 
-  - task: PublishPipelineArtifact@0
-    displayName: 'Publish artifact: sbom'
+  - task: CopyFiles@2
+    displayName: 'Layout Artifact: sbom'
     inputs:
-      targetPath: '$(Build.BinariesDirectory)\sbom'
-      artifactName: sbom
+      sourceFolder: $(Build.BinariesDirectory)\bin
+      targetFolder: $(Build.ArtifactStagingDirectory)\sbom
+      flatten: true
+      contents: |
+        **\*.spdx.json
+
+  - publish: '$(Build.ArtifactStagingDirectory)\sbom'
+    artifact: sbom
+    displayName: 'Publish artifact: sbom'
