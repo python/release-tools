@@ -122,13 +122,6 @@ jobs:
             Configuration: Release
             _HostPython: .\python
             ExtraOptions: --disable-gil
-          arm64_t:
-            Name: arm64_t
-            Arch: arm64
-            Platform: ARM64
-            Configuration: Release
-            _HostPython: python
-            ExtraOptions: --disable-gil
         amd64_td:
           Name: amd64_td
           Arch: amd64
@@ -136,6 +129,14 @@ jobs:
           Configuration: Debug
           _HostPython: .\python
           ExtraOptions: --disable-gil
+        ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
+          arm64_t:
+            Name: arm64_t
+            Arch: arm64
+            Platform: ARM64
+            Configuration: Release
+            _HostPython: python
+            ExtraOptions: --disable-gil
         arm64_td:
           Name: arm64_td
           Arch: arm64
