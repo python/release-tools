@@ -12,56 +12,59 @@ jobs:
   workspace:
     clean: all
 
+  variables:
+    PYTHONHOME: $(Build.SourcesDirectory)
+
   strategy:
     matrix:
       win32:
         Name: win32
-        Python: $(Build.BinariesDirectory)\bin\python.exe
-        PYTHONHOME: $(Build.SourcesDirectory)
+        Arch: win32
+        ExtraOptions: ''
       amd64:
         Name: amd64
-        Python: $(Build.BinariesDirectory)\bin\python.exe
-        PYTHONHOME: $(Build.SourcesDirectory)
+        Arch: amd64
+        ExtraOptions: ''
       arm64:
         Name: arm64
+        Arch: arm64
         HostArch: amd64
-        Python: $(Build.BinariesDirectory)\bin_amd64\python.exe
-        PYTHONHOME: $(Build.SourcesDirectory)
+        ExtraOptions: ''
+      ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+        win32_t:
+          Name: win32_t
+          Arch: win32
+          HostArch: win32
+          ExtraOptions: --include-freethreaded
+        amd64_t:
+          Name: amd64_t
+          Arch: amd64
+          HostArch: amd64
+          ExtraOptions: --include-freethreaded
+        arm64_t:
+          Name: arm64_t
+          Arch: arm64
+          HostArch: amd64
+          ExtraOptions: --include-freethreaded
 
   steps:
   - template: ./checkout.yml
 
-  - task: DownloadPipelineArtifact@1
+  - download: current
+    artifact: bin_$(Name)
     displayName: 'Download artifact: bin_$(Name)'
-    inputs:
-      artifactName: bin_$(Name)
-      targetPath: $(Build.BinariesDirectory)\bin
 
   - powershell: |
-      copy $(Build.BinariesDirectory)\bin\Activate.ps1 Lib\venv\scripts\common\Activate.ps1 -Force
+      copy $(Pipeline.Workspace)\bin_$(Name)\Activate.ps1 Lib\venv\scripts\common\Activate.ps1 -Force
     displayName: 'Copy signed files into sources'
     condition: and(succeeded(), variables['SigningCertificate'])
 
   - template: ./layout-command.yml
 
   - powershell: |
-      $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\nuget" --preset-nuget
+      $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\nuget" --preset-nuget $(ExtraOptions)
     displayName: 'Generate nuget layout'
 
-  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
-    - powershell: |
-        $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\nuget_freethreaded" --preset-nuget --include-freethreaded
-      displayName: 'Generate freethreaded nuget layout'
-
-  - task: PublishPipelineArtifact@0
+  - publish: '$(Build.ArtifactStagingDirectory)\nuget'
+    artifact: layout_nuget_$(Name)
     displayName: 'Publish Artifact: layout_nuget_$(Name)'
-    inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)\nuget'
-      artifactName: layout_nuget_$(Name)
-
-  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
-    - task: PublishPipelineArtifact@0
-      displayName: 'Publish Artifact: layout_nuget_freethreaded_$(Name)'
-      inputs:
-        targetPath: '$(Build.ArtifactStagingDirectory)\nuget_freethreaded'
-        artifactName: layout_nuget_freethreaded_$(Name)

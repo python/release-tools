@@ -1,6 +1,5 @@
 parameters:
   ShouldPGO: false
-  DoFreethreaded: false
 
 steps:
 - template: ./checkout.yml
@@ -16,47 +15,23 @@ steps:
     Write-Host "##vso[build.addbuildtag]$($d.PythonVersion)-$(Name)"
   displayName: 'Extract version numbers'
 
-- ${{ if eq(parameters.DoFreethreaded, 'true') }}:
-  - powershell: |
-      Write-Host "##vso[build.addbuildtag]freethreaded"
-      Write-Host "##vso[build.addbuildtag]$(VersionText)-freethreaded"
-    displayName: 'Add freethreaded tags'
-
 - ${{ if eq(parameters.ShouldPGO, 'false') }}:
   - powershell: |
       $env:SigningCertificate = $null
-      .\PCbuild\build.bat -v -p $(Platform) -c $(Configuration)
+      .\PCbuild\build.bat -v -p $(Platform) -c $(Configuration) $(ExtraOptions)
     displayName: 'Run build'
     env:
       IncludeUwp: true
       Py_OutDir: '$(Build.BinariesDirectory)\bin'
 
-  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
-    - powershell: |
-        $env:SigningCertificate = $null
-        .\PCbuild\build.bat -v -p $(Platform) -c $(Configuration) --disable-gil
-      displayName: 'Run free-threaded build'
-      env:
-        IncludeUwp: true
-        Py_OutDir: '$(Build.BinariesDirectory)\bin'
-
 - ${{ if eq(parameters.ShouldPGO, 'true') }}:
   - powershell: |
       $env:SigningCertificate = $null
-      .\PCbuild\build.bat -v -p $(Platform) --pgo
+      .\PCbuild\build.bat -v -p $(Platform) --pgo $(ExtraOptions)
     displayName: 'Run build with PGO'
     env:
       IncludeUwp: true
       Py_OutDir: '$(Build.BinariesDirectory)\bin'
-
-  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
-    - powershell: |
-        $env:SigningCertificate = $null
-        .\PCbuild\build.bat -v -p $(Platform) --pgo --disable-gil
-      displayName: 'Run free-threaded build'
-      env:
-        IncludeUwp: true
-        Py_OutDir: '$(Build.BinariesDirectory)\bin'
 
 - powershell: |
     $kitroot = (gp 'HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots\').KitsRoot10

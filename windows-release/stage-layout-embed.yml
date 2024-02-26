@@ -9,30 +9,28 @@ jobs:
   workspace:
     clean: all
 
+  variables:
+    PYTHONHOME: $(Build.SourcesDirectory)
+
   strategy:
     matrix:
       win32:
         Name: win32
-        Python: $(Build.BinariesDirectory)\bin\python.exe
-        PYTHONHOME: $(Build.SourcesDirectory)
+        Arch: win32
       amd64:
         Name: amd64
-        Python: $(Build.BinariesDirectory)\bin\python.exe
-        PYTHONHOME: $(Build.SourcesDirectory)
+        Arch: amd64
       arm64:
         Name: arm64
+        Arch: arm64
         HostArch: amd64
-        Python: $(Build.BinariesDirectory)\bin_amd64\python.exe
-        PYTHONHOME: $(Build.SourcesDirectory)
 
   steps:
   - template: ./checkout.yml
 
-  - task: DownloadPipelineArtifact@1
+  - download: current
+    artifact: bin_$(Name)
     displayName: 'Download artifact: bin_$(Name)'
-    inputs:
-      artifactName: bin_$(Name)
-      targetPath: $(Build.BinariesDirectory)\bin
 
   - template: ./layout-command.yml
 
@@ -48,11 +46,9 @@ jobs:
       --preset-embed
     displayName: 'Generate embeddable layout'
 
-  - task: PublishPipelineArtifact@0
+  - publish: '$(Build.ArtifactStagingDirectory)\layout'
+    artifact: layout_embed_$(Name)
     displayName: 'Publish Artifact: layout_embed_$(Name)'
-    inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)\layout'
-      artifactName: layout_embed_$(Name)
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: embed'
