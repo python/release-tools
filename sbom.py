@@ -10,11 +10,13 @@ For example:
 
 """
 
+import argparse
 import datetime
 import hashlib
 import io
 import json
 import os
+import pathlib
 import re
 import subprocess
 import sys
@@ -535,27 +537,54 @@ def create_sbom_for_source_tarball(tarball_path: str):
     return sbom_data
 
 
-def create_sbom_for_windows_artifact(exe_path):
-    exe_name = os.path.basename(exe_path)
-    cpython_version = re.match(r"^python-([0-9abrc.]+)(?:-|\.exe)", exe_name).group(1)
+def create_sbom_for_windows_artifact(artifact_path, cpython_source_dir: str):
+    artifact_name = os.path.basename(artifact_path)
+    cpython_version = re.match(r"^python-([0-9abrc.]+)(?:-|\.exe|\.zip)", artifact_name).group(1)
+
+    if not cpython_source_dir:
+        raise ValueError("Must specify --cpython-source-dir for Windows artifacts")
+    cpython_source_dir = pathlib.Path(cpython_source_dir)
 
     # Start with the CPython source SBOM as a base
-    with open("Misc/externals.spdx.json") as f:
+    with (cpython_source_dir / "Misc/externals.spdx.json").open() as f:
         sbom_data = json.loads(f.read())
-
-    # Add all the packages from the source SBOM
-    # We want to skip the file information because
-    # the files aren't available in Windows artifacts.
-    with open("Misc/sbom.spdx.json") as f:
-        source_sbom_data = json.loads(f.read())
-        for sbom_package in source_sbom_data["packages"]:
-            sbom_data["packages"].append(sbom_package)
 
     sbom_data["relationships"] = []
     sbom_data["files"] = []
 
-    create_cpython_sbom(sbom_data, cpython_version=cpython_version, artifact_path=exe_path)
+    # Add all the packages from the source SBOM
+    # We want to skip the file information because
+    # the files aren't available in Windows artifacts.
+    with (cpython_source_dir / "Misc/sbom.spdx.json").open() as f:
+        source_sbom_data = json.loads(f.read())
+        for sbom_package in source_sbom_data["packages"]:
+            sbom_data["packages"].append(sbom_package)
+
+    create_cpython_sbom(
+        sbom_data,
+        cpython_version=cpython_version,
+        artifact_path=artifact_path
+    )
     sbom_cpython_package_spdx_id = spdx_id("SPDXRef-PACKAGE-cpython")
+
+    # The Windows embed artifacts don't contain pip/ensurepip,
+    # but the MSI artifacts do. Add pip for MSI installers.
+    if artifact_name.endswith(".exe"):
+
+        # Find the pip wheel in ensurepip in the source code
+        for pathname in os.listdir(cpython_source_dir / "Lib/ensurepip/_bundled"):
+            if pathname.startswith("pip-") and pathname.endswith(".whl"):
+                pip_wheel_filename = pathname
+                pip_wheel_bytes = (cpython_source_dir / f"Lib/ensurepip/_bundled/{pathname}").read_bytes()
+                break
+        else:
+            raise ValueError("Could not find pip wheel in 'Lib/ensurepip/_bundled/...'")
+
+        create_pip_sbom_from_wheel(
+            sbom_data,
+            pip_wheel_filename=pip_wheel_filename,
+            pip_wheel_bytes=pip_wheel_bytes,
+        )
 
     # Final relationship, this SBOM describes the CPython package.
     sbom_data["relationships"].append(
@@ -578,10 +607,22 @@ def create_sbom_for_windows_artifact(exe_path):
 
 
 def main() -> None:
-    artifact_paths = sys.argv[1:]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cpython-source-dir", default=None)
+    parser.add_argument("artifacts", nargs="+")
+    parsed_args = parser.parse_args(sys.argv[1:])
+
+    artifact_paths = parsed_args.artifacts
+    cpython_source_dir = parsed_args.cpython_source_dir
+
     for artifact_path in artifact_paths:
-        if artifact_path.endswith(".exe"):
-            sbom_data = create_sbom_for_windows_artifact(artifact_path)
+        # Windows MSI and Embed artifacts
+        if artifact_path.endswith(".exe") or artifact_path.endswith(".zip"):
+            sbom_data = create_sbom_for_windows_artifact(
+                artifact_path,
+                cpython_source_dir=cpython_source_dir
+            )
+        # Source artifacts
         else:
             sbom_data = create_sbom_for_source_tarball(artifact_path)
 
