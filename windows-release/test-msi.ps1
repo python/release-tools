@@ -1,14 +1,15 @@
 param ([string]$SetupExe)
 
 Write-Host "##[section]Install Python"
-$SetupCmd = "$SetupExe /passive /log ""C:\Logs\install\log.txt"" " + `
+$SetupArgs = "$SetupExe " + `
+            "/passive /log ""C:\Logs\install\log.txt"" " + `
             "TargetDir=C:\Python " + `
             "Include_debug=1 " + `
             "Include_symbols=1 " + `
             "InstallAllUsers=${env:InstallAllUsers} " + `
             "${env:IncludeFreethreadedOpt}"
 Write-Host "##[command]$SetupCmd"
-& $SetupCmd
+iex $SetupCmd
 if (!$?) { exit $LASTEXITCODE }
 
 Write-Host "##[command]dir C:\Python"
@@ -87,5 +88,5 @@ if (-not $env:SkipTests) {
 Write-Host "##[section]Uninstall Python"
 $UninstallCmd = "$(SetupExe) /passive /uninstall /log C:\Logs\uninstall\log.txt"
 Write-Host "##[command]$UninstallCmd"
-& $UninstallCmd
+iex $UninstallCmd
 if (!$?) { exit $LASTEXITCODE }
