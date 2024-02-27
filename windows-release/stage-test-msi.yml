@@ -57,7 +57,7 @@ jobs:
       -v "$(Build.BinariesDirectory)\msi:C:\msi"
       -v "$(Build.SourcesDirectory)\windows-release:C:\scripts"
       -v "$(Build.BinariesDirectory)\tmp:C:\Python"
-      -v ('{}:C:\logs' -f (mkdir "$(Build.ArtifactStagingDirectory)\logs"))
+      -v ('{0}:C:\logs' -f (mkdir "$(Build.ArtifactStagingDirectory)\logs"))
       -e InstallAllUsers
       -e IncludeFreethreadedOpt
       -e SkipTests
