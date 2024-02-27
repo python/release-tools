@@ -1,11 +1,11 @@
 param ([string]$SetupExe)
 
 Write-Host "##[section]Install Python"
-$SetupCmd = "$SetupExe /passive /log ""C:\Logs\install\log.txt"" "`
-            "TargetDir=C:\Python " `
-            "Include_debug=1 " `
-            "Include_symbols=1 " `
-            "InstallAllUsers=${env:InstallAllUsers} " `
+$SetupCmd = "$SetupExe /passive /log ""C:\Logs\install\log.txt"" " + `
+            "TargetDir=C:\Python " + `
+            "Include_debug=1 " + `
+            "Include_symbols=1 " + `
+            "InstallAllUsers=${env:InstallAllUsers} " + `
             "${env:IncludeFreethreadedOpt}"
 Write-Host "##[command]$SetupCmd"
 & $SetupCmd
