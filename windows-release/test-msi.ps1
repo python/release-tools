@@ -10,7 +10,7 @@ $SetupArgs = "$SetupExe " + `
             "${env:IncludeFreethreadedOpt}"
 Write-Host "##[command]$SetupCmd"
 iex $SetupCmd
-if (!$?) { exit $LASTEXITCODE }
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
 Write-Host "##[command]dir C:\Python"
 dir C:\Python
@@ -89,4 +89,4 @@ Write-Host "##[section]Uninstall Python"
 $UninstallCmd = "$(SetupExe) /passive /uninstall /log C:\Logs\uninstall\log.txt"
 Write-Host "##[command]$UninstallCmd"
 iex $UninstallCmd
-if (!$?) { exit $LASTEXITCODE }
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
