@@ -57,7 +57,7 @@ jobs:
       -v ('{0}:C:\msi' -f (Split-Path -Parent "$(SetupExe)"))
       -v ('{0}:C:\scripts' -f (gi windows-release))
       -v ('{0}:C:\Python' -f (mkdir "$(Build.BinariesDirectory)\tmp" -Force))
-      -v ('{0}:C:\logs' -f (mkdir "$(Build.ArtifactStagingDirectory)\logs" -Force))
+      -v ('{0}:C:\logs' -f (mkdir "$(Logs)" -Force))
       -e InstallAllUsers
       -e IncludeFreethreadedOpt
       -e SkipTests
