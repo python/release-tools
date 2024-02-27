@@ -56,7 +56,7 @@ jobs:
       docker run --rm
       -v "$(Build.BinariesDirectory)\msi:C:\msi"
       -v "$(Build.SourcesDirectory)\windows-release:C:\scripts"
-      -v "$(Build.BinariesDirectory)\tmp:C:\Python"
+      -v ('{0}:C:\Python' -f (mkdir "$(Build.BinariesDirectory)\tmp"))
       -v ('{0}:C:\logs' -f (mkdir "$(Build.ArtifactStagingDirectory)\logs"))
       -e InstallAllUsers
       -e IncludeFreethreadedOpt
