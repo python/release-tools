@@ -54,10 +54,10 @@ jobs:
 
   - powershell: >
       docker run --rm
-      -v "$(Build.BinariesDirectory)\msi:C:\msi"
-      -v "$(Build.SourcesDirectory)\windows-release:C:\scripts"
-      -v ('{0}:C:\Python' -f (mkdir "$(Build.BinariesDirectory)\tmp"))
-      -v ('{0}:C:\logs' -f (mkdir "$(Build.ArtifactStagingDirectory)\logs"))
+      -v ('{0}:C:\msi' -f (Split-Path -Parent "$(SetupExe)"))
+      -v ('{0}:C:\scripts' -f (gi windows-release))
+      -v ('{0}:C:\Python' -f (mkdir "$(Build.BinariesDirectory)\tmp" -Force))
+      -v ('{0}:C:\logs' -f (mkdir "$(Build.ArtifactStagingDirectory)\logs" -Force))
       -e InstallAllUsers
       -e IncludeFreethreadedOpt
       -e SkipTests
