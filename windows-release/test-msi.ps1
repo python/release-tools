@@ -27,16 +27,24 @@ dir -r "${env:APPDATA}\Microsoft\Windows\Start Menu\Programs\Python*"
 
 Write-Host "##[section]Capture registry"
 Write-Host 'Capture per-machine 32-bit registry'
-Write-Host "##[command]dir -r ""HKLM:\Software\WOW6432Node\Python"""
-dir -r "HKLM:\Software\WOW6432Node\Python"
+# PS 5.0 and later can't do this, because they normalise registry paths incorrectly
+# So we'll use the good old "reg" tool
+#Write-Host "##[command]dir -r ""HKLM:\Software\WOW6432Node\Python"""
+#dir -r "HKLM:\Software\WOW6432Node\Python"
+Write-Host "##[command]reg HKLM\Software\Python /s /reg:32"
+reg HKLM\Software\Python /s /reg:32
 
 Write-Host 'Capture per-machine native registry'
-Write-Host "##[command]dir -r ""HKLM:\Software\Python"""
-dir -r "HKLM:\Software\Python"
+#Write-Host "##[command]dir -r ""HKLM:\Software\Python"""
+#dir -r "HKLM:\Software\Python"
+Write-Host "##[command]reg HKLM\Software\Python /s /reg:64"
+reg HKLM\Software\Python /s /reg:64
 
 Write-Host 'Capture current-user registry'
-Write-Host "##[command]dir -r ""HKCU:\Software\Python"""
-dir -r "HKCU:\Software\Python"
+#Write-Host "##[command]dir -r ""HKCU:\Software\Python"""
+#dir -r "HKCU:\Software\Python"
+Write-Host "##[command]reg HKCU\Software\Python /s"
+reg HKCU\Software\Python /s
 
 
 if (-not $env:SkipTests) {
