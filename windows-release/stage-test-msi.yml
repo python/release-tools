@@ -62,7 +62,7 @@ jobs:
       -e IncludeFreethreadedOpt
       -e SkipTests
       -e SkipTkTests
-      mcr.microsoft.com/windows/servercore:ltsc2022
+      mcr.microsoft.com/windows/server:ltsc2022
       powershell C:\scripts\test-msi.ps1 "C:\msi\$(SetupExeName)"
     displayName: 'Run installer tests'
 
