@@ -12,6 +12,7 @@ import contextlib
 import functools
 import getpass
 import itertools
+import json
 import os
 import pathlib
 import re
@@ -34,6 +35,7 @@ from alive_progress import alive_bar
 
 import release as release_mod
 from buildbotapi import BuildBotAPI
+import sbom
 
 API_KEY_REGEXP = re.compile(r"(?P<major>\w+):(?P<minor>\w+)")
 
@@ -410,18 +412,30 @@ def prepare_pydoc_topics(db: DbfilenameShelf) -> None:
 
 
 def run_autoconf(db: DbfilenameShelf) -> None:
-    subprocess.check_call(
-        [
-            "docker",
-            "run",
-            "--rm",
-            "--pull=always",
-            f"-v{db['git_repo']}:/src",
-            "quay.io/tiran/cpython_autoconf:cp311",
-        ],
-        cwd=db["git_repo"],
-    )
-    subprocess.check_call(["docker", "rmi", "quay.io/tiran/cpython_autoconf", "-f"])
+    # Python 3.12 and newer have a script that runs autoconf.
+    regen_configure_sh = db["git_repo"] / "Tools/build/regen-configure.sh"
+    if regen_configure_sh.exists():
+        subprocess.check_call(
+            [regen_configure_sh], cwd=db["git_repo"],
+        )
+    # Python 3.11 and prior rely on autoconf built within a container
+    # in order to maintain stability of autoconf generation.
+    else:
+        # Corresponds to the tag '269' and 'cp311'
+        cpython_autoconf_sha256 = "f370fee95eefa3d57b00488bce4911635411fa83e2d293ced8cf8a3674ead939"
+        subprocess.check_call(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "--pull=always",
+                f"-v{db['git_repo']}:/src",
+                f"quay.io/tiran/cpython_autoconf@sha256:{cpython_autoconf_sha256}",
+            ],
+            cwd=db["git_repo"],
+        )
+        subprocess.check_call(["docker", "rmi", "quay.io/tiran/cpython_autoconf", "-f"])
+
     subprocess.check_call(
         ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
     )
@@ -518,6 +532,26 @@ def sign_source_artifacts(db: DbfilenameShelf) -> None:
                            '--oidc-disable-ambient-providers', tgz, xz])
 
 
+def build_sbom_artifacts(db):
+
+    # Skip building an SBOM if there isn't a 'Misc/sbom.spdx.json' file.
+    if not (db["git_repo"] / "Misc/sbom.spdx.json").exists():
+        print("Skipping building an SBOM, missing 'Misc/sbom.spdx.json'")
+        return
+
+    release_version = db["release"]
+    # For each source tarball build an SBOM.
+    for ext in (".tgz", ".tar.xz"):
+        tarball_name = f"Python-{release_version}{ext}"
+        tarball_path = str(db["git_repo"] / str(db["release"]) / "src" / tarball_name)
+
+        print(f"Building an SBOM for artifact '{tarball_name}'")
+        sbom_data = sbom.create_sbom_for_source_tarball(tarball_path)
+
+        with open(tarball_path + ".spdx.json", mode="w") as f:
+            f.write(json.dumps(sbom_data, indent=2, sort_keys=True))
+
+
 class MySFTPClient(paramiko.SFTPClient):
     def put_dir(self, source, target, progress=None):
         for item in os.listdir(source):
@@ -603,7 +637,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
     # Docs
 
     release_tag: release_mod.Tag = db["release"]
-    if release_tag.is_final or release_tag.is_release_candiate:
+    if release_tag.is_final or release_tag.is_release_candidate:
         source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
         destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
 
@@ -622,7 +656,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
 
 def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
-    if not (release_tag.is_final or release_tag.is_release_candiate):
+    if not (release_tag.is_final or release_tag.is_release_candidate):
         return
 
     client = paramiko.SSHClient()
@@ -658,7 +692,7 @@ def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
 
 def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
-    if not (release_tag.is_final or release_tag.is_release_candiate):
+    if not (release_tag.is_final or release_tag.is_release_candidate):
         return
 
     client = paramiko.SSHClient()
@@ -1075,6 +1109,7 @@ fix these things in this script so it also support your platform.
     )
     args = parser.parse_args()
     auth_key = args.auth_key or os.getenv("AUTH_INFO")
+    assert isinstance(auth_key, str), "We need an AUTH_INFO env var or --auth-key"
     tasks = [
         Task(check_git, "Checking git is available"),
         Task(check_make, "Checking make is available"),
@@ -1091,7 +1126,7 @@ fix these things in this script so it also support your platform.
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(run_autoconf, "Running autoconf"),
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
-        Task(check_pyspecific, "Chech pyspecific"),
+        Task(check_pyspecific, "Checking pyspecific"),
         Task(bump_version, "Bump version"),
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
         Task(create_tag, "Create tag"),
@@ -1102,13 +1137,13 @@ fix these things in this script so it also support your platform.
             "Platform release managers have been notified of the commit SHA",
         ),
         Task(wait_for_source_and_docs_artifacts, "Wait for source and docs artifacts to build"),
+        Task(build_sbom_artifacts, "Building SBOM artifacts"),
         Task(sign_source_artifacts, "Sign source artifacts"),
         Task(upload_files_to_server, "Upload files to the PSF server"),
         Task(place_files_in_download_folder, "Place files in the download folder"),
         Task(upload_docs_to_the_docs_server, "Upload docs to the PSF docs server"),
         Task(unpack_docs_in_the_docs_server, "Place docs files in the docs folder"),
-        Task(wait_util_all_files_are_in_folder, "Wait until all files are ready"),
-        Task(create_release_object_in_db, "The django release object has been created"),
+        Task(wait_util_all_files_are_in_folder, "Wait until all files are ready"),        Task(create_release_object_in_db, "The django release object has been created"),
         Task(post_release_merge, "Merge the tag into the release branch"),
         Task(branch_new_versions, "Branch out new versions and prepare main branch"),
         Task(post_release_tagging, "Final touches for the release"),

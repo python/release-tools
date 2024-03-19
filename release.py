@@ -58,7 +58,7 @@ def chdir_to_repo_root():
     # note that we can't ask git, because we might
     # be in an exported directory tree!
 
-    # we intentionally start in a (probably nonexistant) subtree
+    # we intentionally start in a (probably nonexistent) subtree
     # the first thing the while loop does is .., basically
     path = os.path.abspath("garglemox")
     while True:
@@ -95,8 +95,6 @@ def chdir_to_repo_root():
     return root
 
 
-
-
 def get_output(args):
     return subprocess.check_output(args)
 
@@ -121,7 +119,7 @@ def get_arg_parser():
                  help='Upload the tarballs and docs to dinsdale')
     p.add_option('-m', '--branch',
                  default=False, action='store_true',
-                 help='create a maintance branch to go along with the release')
+                 help='Create a maintenance branch to go along with the release')
     p.add_option('-t', '--tag',
                  default=False, action='store_true',
                  help='Tag the release in Subversion')
@@ -442,7 +440,7 @@ class Tag(object):
         return self.level == "a"
 
     @property
-    def is_release_candiate(self):
+    def is_release_candidate(self):
         return self.level == "rc"
 
     @property

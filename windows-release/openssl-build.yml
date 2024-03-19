@@ -20,8 +20,10 @@ name: ${{ parameters.SourceTag }}_$(Date:yyyyMMdd)$(Rev:.rr)
 
 
 variables:
-- ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
+- ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
   - group: CPythonSign
+- ${{ if eq(parameters.SigningCertificate, 'TestSign') }}:
+  - group: CPythonTestSign
 - name: IntDir
   value: '$(Build.BinariesDirectory)'
 - name: OutDir

@@ -3,6 +3,7 @@ parameters:
   DoPGO: false
   # DoPGOARM64 only applies if DoPGO is also true
   DoPGOARM64: true
+  DoFreethreaded: false
 
 jobs:
 - job: Build_Docs
@@ -60,12 +61,14 @@ jobs:
         Platform: x86
         Configuration: Release
         _HostPython: .\python
+        ExtraOptions: ''
       win32_d:
         Name: win32_d
         Arch: win32
         Platform: x86
         Configuration: Debug
         _HostPython: .\python
+        ExtraOptions: ''
       ${{ if ne(parameters.DoPGO, 'true') }}:
         amd64:
           Name: amd64
@@ -73,12 +76,14 @@ jobs:
           Platform: x64
           Configuration: Release
           _HostPython: .\python
+          ExtraOptions: ''
       amd64_d:
         Name: amd64_d
         Arch: amd64
         Platform: x64
         Configuration: Debug
         _HostPython: .\python
+        ExtraOptions: ''
       ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
         arm64:
           Name: arm64
@@ -86,12 +91,59 @@ jobs:
           Platform: ARM64
           Configuration: Release
           _HostPython: python
+          ExtraOptions: ''
       arm64_d:
         Name: arm64_d
         Arch: arm64
         Platform: ARM64
         Configuration: Debug
         _HostPython: python
+        ExtraOptions: ''
+      ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+        win32_t:
+          Name: win32_t
+          Arch: win32
+          Platform: x86
+          Configuration: Release
+          _HostPython: .\python
+          ExtraOptions: --disable-gil
+        win32_td:
+          Name: win32_td
+          Arch: win32
+          Platform: x86
+          Configuration: Debug
+          _HostPython: .\python
+          ExtraOptions: --disable-gil
+        ${{ if ne(parameters.DoPGO, 'true') }}:
+          amd64_t:
+            Name: amd64_t
+            Arch: amd64
+            Platform: x64
+            Configuration: Release
+            _HostPython: .\python
+            ExtraOptions: --disable-gil
+        amd64_td:
+          Name: amd64_td
+          Arch: amd64
+          Platform: x64
+          Configuration: Debug
+          _HostPython: .\python
+          ExtraOptions: --disable-gil
+        ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
+          arm64_t:
+            Name: arm64_t
+            Arch: arm64
+            Platform: ARM64
+            Configuration: Release
+            _HostPython: python
+            ExtraOptions: --disable-gil
+        arm64_td:
+          Name: arm64_td
+          Arch: arm64
+          Platform: ARM64
+          Configuration: Debug
+          _HostPython: python
+          ExtraOptions: --disable-gil
 
   steps:
     - template: ./build-steps.yml
@@ -114,6 +166,16 @@ jobs:
           Arch: amd64
           Platform: x64
           _HostPython: .\python
+          PythonExePattern: python.exe
+          ExtraOptions: ''
+        ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+          amd64_t:
+            Name: amd64_t
+            Arch: amd64
+            Platform: x64
+            _HostPython: .\python
+            PythonExePattern: python3*t.exe
+            ExtraOptions: --disable-gil
 
     steps:
       - template: ./build-steps-pgo.yml
@@ -132,13 +194,22 @@ jobs:
       workspace:
         clean: all
 
+      variables:
+        Arch: arm64
+        Platform: ARM64
+        _HostPython: python
+
       strategy:
         matrix:
           arm64:
             Name: arm64
-            Arch: arm64
-            Platform: ARM64
-            _HostPython: python
+            PythonExePattern: python.exe
+            ExtraOptions: ''
+          ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+            arm64_t:
+              Name: arm64_t
+              PythonExePattern: python3*t.exe
+              ExtraOptions: --disable-gil
 
       steps:
         - template: ./build-steps-pgo.yml
@@ -158,12 +229,19 @@ jobs:
       workspace:
         clean: all
 
+      variables:
+        Arch: arm64
+        Platform: ARM64
+
       strategy:
         matrix:
           arm64:
             Name: arm64
-            Arch: arm64
-            Platform: ARM64
+            PythonExePattern: python.exe
+          ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+            arm64_t:
+              Name: arm64_t
+              PythonExePattern: python3*t.exe
 
       steps:
         - template: ./build-steps-pgo.yml
@@ -180,13 +258,22 @@ jobs:
       workspace:
         clean: all
 
+      variables:
+        Arch: arm64
+        Platform: ARM64
+        _HostPython: python
+
       strategy:
         matrix:
           arm64:
             Name: arm64
-            Arch: arm64
-            Platform: ARM64
-            _HostPython: python
+            PythonExePattern: python.exe
+            ExtraOptions: ''
+          ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+            arm64_t:
+              Name: arm64_t
+              PythonExePattern: python3*t.exe
+              ExtraOptions: --disable-gil
 
       steps:
         - template: ./build-steps-pgo.yml
@@ -231,21 +318,15 @@ jobs:
         platform: ARM64
         msbuildArguments: /t:CopyTclTkLib /p:OutDir="$(Build.ArtifactStagingDirectory)\tcl_arm64"
 
-  - task: PublishPipelineArtifact@0
+  - publish: '$(Build.ArtifactStagingDirectory)\tcl_win32'
+    artifact: tcltk_lib_win32
     displayName: 'Publish artifact: tcltk_lib_win32'
-    inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)\tcl_win32'
-      artifactName: tcltk_lib_win32
 
-  - task: PublishPipelineArtifact@0
+  - publish: '$(Build.ArtifactStagingDirectory)\tcl_amd64'
+    artifact: tcltk_lib_amd64
     displayName: 'Publish artifact: tcltk_lib_amd64'
-    inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)\tcl_amd64'
-      artifactName: tcltk_lib_amd64
 
   - ${{ if eq(parameters.ARM64TclTk, true) }}:
-    - task: PublishPipelineArtifact@0
+    - publish: '$(Build.ArtifactStagingDirectory)\tcl_arm64'
+      artifact: tcltk_lib_arm64
       displayName: 'Publish artifact: tcltk_lib_arm64'
-      inputs:
-        targetPath: '$(Build.ArtifactStagingDirectory)\tcl_arm64'
-        artifactName: tcltk_lib_arm64

@@ -1,3 +1,6 @@
+parameters:
+  DoFreethreaded: false
+
 jobs:
 - job: Test_MSI
   displayName: Test MSI
@@ -7,6 +10,12 @@ jobs:
 
   workspace:
     clean: all
+
+  variables:
+    ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+      IncludeFreethreadedOpt: Include_freethreaded=1
+    ${{ else }}:
+      IncludeFreethreadedOpt: ''
 
   strategy:
     matrix:
@@ -51,7 +60,12 @@ jobs:
       Include_debug=1
       Include_symbols=1
       InstallAllUsers=$(InstallAllUsers)
+      $(IncludeFreethreadedOpt)
     displayName: 'Install Python'
+
+  - powershell: |
+      gci "$(Build.BinariesDirectory)\python"
+    displayName: 'List installed files'
 
   - powershell: |
       $p = gi "$(Build.BinariesDirectory)\Python\python.exe"
@@ -67,6 +81,20 @@ jobs:
       python -m site
     displayName: 'Collect site'
     condition: and(succeeded(), not(variables['SkipTests']))
+
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - powershell: |
+        $p = (gci "$(Build.BinariesDirectory)\Python\python3*t.exe" | select -First 1)
+        Write-Host "Found $p"
+        if (-not $p) {
+            Write-Host "Did not find python3*t.exe in:"
+            dir "$(Build.BinariesDirectory)\Python"
+            throw "Free-threaded binaries were not installed"
+        } else {
+            & $p -c "import sys; print(sys.version)"
+        }
+      displayName: 'Collect free-threaded version number'
+      condition: and(succeeded(), not(variables['SkipTests']))
 
   - powershell: |
       gci -r "${env:PROGRAMDATA}\Microsoft\Windows\Start Menu\Programs\Python*"

@@ -1,5 +1,6 @@
 parameters:
   ARM64TclTk: true
+  DoFreethreaded: false
 
 jobs:
 - job: Make_Layouts
@@ -12,69 +13,97 @@ jobs:
   workspace:
     clean: all
 
+  variables:
+    PYTHONHOME: $(Build.SourcesDirectory)
+
   strategy:
     matrix:
       win32:
         Name: win32
-        Python: $(Build.BinariesDirectory)\bin\python.exe
-        PYTHONHOME: $(Build.SourcesDirectory)
-        TclLibrary: $(Build.BinariesDirectory)\tcltk_lib\tcl8
+        DebugName: win32_d
+        Arch: win32
+        TclLibrary: tcltk_lib_win32
+        ExtraOptions: ''
       amd64:
         Name: amd64
-        Python: $(Build.BinariesDirectory)\bin\python.exe
-        PYTHONHOME: $(Build.SourcesDirectory)
-        TclLibrary: $(Build.BinariesDirectory)\tcltk_lib\tcl8
+        DebugName: amd64_d
+        Arch: amd64
+        TclLibrary: tcltk_lib_amd64
+        ExtraOptions: ''
       arm64:
         Name: arm64
+        DebugName: arm64_d
+        Arch: arm64
         HostArch: amd64
-        Python: $(Build.BinariesDirectory)\bin_amd64\python.exe
-        PYTHONHOME: $(Build.SourcesDirectory)
-        ${{ if eq(parameters.ARM64TclTk, true) }}:
-          TclLibrary: $(Build.BinariesDirectory)\tcltk_lib\tcl8
+        ExtraOptions: ''
+        ${{ if eq(parameters.ARM64TclTk, 'true') }}:
+          TclLibrary: tcltk_lib_arm64
+      ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+        win32_t:
+          Name: win32_t
+          DebugName: win32_td
+          Arch: win32
+          HostArch: win32
+          TclLibrary: tcltk_lib_win32
+          ExtraOptions: --include-freethreaded
+        amd64_t:
+          Name: amd64_t
+          DebugName: amd64_td
+          Arch: amd64
+          HostArch: amd64
+          TclLibrary: tcltk_lib_amd64
+          ExtraOptions: --include-freethreaded
+        arm64_t:
+          Name: arm64_t
+          DebugName: arm64_td
+          Arch: arm64
+          HostArch: amd64
+          TclLibrary: tcltk_lib_arm64
+          ExtraOptions: --include-freethreaded
 
   steps:
   - template: ./checkout.yml
 
-  - task: DownloadPipelineArtifact@1
+  - download: current
+    artifact: bin_$(Name)
     displayName: 'Download artifact: bin_$(Name)'
-    inputs:
-      artifactName: bin_$(Name)
-      targetPath: $(Build.BinariesDirectory)\bin
 
-  - task: DownloadPipelineArtifact@1
-    displayName: 'Download artifact: bin_$(Name)_d'
-    inputs:
-      artifactName: bin_$(Name)_d
-      targetPath: $(Build.BinariesDirectory)\bin
-
-  - task: DownloadPipelineArtifact@1
-    displayName: 'Download artifact: doc'
-    inputs:
-      artifactName: doc
-      targetPath: $(Build.BinariesDirectory)\doc
-
-  - task: DownloadPipelineArtifact@1
-    displayName: 'Download artifact: tcltk_lib_$(Name)'
-    condition: and(succeeded(), variables['TclLibrary'])
-    inputs:
-      artifactName: tcltk_lib_$(Name)
-      targetPath: $(Build.BinariesDirectory)\tcltk_lib
+  - download: current
+    artifact: bin_$(DebugName)
+    displayName: 'Download artifact: bin_$(DebugName)'
 
   - powershell: |
-      copy "$(Build.BinariesDirectory)\bin\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
+      $dest = "$(Pipeline.Workspace)\bin_$(Name)"
+      dir "$(Pipeline.Workspace)\bin_$(DebugName)" | `
+      ?{ -not (Test-Path "$dest\$($_.Name)") } | `
+      %{ copy $_.FullName $dest }
+    displayName: 'Copy debug binaries'
+
+  - download: current
+    artifact: doc
+    displayName: 'Download artifact: doc'
+
+  - download: current
+    artifact: $(TclLibrary)
+    displayName: 'Download artifact: $(TclLibrary)'
+    condition: and(succeeded(), variables['TclLibrary'])
+
+  - powershell: |
+      Write-Host "##vso[task.setvariable variable=TCL_LIBRARY]$(Pipeline.Workspace)\$(TclLibrary)\tcl8"
+    displayName: 'Update TCL_LIBRARY'
+    condition: and(succeeded(), variables['TclLibrary'])
+
+  - powershell: |
+      copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
     displayName: 'Copy signed files into sources'
     condition: and(succeeded(), variables['SigningCertificate'])
 
   - template: ./layout-command.yml
 
   - powershell: |
-      $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\layout" --preset-default
+      $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\layout" --preset-default $(ExtraOptions)
     displayName: 'Generate full layout'
-    env:
-      TCL_LIBRARY: $(TclLibrary)
 
-  - task: PublishPipelineArtifact@0
+  - publish: '$(Build.ArtifactStagingDirectory)\layout'
+    artifact: layout_full_$(Name)
     displayName: 'Publish Artifact: layout_full_$(Name)'
-    inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)\layout'
-      artifactName: layout_full_$(Name)

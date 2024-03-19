@@ -1,23 +1,37 @@
+parameters:
+  Binaries: $(Pipeline.Workspace)\bin_$(Name)
+  Sources: $(Build.SourcesDirectory)
+  Temp: $(Build.BinariesDirectory)\layout-temp
+  Docs: $(Build.BinariesDirectory)\doc
+
 steps:
-- task: DownloadPipelineArtifact@1
+- download: current
+  artifact: bin_$(HostArch)
   displayName: 'Download artifact: bin_$(HostArch)'
   condition: and(succeeded(), variables['HostArch'])
-  inputs:
-    artifactName: bin_$(HostArch)
-    targetPath: $(Build.BinariesDirectory)\bin_$(HostArch)
+
+- powershell: |
+    Write-Host "##vso[task.setvariable variable=Python]${{ parameters.Binaries }}\python.exe"
+  condition: and(succeeded(), not(variables['HostArch']))
+  displayName: 'Set Python command'
+
+- powershell: |
+    Write-Host "##vso[task.setvariable variable=Python]$(Pipeline.Workspace)\bin_$(HostArch)\python.exe"
+  condition: and(succeeded(), variables['HostArch'])
+  displayName: 'Set Python command'
 
 - powershell: >
-    Write-Host (
-    '##vso[task.setvariable variable=LayoutCmd]&
+    $layout_cmd = '&
     "$(Python)"
     "{1}\PC\layout"
     -vv
     --source "{1}"
-    --build "{0}\bin"
-    --arch "$(Name)"
-    --temp "{0}\layout-temp"
-    --include-cat "{0}\bin\python.cat"
-    --doc-build "{0}\doc"'
-    -f ("$(Build.BinariesDirectory)", "$(Build.SourcesDirectory)")
-    )
+    --build "{0}"
+    --arch "$(Arch)"
+    --temp "{2}"
+    --include-cat "{0}\python.cat"
+    --doc-build "{3}"'
+    -f ("${{ parameters.Binaries }}", "${{ parameters.Sources }}", "${{ parameters.Temp }}", "${{ parameters.Docs}}");
+    Write-Host "##vso[task.setvariable variable=LayoutCmd]$layout_cmd";
+    Write-Host "Setting LayoutCmd=$layout_cmd"
   displayName: 'Set LayoutCmd'

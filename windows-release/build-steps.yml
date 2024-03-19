@@ -18,7 +18,7 @@ steps:
 - ${{ if eq(parameters.ShouldPGO, 'false') }}:
   - powershell: |
       $env:SigningCertificate = $null
-      .\PCbuild\build.bat -v -p $(Platform) -c $(Configuration)
+      .\PCbuild\build.bat -v -p $(Platform) -c $(Configuration) $(ExtraOptions)
     displayName: 'Run build'
     env:
       IncludeUwp: true
@@ -27,7 +27,7 @@ steps:
 - ${{ if eq(parameters.ShouldPGO, 'true') }}:
   - powershell: |
       $env:SigningCertificate = $null
-      .\PCbuild\build.bat -v -p $(Platform) --pgo
+      .\PCbuild\build.bat -v -p $(Platform) --pgo $(ExtraOptions)
     displayName: 'Run build with PGO'
     env:
       IncludeUwp: true

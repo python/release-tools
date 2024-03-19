@@ -19,11 +19,13 @@ steps:
       } else {
         $files = (gi ${{ parameters.Include }})
       }
-      NuGetKeyVaultSignTool sign -kvu '$(KeyVaultUri)' `
-                    -kvi '$(KeyVaultApplication)' -kvt '$(KeyVaultDirectory)' -kvs '$(KeyVaultSecret)' `
-                    -tr http://timestamp.digicert.com/ -td sha256 `
-                    -kvc '${{ parameters.SigningCertificate }}' -fd sha256 `
-                    $files
+      $files | %{
+        NuGetKeyVaultSignTool sign -kvu '$(KeyVaultUri)' `
+          -kvi '$(KeyVaultApplication)' -kvt '$(KeyVaultDirectory)' -kvs '$(KeyVaultSecret)' `
+          -tr http://timestamp.digicert.com/ -td sha256 `
+          -kvc '$(KeyVaultCertificateName)' -fd sha256 `
+          $_
+      }
     displayName: 'Sign binaries'
     retryCountOnTaskFailure: 3
     workingDirectory: ${{ parameters.WorkingDir }}

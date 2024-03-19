@@ -1,4 +1,5 @@
 parameters:
+  DoFreethreaded: false
   SigningCertificate: ''
 
 jobs:
@@ -20,19 +21,26 @@ jobs:
         Name: win32
       arm64:
         Name: arm64
+      ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+        amd64_t:
+          Name: amd64_t
+        win32_t:
+          Name: win32_t
+        arm64_t:
+          Name: arm64_t
 
-  ${{ if parameters.SigningCertificate }}:
-    variables:
+  variables:
+  - ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
     - group: CPythonSign
+  - ${{ if eq(parameters.SigningCertificate, 'TestSign') }}:
+    - group: CPythonTestSign
 
   steps:
   - checkout: none
 
-  - task: DownloadPipelineArtifact@1
+  - download: current
+    artifact: layout_nuget_$(Name)
     displayName: 'Download artifact: layout_nuget_$(Name)'
-    inputs:
-      artifactName: layout_nuget_$(Name)
-      targetPath: $(Build.BinariesDirectory)\layout
 
   - task: NugetToolInstaller@0
     displayName: 'Install Nuget'
@@ -41,7 +49,7 @@ jobs:
 
   - powershell: >
       nuget pack
-      "$(Build.BinariesDirectory)\layout\python.nuspec"
+      "$(Pipeline.Workspace)\layout_nuget_$(Name)\python.nuspec"
       -OutputDirectory $(Build.ArtifactStagingDirectory)
       -NoPackageAnalysis
       -NonInteractive
@@ -50,7 +58,7 @@ jobs:
 
   - powershell: >
       nuget pack
-      "$(Build.BinariesDirectory)\layout\python.nuspec"
+      "$(Pipeline.Workspace)\layout_nuget_$(Name)\python.nuspec"
       -OutputDirectory $(Build.ArtifactStagingDirectory)
       -NoPackageAnalysis
       -NonInteractive
