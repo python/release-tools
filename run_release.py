@@ -734,11 +734,12 @@ def start_build_of_source_and_docs(db: DbfilenameShelf) -> None:
         ["git", "ls-remote", "--get-url", "origin"],
         cwd=db["git_repo"]
     ).decode().strip()
-    match = re.match(r"github\.com/([^/]+)/", origin_remote_url)
-    if not match:
+    if https_match := re.match(r"github\.com/([^/]+)/", origin_remote_url):
+        origin_remote_github_owner = https_match.group(1)
+    elif ssh_match := re.match(r"^git@github\.com:([^/]+)/", origin_remote_url):
+        origin_remote_github_owner = ssh_match.group(1)
+    else:
         raise ReleaseException(f"Could not parse GitHub owner from 'origin' remote URL: {origin_remote_url}")
-    origin_remote_github_owner = match.group(1)
-
     # We ask for human verification at this point since this commit SHA is 'locked in'
     print()
     print(f"Go to https://github.com/{origin_remote_github_owner}/cpython/commit/{commit_sha}")
@@ -782,7 +783,7 @@ def create_release_object_in_db(db: DbfilenameShelf) -> None:
         raise ReleaseException("The django release object has not been created")
 
 
-def wait_util_all_files_are_in_folder(db: DbfilenameShelf) -> None:
+def wait_until_all_files_are_in_folder(db: DbfilenameShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
@@ -990,15 +991,30 @@ def branch_new_versions(db: DbfilenameShelf) -> None:
     )
 
 
+def is_mirror(repo: pathlib.Path, remote: str) -> bool:
+    """Return True if the `repo` directory was created with --mirror."""
+
+    cmd = ["git", "config", "--local", "--get", f"remote.{remote}.mirror"]
+    try:
+        out = subprocess.check_output(cmd, cwd=repo)
+    except subprocess.CalledProcessError:
+        return False
+    return out.startswith(b"true")
+
+
 def push_to_local_fork(db: DbfilenameShelf) -> None:
     def _push_to_local(dry_run=False):
         git_command = ["git", "push"]
         if dry_run:
             git_command.append("--dry-run")
 
+        git_command.append("origin")
+        if not is_mirror(db["git_repo"], "origin"):
+            # mirrors push everything always, specifying `--tags` or refspecs doesn't work.
+            git_command += ["HEAD", "--tags"]
+
         subprocess.check_call(
-            git_command + ["origin", "HEAD", "--tags"],
-            cwd=db["git_repo"],
+            git_command, cwd=db["git_repo"],
         )
 
     _push_to_local(dry_run=True)
@@ -1143,7 +1159,7 @@ fix these things in this script so it also support your platform.
         Task(place_files_in_download_folder, "Place files in the download folder"),
         Task(upload_docs_to_the_docs_server, "Upload docs to the PSF docs server"),
         Task(unpack_docs_in_the_docs_server, "Place docs files in the docs folder"),
-        Task(wait_util_all_files_are_in_folder, "Wait until all files are ready"),
+        Task(wait_until_all_files_are_in_folder, "Wait until all files are ready"),
         Task(create_release_object_in_db, "The django release object has been created"),
         Task(post_release_merge, "Merge the tag into the release branch"),
         Task(branch_new_versions, "Branch out new versions and prepare main branch"),
