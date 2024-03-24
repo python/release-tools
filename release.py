@@ -215,8 +215,9 @@ def bump(tag):
     print('Please commit and use --tag')
 
 
-def manual_edit(fn):
-    run_cmd([os.environ["EDITOR"], fn])
+def manual_edit(fn: str) -> None:
+    editor = os.environ["EDITOR"].split()
+    run_cmd([*editor, fn])
 
 
 @contextmanager
