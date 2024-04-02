@@ -14,4 +14,5 @@ jobs:
           python-version: 3.x
       - run: |
           python -m pip install -r dev-requirements.txt
+      - run: |
           pytest tests/
