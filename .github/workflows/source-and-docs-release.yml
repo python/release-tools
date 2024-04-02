@@ -81,7 +81,7 @@ jobs:
           tar xvf Python-${{ inputs.cpython_release }}.tgz
           cd Python-${{ inputs.cpython_release }}
 
-          ./configure --prefix=$(realpath '../installation/')
+          ./configure "--prefix=$(realpath '../installation/')"
           make -j
           make install -j
 
