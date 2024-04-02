@@ -22,6 +22,12 @@ jobs:
   source-and-docs:
     runs-on: ubuntu-22.04
     steps:
+      - name: "Workflow run information"
+        run: |
+          echo "git_remote: ${{ inputs.git_remote }}"
+          echo "git_commit: ${{ inputs.git_commit }}"
+          echo "cpython_release: ${{ inputs.cpython_release }}"
+
       - name: "Checkout python/release-tools"
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
@@ -75,7 +81,7 @@ jobs:
           tar xvf Python-${{ inputs.cpython_release }}.tgz
           cd Python-${{ inputs.cpython_release }}
 
-          ./configure --prefix=$(realpath '../installation/')
+          ./configure "--prefix=$(realpath '../installation/')"
           make -j
           make install -j
 
