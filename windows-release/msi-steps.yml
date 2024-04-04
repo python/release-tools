@@ -114,3 +114,26 @@ steps:
   - publish: '$(Build.ArtifactStagingDirectory)\msi'
     artifact: msi
     displayName: 'Publish MSI'
+
+  - powershell: >
+      $(Python)
+      "$(Build.SourcesDirectory)\sbom.py"
+      "--cpython-source-dir=$(Build.SourcesDirectory)"
+      $(gci -r "$(Build.ArtifactStagingDirectory)\msi\**\python-*.exe")
+    workingDirectory: $(Build.BinariesDirectory)
+    displayName: 'Create SBOMs for binaries'
+
+  - task: CopyFiles@2
+    displayName: 'Layout Artifact: sbom'
+    inputs:
+      sourceFolder: $(Build.ArtifactStagingDirectory)\msi
+      targetFolder: $(Build.ArtifactStagingDirectory)\sbom
+      flatten: true
+      contents: |
+        **\*.spdx.json
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: sbom_msi_$(Name)'
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)\sbom'
+      ArtifactName: sbom_msi_$(Name)

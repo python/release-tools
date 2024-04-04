@@ -147,12 +147,6 @@ stages:
           SigningCertificate: ${{ parameters.SigningCertificate }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
-  - stage: SBOM
-    displayName: Create SBOMs
-    dependsOn: Build
-    jobs:
-    - template: stage-sbom.yml
-
   - stage: Layout
     displayName: Generate layouts
     dependsOn: Sign

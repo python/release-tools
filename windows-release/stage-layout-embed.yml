@@ -55,3 +55,26 @@ jobs:
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\embed'
       ArtifactName: embed
+
+  - powershell: >
+      $(Python)
+      "$(Build.SourcesDirectory)\sbom.py"
+      "--cpython-source-dir=$(Build.SourcesDirectory)"
+      "$(Build.ArtifactStagingDirectory)\embed\python-$(VersionText)-embed-$(Name).zip"
+    workingDirectory: $(Build.BinariesDirectory)
+    displayName: 'Create SBOMs for binaries'
+
+  - task: CopyFiles@2
+    displayName: 'Layout Artifact: sbom'
+    inputs:
+      sourceFolder: $(Build.ArtifactStagingDirectory)\embed
+      targetFolder: $(Build.ArtifactStagingDirectory)\sbom
+      flatten: true
+      contents: |
+        **\*.spdx.json
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: sbom_embed_$(Name)'
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)\sbom'
+      ArtifactName: sbom_embed_$(Name)
