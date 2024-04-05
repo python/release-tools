@@ -111,12 +111,8 @@ steps:
           *.cab
           *.exe
 
-  - publish: '$(Build.ArtifactStagingDirectory)\msi'
-    artifact: msi
-    displayName: 'Publish MSI'
-
   - powershell: >
-      $(Python)
+      & "$(Python)"
       "$(Build.SourcesDirectory)\sbom.py"
       "--cpython-source-dir=$(Build.SourcesDirectory)"
       $(gci -r "$(Build.ArtifactStagingDirectory)\msi\**\python-*.exe")
@@ -131,6 +127,10 @@ steps:
       flatten: true
       contents: |
         **\*.spdx.json
+
+  - publish: '$(Build.ArtifactStagingDirectory)\msi'
+    artifact: msi
+    displayName: 'Publish MSI'
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: sbom_msi_$(Name)'
