@@ -112,7 +112,7 @@ steps:
           *.exe
 
   - powershell: >
-      & "$(Python)"
+      & $(Python)
       "$(Build.SourcesDirectory)\sbom.py"
       "--cpython-source-dir=$(Build.SourcesDirectory)"
       $(gci -r "$(Build.ArtifactStagingDirectory)\msi\**\python-*.exe")

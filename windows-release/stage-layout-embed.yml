@@ -47,8 +47,13 @@ jobs:
     displayName: 'Generate embeddable layout'
 
   - powershell: >
+      git clone $(Build.Repository.Uri) -b $(Build.SourceBranch) --single-branch --no-checkout "$(Pipeline.Workspace)\release-tools"
+      git -C "$(Pipeline.Workspace)\release-tools" checkout $(Build.SourceVersion)
+    displayName: 'Clone the python/release-tools repository'
+
+  - powershell: >
       & "$(Python)"
-      "$(Build.SourcesDirectory)\sbom.py"
+      "$(Pipeline.Workspace)\release-tools\sbom.py"
       "--cpython-source-dir=$(Build.SourcesDirectory)"
       "$(Build.ArtifactStagingDirectory)\embed\python-$(VersionText)-embed-$(Name).zip"
     workingDirectory: $(Build.BinariesDirectory)
