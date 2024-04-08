@@ -111,9 +111,14 @@ steps:
           *.cab
           *.exe
 
+  - powershell: |
+      git clone $(Build.Repository.Uri) -b $(Build.SourceBranch) --single-branch --no-checkout "$(Pipeline.Workspace)\release-tools"
+      git -C "$(Pipeline.Workspace)\release-tools" checkout $(Build.SourceVersion)
+    displayName: 'Clone the python/release-tools repository'
+
   - powershell: >
       & $(Python)
-      "$(Build.SourcesDirectory)\sbom.py"
+      "$(Pipeline.Workspace)\release-tools\sbom.py"
       "--cpython-source-dir=$(Build.SourcesDirectory)"
       $(gci -r "$(Build.ArtifactStagingDirectory)\msi\**\python-*.exe")
     workingDirectory: $(Build.BinariesDirectory)

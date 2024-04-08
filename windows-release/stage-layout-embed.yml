@@ -46,7 +46,7 @@ jobs:
       --preset-embed
     displayName: 'Generate embeddable layout'
 
-  - powershell: >
+  - powershell: |
       git clone $(Build.Repository.Uri) -b $(Build.SourceBranch) --single-branch --no-checkout "$(Pipeline.Workspace)\release-tools"
       git -C "$(Pipeline.Workspace)\release-tools" checkout $(Build.SourceVersion)
     displayName: 'Clone the python/release-tools repository'
