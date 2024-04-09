@@ -388,8 +388,8 @@ def upload(tag, username):
         scp('src', '/data/python-releases/%s' % tag.nickname)
         print("Upload doc tarballs")
         scp('docs', '/data/python-releases/doc/%s' % tag.nickname)
-        print("* Now change the permissions on the tarballs so they are " \
-            "writable by the webmaster group. *")
+        print("* Now change the permissions on the tarballs so they are "
+              "writable by the webmaster group. *")
 
 
 class Tag:
