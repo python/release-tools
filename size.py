@@ -28,11 +28,16 @@ def key(filename: str) -> int:
     return sort_order.get(ext, 9999)
 
 
-for filename in sorted(sys.argv[1:], key=key):
-    if ignore(filename):
-        continue
-    md5 = hashlib.md5()
-    with open(filename, 'rb') as fp:
-        md5.update(fp.read())
-    size = os.stat(filename).st_size
-    print('  {}  {:8}  {}'.format(md5.hexdigest(), size, filename))
+def main() -> None:
+    for filename in sorted(sys.argv[1:], key=key):
+        if ignore(filename):
+            continue
+        md5 = hashlib.md5()
+        with open(filename, 'rb') as fp:
+            md5.update(fp.read())
+        size = os.stat(filename).st_size
+        print('  {}  {:8}  {}'.format(md5.hexdigest(), size, filename))
+
+
+if __name__ == '__main__':
+    main()
