@@ -12,7 +12,7 @@ import hashlib
 import optparse
 import os
 import re
-import readline  # noqa
+import readline  # noqa: F401
 import shutil
 import subprocess
 import sys
