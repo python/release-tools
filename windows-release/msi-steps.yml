@@ -130,6 +130,7 @@ steps:
       sourceFolder: $(Build.ArtifactStagingDirectory)\msi
       targetFolder: $(Build.ArtifactStagingDirectory)\sbom
       flatten: true
+      flattenFolders: true
       contents: |
         **\*.spdx.json
 
@@ -138,7 +139,7 @@ steps:
     displayName: 'Publish MSI'
 
   - task: PublishBuildArtifacts@1
-    displayName: 'Publish Artifact: sbom_msi_$(Name)'
+    displayName: 'Publish Artifact: sbom'
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\sbom'
-      ArtifactName: sbom_msi_$(Name)
+      ArtifactName: sbom

@@ -79,7 +79,7 @@ jobs:
       ArtifactName: embed
 
   - task: PublishBuildArtifacts@1
-    displayName: 'Publish Artifact: sbom_embed_$(Name)'
+    displayName: 'Publish Artifact: sbom'
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\sbom'
-      ArtifactName: sbom_embed_$(Name)
+      ArtifactName: sbom
