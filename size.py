@@ -14,11 +14,11 @@ sort_order = dict((ext, i) for i, ext in enumerate(
     ('tgz', 'tar.bz2', 'tar.xz', 'pdb.zip', 'amd64.msi', 'msi', 'chm', 'dmg')))
 
 
-def ignore(filename):
+def ignore(filename: str) -> bool:
     return not any(filename.endswith(DOT + ext) for ext in sort_order)
 
 
-def key(filename):
+def key(filename: str) -> int:
     parts = filename.split(DOT)
     # Try 2 parts first.
     ext = DOT.join(parts[-2:])
