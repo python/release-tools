@@ -214,7 +214,7 @@ def list_files(release):
         else:
             try:
                 prefix, rest = rfile.split('-', 1)
-            except:
+            except:  # noqa: E722
                 prefix, rest = rfile, ''
             if not rest.startswith((release + '-', release + '.')):
                 print(f'    File {reldir}/{rfile} has a different version')
@@ -247,7 +247,7 @@ def post_object(objtype, datadict):
             info = json.loads(resp.text)
             print(info.get('error_message', 'No error message.'))
             print(info.get('traceback', ''))
-        except:
+        except:  # noqa: E722
             pass
         print(f'Creating {objtype} failed: {resp.status_code}')
         return -1
