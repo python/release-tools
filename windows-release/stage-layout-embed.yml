@@ -46,6 +46,28 @@ jobs:
       --preset-embed
     displayName: 'Generate embeddable layout'
 
+  - powershell: |
+      git clone $(Build.Repository.Uri) -b $(Build.SourceBranchName) --single-branch --no-checkout "$(Pipeline.Workspace)\release-tools"
+      git -C "$(Pipeline.Workspace)\release-tools" checkout $(Build.SourceVersion)
+    displayName: 'Clone the python/release-tools repository'
+
+  - powershell: >
+      & "$(Python)"
+      "$(Pipeline.Workspace)\release-tools\sbom.py"
+      "--cpython-source-dir=$(Build.SourcesDirectory)"
+      "$(Build.ArtifactStagingDirectory)\embed\python-$(VersionText)-embed-$(Name).zip"
+    workingDirectory: $(Build.BinariesDirectory)
+    displayName: 'Create SBOMs for binaries'
+
+  - task: CopyFiles@2
+    displayName: 'Layout Artifact: sbom'
+    inputs:
+      sourceFolder: $(Build.ArtifactStagingDirectory)\embed
+      targetFolder: $(Build.ArtifactStagingDirectory)\sbom
+      flatten: true
+      contents: |
+        **\*.spdx.json
+
   - publish: '$(Build.ArtifactStagingDirectory)\layout'
     artifact: layout_embed_$(Name)
     displayName: 'Publish Artifact: layout_embed_$(Name)'
@@ -55,3 +77,9 @@ jobs:
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\embed'
       ArtifactName: embed
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: sbom'
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)\sbom'
+      ArtifactName: sbom
