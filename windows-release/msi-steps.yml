@@ -111,6 +111,35 @@ steps:
           *.cab
           *.exe
 
+  - powershell: |
+      git clone $(Build.Repository.Uri) -b $(Build.SourceBranchName) --single-branch --no-checkout "$(Pipeline.Workspace)\release-tools"
+      git -C "$(Pipeline.Workspace)\release-tools" checkout $(Build.SourceVersion)
+    displayName: 'Clone the python/release-tools repository'
+
+  - powershell: >
+      & $(Python)
+      "$(Pipeline.Workspace)\release-tools\sbom.py"
+      "--cpython-source-dir=$(Build.SourcesDirectory)"
+      $(gci -r "$(Build.ArtifactStagingDirectory)\msi\**\python-*.exe")
+    workingDirectory: $(Build.BinariesDirectory)
+    displayName: 'Create SBOMs for binaries'
+
+  - task: CopyFiles@2
+    displayName: 'Layout Artifact: sbom'
+    inputs:
+      sourceFolder: $(Build.ArtifactStagingDirectory)\msi
+      targetFolder: $(Build.ArtifactStagingDirectory)\sbom
+      flatten: true
+      flattenFolders: true
+      contents: |
+        **\*.spdx.json
+
   - publish: '$(Build.ArtifactStagingDirectory)\msi'
     artifact: msi
     displayName: 'Publish MSI'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: sbom'
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)\sbom'
+      ArtifactName: sbom
