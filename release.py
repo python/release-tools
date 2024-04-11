@@ -421,7 +421,7 @@ class Tag(object):
         self.level = data[3]
         self.serial = int(data[4])
         # This has the effect of normalizing the version.
-        self.text = "{}.{}.{}".format(self.major, self.minor, self.patch)
+        self.text = self.normalized()
         if self.level != "f":
             self.text += self.level + str(self.serial)
         self.basic_version = '%s.%s' % (self.major, self.minor)
