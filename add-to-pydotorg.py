@@ -231,7 +231,7 @@ def list_files(release):
 def query_object(objtype, **params):
     """Find an API object by query parameters."""
     uri = base_url + 'downloads/%s/' % objtype
-    uri += '?' + '&'.join('{}={}'.format(*v) for v in params.items())
+    uri += '?' + '&'.join(f'{k}={v}' for k, v in params.items())
     resp = requests.get(uri, headers=headers)
     if resp.status_code != 200 or not json.loads(resp.text)['objects']:
         raise RuntimeError(f'no object for {objtype} params={params!r}')
