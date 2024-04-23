@@ -30,6 +30,7 @@ param(
     [string]$tests=${env:TEMP},
     [string]$doc_htmlhelp=$null,
     [string]$embed=$null
+    [string]$sbom=$null
 )
 
 if (-not $build) { throw "-build option is required" }
@@ -87,17 +88,26 @@ $dirs = gci "$build" -Directory
 if ($embed) {
     $dirs = ($dirs, (gi $embed)) | %{ $_ }
 }
+if ($sbom) {
+    $dirs = ($dirs, $sbom)
+}
 
 foreach ($a in $dirs) {
     "Uploading files from $($a.FullName)"
     pushd "$($a.FullName)"
     $exe = gci *.exe, *.exe.asc, *.zip, *.zip.asc
     $msi = gci *.msi, *.msi.asc, *.msu, *.msu.asc
+    $spdx_json = gci *.spdx.json
     popd
 
     if ($exe) {
         & $pscp -batch -hostkey $hostkey -noagent -i $keyfile $exe.FullName "$user@${server}:$d"
         if (-not $?) { throw "Failed to upload $exe" }
+    }
+
+    if ($spdx_json) {
+        & $pscp -batch -hostkey $hostkey -noagent -i $keyfile $spdx_json.FullName "$user@${server}:$d"
+        if (-not $?) { throw "Failed to upload $spdx_json" }
     }
 
     if ($msi) {
