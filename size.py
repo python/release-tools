@@ -37,3 +37,7 @@ def main() -> None:
             md5.update(fp.read())
         size = os.stat(filename).st_size
         print(f'  {md5.hexdigest()}  {size:8}  {filename}')
+
+
+if __name__ == '__main__':
+    main()
