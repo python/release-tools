@@ -11,7 +11,6 @@ import builtins
 import contextlib
 import functools
 import getpass
-import itertools
 import json
 import os
 import pathlib
@@ -19,13 +18,12 @@ import re
 import shelve
 import shutil
 import subprocess
-import tempfile
+import sys
 import time
 import urllib.request
-import sys
 from dataclasses import dataclass
 from shelve import DbfilenameShelf
-from typing import Callable, Iterator, List, Optional, final
+from typing import Callable, Iterator, List, Optional
 
 import aiohttp
 import gnupg
@@ -34,8 +32,8 @@ import sigstore.oidc
 from alive_progress import alive_bar
 
 import release as release_mod
-from buildbotapi import BuildBotAPI
 import sbom
+from buildbotapi import BuildBotAPI
 
 API_KEY_REGEXP = re.compile(r"(?P<major>\w+):(?P<minor>\w+)")
 
@@ -443,7 +441,7 @@ def run_autoconf(db: DbfilenameShelf) -> None:
 
 def check_pyspecific(db):
     with open(
-        db["git_repo"] / "Doc" / "tools" / "extensions" / "pyspecific.py", "r"
+        db["git_repo"] / "Doc" / "tools" / "extensions" / "pyspecific.py"
     ) as pyspecific:
         for line in pyspecific:
             if "SOURCE_URI =" in line:
@@ -557,20 +555,20 @@ class MySFTPClient(paramiko.SFTPClient):
         for item in os.listdir(source):
             if os.path.isfile(os.path.join(source, item)):
                 progress.text(item)
-                self.put(os.path.join(source, item), "%s/%s" % (target, item))
+                self.put(os.path.join(source, item), f"{target}/{item}")
                 progress()
             else:
-                self.mkdir("%s/%s" % (target, item), ignore_existing=True)
+                self.mkdir(f"{target}/{item}", ignore_existing=True)
                 self.put_dir(
                     os.path.join(source, item),
-                    "%s/%s" % (target, item),
+                    f"{target}/{item}",
                     progress=progress,
                 )
 
     def mkdir(self, path, mode=511, ignore_existing=False):
         try:
             super().mkdir(path, mode)
-        except IOError:
+        except OSError:
             if ignore_existing:
                 pass
             else:

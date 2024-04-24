@@ -2,16 +2,16 @@
 
 """Dump the sizes for the given files, suitable for pasting into content.ht"""
 
+import hashlib
 import os
 import sys
-import hashlib
 
 DOT = '.'
 
 
 # For consistency with historical use.
-sort_order = dict((ext, i) for i, ext in enumerate(
-    ('tgz', 'tar.bz2', 'tar.xz', 'pdb.zip', 'amd64.msi', 'msi', 'chm', 'dmg')))
+sort_order = {ext: i for i, ext in enumerate(
+    ('tgz', 'tar.bz2', 'tar.xz', 'pdb.zip', 'amd64.msi', 'msi', 'chm', 'dmg'))}
 
 
 def ignore(filename):
@@ -35,4 +35,4 @@ for filename in sorted(sys.argv[1:], key=key):
     with open(filename, 'rb') as fp:
         md5.update(fp.read())
     size = os.stat(filename).st_size
-    print('  {}  {:8}  {}'.format(md5.hexdigest(), size, filename))
+    print(f'  {md5.hexdigest()}  {size:8}  {filename}')

@@ -21,9 +21,9 @@ import re
 import subprocess
 import sys
 import tarfile
+import typing
 import zipfile
 from urllib.request import urlopen
-import typing
 
 
 def spdx_id(value: str) -> str:
