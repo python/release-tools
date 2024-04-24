@@ -19,7 +19,7 @@ on:
 name: "Build Python source and docs artifacts"
 
 jobs:
-  source-and-docs:
+  build-source-and-docs:
     runs-on: ubuntu-22.04
     steps:
       - name: "Workflow run information"
@@ -73,21 +73,6 @@ jobs:
           cd cpython
           python ../release.py --export ${{ inputs.cpython_release }}
 
-      - name: "Test Python source tarballs"
-        run: |
-          mkdir -p ./tmp/installation/
-          cp cpython/${{ inputs.cpython_release }}/src/Python-${{ inputs.cpython_release }}.tgz ./tmp/
-          cd tmp/
-          tar xvf Python-${{ inputs.cpython_release }}.tgz
-          cd Python-${{ inputs.cpython_release }}
-
-          ./configure "--prefix=$(realpath '../installation/')"
-          make -j
-          make install -j
-
-          cd ../installation
-          ./bin/python3 -m test -uall
-
       - name: "Upload the source artifacts"
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         with:
@@ -104,3 +89,28 @@ jobs:
           name: docs
           path: |
             cpython/${{ inputs.cpython_release }}/docs
+
+  test-source:
+    runs-on: ubuntu-22.04
+    needs:
+      - build-source-and-docs
+    steps:
+      - name: "Download the source artifacts"
+        uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
+        with:
+          name: source
+
+      - name: "Test Python source tarballs"
+        run: |
+          mkdir -p ./tmp/installation/
+          cp Python-${{ inputs.cpython_release }}.tgz ./tmp/
+          cd tmp/
+          tar xvf Python-${{ inputs.cpython_release }}.tgz
+          cd Python-${{ inputs.cpython_release }}
+
+          ./configure "--prefix=$(realpath '../installation/')"
+          make -j
+          make install -j
+
+          cd ../installation
+          ./bin/python3 -m test -uall

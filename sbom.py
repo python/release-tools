@@ -10,18 +10,20 @@ For example:
 
 """
 
+import argparse
 import datetime
 import hashlib
 import io
 import json
 import os
+import pathlib
 import re
 import subprocess
 import sys
 import tarfile
+import typing
 import zipfile
 from urllib.request import urlopen
-import typing
 
 
 def spdx_id(value: str) -> str:
@@ -316,38 +318,20 @@ def create_pip_sbom_from_wheel(
     )
 
 
-def create_sbom_for_source_tarball(tarball_path: str):
-    """Stitches together an SBOM for a source tarball"""
-    tarball_name = os.path.basename(tarball_path)
+def create_cpython_sbom(
+    sbom_data: dict[str, typing.Any],
+    cpython_version: str,
+    artifact_path: str,
+):
+    """Creates the top-level SBOM metadata and the CPython SBOM package."""
 
-    # Open the tarball with known compression settings.
-    if tarball_name.endswith(".tgz"):
-        tarball = tarfile.open(tarball_path, mode="r:gz")
-    elif tarball_name.endswith(".tar.xz"):
-        tarball = tarfile.open(tarball_path, mode="r:xz")
-    else:
-        raise ValueError(f"Unknown tarball format: '{tarball_name}'")
-
-    # Parse the CPython version from the tarball.
-    # Calculate the download locations from the CPython version and tarball name.
-    cpython_version = re.match(r"^Python-([0-9abrc.]+)\.t", tarball_name).group(1)
     cpython_version_without_suffix = re.match(r"^([0-9.]+)", cpython_version).group(1)
-    tarball_download_location = f"https://www.python.org/ftp/python/{cpython_version_without_suffix}/{tarball_name}"
+    artifact_name = os.path.basename(artifact_path)
+    artifact_download_location = f"https://www.python.org/ftp/python/{cpython_version_without_suffix}/{artifact_name}"
 
-    # Take a hash of the tarball
-    with open(tarball_path, mode="rb") as f:
-        tarball_checksum_sha256 = hashlib.sha256(f.read()).hexdigest()
-
-    # There should be an SBOM included in the tarball.
-    # If there's not we can't create an SBOM.
-    try:
-        sbom_tarball_member = tarball.getmember(f"Python-{cpython_version}/Misc/sbom.spdx.json")
-    except KeyError:
-        raise ValueError(
-            "Tarball doesn't contain an SBOM at 'Misc/sbom.spdx.json'"
-        ) from None
-    sbom_bytes = tarball.extractfile(sbom_tarball_member).read()
-    sbom_data = json.loads(sbom_bytes)
+    # Take a hash of the artifact
+    with open(artifact_path, mode="rb") as f:
+        artifact_checksum_sha256 = hashlib.sha256(f.read()).hexdigest()
 
     sbom_data.update({
         "SPDXID": "SPDXRef-DOCUMENT",
@@ -356,7 +340,7 @@ def create_sbom_for_source_tarball(tarball_path: str):
         "dataLicense": "CC0-1.0",
         # Naming done according to OpenSSF SBOM WG recommendations.
         # See: https://github.com/ossf/sbom-everywhere/blob/main/reference/sbom_naming.md
-        "documentNamespace": f"{tarball_download_location}.spdx.json",
+        "documentNamespace": f"{artifact_download_location}.spdx.json",
         "creationInfo": {
             "created": (
                 datetime.datetime.now(tz=datetime.timezone.utc)
@@ -381,7 +365,7 @@ def create_sbom_for_source_tarball(tarball_path: str):
         "licenseConcluded": "PSF-2.0",
         "originator": "Organization: Python Software Foundation",
         "supplier": "Organization: Python Software Foundation",
-        "packageFileName": tarball_name,
+        "packageFileName": artifact_name,
         "externalRefs": [
             {
                 "referenceCategory": "SECURITY",
@@ -390,8 +374,8 @@ def create_sbom_for_source_tarball(tarball_path: str):
             }
         ],
         "primaryPackagePurpose": "SOURCE",
-        "downloadLocation": tarball_download_location,
-        "checksums": [{"algorithm": "SHA256", "checksumValue": tarball_checksum_sha256}],
+        "downloadLocation": artifact_download_location,
+        "checksums": [{"algorithm": "SHA256", "checksumValue": artifact_checksum_sha256}],
     }
 
     # The top-level CPython package depends on every vendored sub-package.
@@ -403,6 +387,37 @@ def create_sbom_for_source_tarball(tarball_path: str):
         })
 
     sbom_data["packages"].append(sbom_cpython_package)
+
+
+def create_sbom_for_source_tarball(tarball_path: str):
+    """Stitches together an SBOM for a source tarball"""
+    tarball_name = os.path.basename(tarball_path)
+
+    # Open the tarball with known compression settings.
+    if tarball_name.endswith(".tgz"):
+        tarball = tarfile.open(tarball_path, mode="r:gz")
+    elif tarball_name.endswith(".tar.xz"):
+        tarball = tarfile.open(tarball_path, mode="r:xz")
+    else:
+        raise ValueError(f"Unknown tarball format: '{tarball_name}'")
+
+    # Parse the CPython version from the tarball.
+    # Calculate the download locations from the CPython version and tarball name.
+    cpython_version = re.match(r"^Python-([0-9abrc.]+)\.t", tarball_name).group(1)
+
+    # There should be an SBOM included in the tarball.
+    # If there's not we can't create an SBOM.
+    try:
+        sbom_tarball_member = tarball.getmember(f"Python-{cpython_version}/Misc/sbom.spdx.json")
+    except KeyError:
+        raise ValueError(
+            "Tarball doesn't contain an SBOM at 'Misc/sbom.spdx.json'"
+        ) from None
+    sbom_bytes = tarball.extractfile(sbom_tarball_member).read()
+    sbom_data = json.loads(sbom_bytes)
+
+    create_cpython_sbom(sbom_data, cpython_version=cpython_version, artifact_path=tarball_path)
+    sbom_cpython_package_spdx_id = spdx_id("SPDXRef-PACKAGE-cpython")
 
     # Find the pip wheel in ensurepip in the tarball
     for member in tarball.getmembers():
@@ -487,7 +502,7 @@ def create_sbom_for_source_tarball(tarball_path: str):
             )
             sbom_data["relationships"].append(
                 {
-                    "spdxElementId": sbom_cpython_package["SPDXID"],
+                    "spdxElementId": sbom_cpython_package_spdx_id,
                     "relatedSpdxElement": sbom_file_spdx_id,
                     "relationshipType": "CONTAINS",
                 }
@@ -505,7 +520,7 @@ def create_sbom_for_source_tarball(tarball_path: str):
     sbom_data["relationships"].append(
         {
             "spdxElementId": "SPDXRef-DOCUMENT",
-            "relatedSpdxElement": sbom_cpython_package["SPDXID"],
+            "relatedSpdxElement": sbom_cpython_package_spdx_id,
             "relationshipType": "DESCRIBES",
         }
     )
@@ -519,16 +534,104 @@ def create_sbom_for_source_tarball(tarball_path: str):
     # Calculate the 'packageVerificationCode' values for files in packages.
     calculate_package_verification_codes(sbom_data)
 
-    # Normalize SBOM structures for reproducibility.
-    normalize_sbom_data(sbom_data)
+    return sbom_data
+
+
+def create_sbom_for_windows_artifact(artifact_path, cpython_source_dir: str):
+    artifact_name = os.path.basename(artifact_path)
+    cpython_version = re.match(r"^python-([0-9abrc.]+)(?:-|\.exe|\.zip)", artifact_name).group(1)
+
+    if not cpython_source_dir:
+        raise ValueError("Must specify --cpython-source-dir for Windows artifacts")
+    cpython_source_dir = pathlib.Path(cpython_source_dir)
+
+    # Start with the CPython source SBOM as a base
+    with (cpython_source_dir / "Misc/externals.spdx.json").open() as f:
+        sbom_data = json.loads(f.read())
+
+    sbom_data["relationships"] = []
+    sbom_data["files"] = []
+
+    # Add all the packages from the source SBOM
+    # We want to skip the file information because
+    # the files aren't available in Windows artifacts.
+    with (cpython_source_dir / "Misc/sbom.spdx.json").open() as f:
+        source_sbom_data = json.loads(f.read())
+        for sbom_package in source_sbom_data["packages"]:
+            sbom_data["packages"].append(sbom_package)
+
+    create_cpython_sbom(
+        sbom_data,
+        cpython_version=cpython_version,
+        artifact_path=artifact_path
+    )
+    sbom_cpython_package_spdx_id = spdx_id("SPDXRef-PACKAGE-cpython")
+
+    # The Windows embed artifacts don't contain pip/ensurepip,
+    # but the MSI artifacts do. Add pip for MSI installers.
+    if artifact_name.endswith(".exe"):
+
+        # Find the pip wheel in ensurepip in the source code
+        for pathname in os.listdir(cpython_source_dir / "Lib/ensurepip/_bundled"):
+            if pathname.startswith("pip-") and pathname.endswith(".whl"):
+                pip_wheel_filename = pathname
+                pip_wheel_bytes = (cpython_source_dir / f"Lib/ensurepip/_bundled/{pathname}").read_bytes()
+                break
+        else:
+            raise ValueError("Could not find pip wheel in 'Lib/ensurepip/_bundled/...'")
+
+        create_pip_sbom_from_wheel(
+            sbom_data,
+            pip_wheel_filename=pip_wheel_filename,
+            pip_wheel_bytes=pip_wheel_bytes,
+        )
+
+    # Final relationship, this SBOM describes the CPython package.
+    sbom_data["relationships"].append(
+        {
+            "spdxElementId": "SPDXRef-DOCUMENT",
+            "relatedSpdxElement": sbom_cpython_package_spdx_id,
+            "relationshipType": "DESCRIBES",
+        }
+    )
+
+    # Apply the 'supplier' tag to every package since we're shipping
+    # the package in the artifact itself. Originator field is used for maintainers.
+    for sbom_package in sbom_data["packages"]:
+        sbom_package["supplier"] = "Organization: Python Software Foundation"
+        # Source packages have been compiled.
+        if sbom_package["primaryPackagePurpose"] == "SOURCE":
+            sbom_package["primaryPackagePurpose"] = "LIBRARY"
 
     return sbom_data
 
 
 def main() -> None:
-    tarball_path = sys.argv[1]
-    sbom_data = create_sbom_for_source_tarball(tarball_path)
-    print(json.dumps(sbom_data, indent=2, sort_keys=True))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cpython-source-dir", default=None)
+    parser.add_argument("artifacts", nargs="+")
+    parsed_args = parser.parse_args(sys.argv[1:])
+
+    artifact_paths = parsed_args.artifacts
+    cpython_source_dir = parsed_args.cpython_source_dir
+
+    for artifact_path in artifact_paths:
+        # Windows MSI and Embed artifacts
+        if artifact_path.endswith(".exe") or artifact_path.endswith(".zip"):
+            sbom_data = create_sbom_for_windows_artifact(
+                artifact_path,
+                cpython_source_dir=cpython_source_dir
+            )
+        # Source artifacts
+        else:
+            sbom_data = create_sbom_for_source_tarball(artifact_path)
+
+        # Normalize SBOM data for reproducibility.
+        normalize_sbom_data(sbom_data)
+        with open(artifact_path + ".spdx.json", mode="w") as f:
+            f.truncate()
+            f.write(json.dumps(sbom_data, indent=2, sort_keys=True))
+
 
 if __name__ == "__main__":
     main()

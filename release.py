@@ -12,12 +12,11 @@ import hashlib
 import optparse
 import os
 import re
-import readline  # noqa
+import readline  # noqa: F401
 import shutil
 import subprocess
 import sys
 import tempfile
-
 from contextlib import contextmanager
 
 COMMASPACE = ', '
@@ -72,7 +71,7 @@ def chdir_to_repo_root():
         def test_first_line(filename, test):
             if not os.path.exists(filename):
                 return False
-            with open(filename, "rt") as f:
+            with open(filename) as f:
                 lines = f.read().split('\n')
                 if not (lines and test(lines[0])):
                     return False
@@ -168,12 +167,12 @@ def tweak_patchlevel(tag, done=False):
 
 /* Version as a string */
 #define PY_VERSION      \t\"{tag.text}{plus}"'''.strip()
-    level_def = dict(
-        a   = 'PY_RELEASE_LEVEL_ALPHA',
-        b   = 'PY_RELEASE_LEVEL_BETA',
-        rc  = 'PY_RELEASE_LEVEL_GAMMA',
-        f   = 'PY_RELEASE_LEVEL_FINAL',
-        )[tag.level]
+    level_def = {
+        'a': 'PY_RELEASE_LEVEL_ALPHA',
+        'b': 'PY_RELEASE_LEVEL_BETA',
+        'rc': 'PY_RELEASE_LEVEL_GAMMA',
+        'f': 'PY_RELEASE_LEVEL_FINAL',
+        }[tag.level]
     new_constants = template.format(tag=tag, level_def=level_def,
                                     plus=done and '+' or '')
     if tag.as_tuple() >= (3, 7, 0, 'a', 3):
@@ -254,7 +253,7 @@ def tarball(source, clamp_mtime):
         # Sorts the entries in the tarball by name.
         "--sort=name",
         # Sets a maximum 'modified time' of entries in tarball.
-        "--mtime=%s" % (clamp_mtime,), "--clamp-mtime",
+        f"--mtime={clamp_mtime}", "--clamp-mtime",
         # Sets the owner uid and gid to 0.
         "--owner=0", "--group=0", "--numeric-owner",
         # Omits process ID, file access, and status change times.
@@ -370,7 +369,7 @@ def build_docs():
     with tempfile.TemporaryDirectory() as venv:
         run_cmd(['python3', '-m', 'venv', venv])
         pip = os.path.join(venv, 'bin', 'pip')
-        run_cmd([pip, 'install', '-r' 'Doc/requirements.txt'])
+        run_cmd([pip, 'install', '-r', 'Doc/requirements.txt'])
         sphinx_build = os.path.join(venv, 'bin', 'sphinx-build')
         blurb = os.path.join(venv, 'bin', 'blurb')
         with pushd('Doc'):
@@ -389,11 +388,11 @@ def upload(tag, username):
         scp('src', '/data/python-releases/%s' % tag.nickname)
         print("Upload doc tarballs")
         scp('docs', '/data/python-releases/doc/%s' % tag.nickname)
-        print("* Now change the permissions on the tarballs so they are " \
-            "writable by the webmaster group. *")
+        print("* Now change the permissions on the tarballs so they are "
+              "writable by the webmaster group. *")
 
 
-class Tag(object):
+class Tag:
 
     def __init__(self, tag_name):
         # if tag is ".", use current directory name as tag
@@ -421,16 +420,16 @@ class Tag(object):
         self.level = data[3]
         self.serial = int(data[4])
         # This has the effect of normalizing the version.
-        self.text = "{}.{}.{}".format(self.major, self.minor, self.patch)
+        self.text = self.normalized()
         if self.level != "f":
             self.text += self.level + str(self.serial)
-        self.basic_version = '%s.%s' % (self.major, self.minor)
+        self.basic_version = f'{self.major}.{self.minor}'
 
     def __str__(self):
         return self.text
 
     def normalized(self):
-        return "{}.{}.{}".format(self.major, self.minor, self.patch)
+        return f"{self.major}.{self.minor}.{self.patch}"
 
     @property
     def branch(self):
@@ -467,7 +466,7 @@ class Tag(object):
         # Fetch the epoch of the tagged commit for build reproducibility.
         proc = subprocess.run(["git", "log", self.gitname, "-1", "--pretty=%ct"], stdout=subprocess.PIPE)
         if proc.returncode != 0:
-            error("Couldn't fetch the epoch of tag %s" % (self.gitname,))
+            error(f"Couldn't fetch the epoch of tag {self.gitname}")
         return datetime.datetime.fromtimestamp(int(proc.stdout.decode().strip()), tz=datetime.timezone.utc)
 
 
