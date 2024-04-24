@@ -89,7 +89,7 @@ if ($embed) {
     $dirs = ($dirs, (gi $embed)) | %{ $_ }
 }
 if ($sbom) {
-    $dirs = ($dirs, $sbom)
+    $dirs = ($dirs, $sbom) | %{ $_ }
 }
 
 foreach ($a in $dirs) {
@@ -107,7 +107,7 @@ foreach ($a in $dirs) {
 
     if ($spdx_json) {
         & $pscp -batch -hostkey $hostkey -noagent -i $keyfile $spdx_json.FullName "$user@${server}:$d"
-        if (-not $?) { throw "Failed to upload $spdx_json" }
+        if (-not $?) { Write-Host "##[warning]Failed to upload $spdx_json" }
     }
 
     if ($msi) {
