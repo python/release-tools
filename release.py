@@ -315,8 +315,8 @@ def export(tag, silent=False):
             # build docs *before* we do "blurb export"
             # because docs now depend on Misc/NEWS.d
             # and we remove Misc/NEWS.d as part of cleanup for export
-            if tag.is_final or tag.level == 'rc':
-                docdist = build_docs()
+            # if tag.is_final or tag.level == 'rc':
+            #     docdist = build_docs()
 
             print('Using blurb to build Misc/NEWS')
             run_cmd(["blurb", "merge"], silent=silent)
@@ -337,8 +337,8 @@ def export(tag, silent=False):
             for name in ('.azure-pipelines', '.git', '.github', '.hg'):
                 shutil.rmtree(name, ignore_errors=True)
 
-        if tag.is_final or tag.level == 'rc':
-            shutil.copytree(docdist, 'docs')
+        # if tag.is_final or tag.level == 'rc':
+        #     shutil.copytree(docdist, 'docs')
 
         with pushd(os.path.join(archivename, 'Doc')):
             print('Removing doc build artifacts')
