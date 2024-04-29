@@ -125,6 +125,9 @@ def get_arg_parser():
     p.add_option('-d', '--done',
                  default=False, action='store_true',
                  help='Do post-release cleanups (i.e.  you\'re done!)')
+    p.add_option('--skip-docs',
+                 default=False, action='store_true',
+                 help='Skip building the documentation during export')
     return p
 
 
@@ -278,7 +281,7 @@ def tarball(source, clamp_mtime):
         checksum_xz.hexdigest(), int(os.path.getsize(xz)), xz))
 
 
-def export(tag, silent=False):
+def export(tag, silent=False, skip_docs=False):
     make_dist(tag.text)
     print('Exporting tag:', tag.text)
     archivename = 'Python-%s' % tag.text
@@ -314,7 +317,9 @@ def export(tag, silent=False):
             # build docs *before* we do "blurb export"
             # because docs now depend on Misc/NEWS.d
             # and we remove Misc/NEWS.d as part of cleanup for export
-            if tag.is_final or tag.level == 'rc':
+            #
+            # If --skip-docs is provided we don't build and docs.
+            if not skip_docs and (tag.is_final or tag.level == 'rc'):
                 docdist = build_docs()
 
             print('Using blurb to build Misc/NEWS')
@@ -336,7 +341,7 @@ def export(tag, silent=False):
             for name in ('.azure-pipelines', '.git', '.github', '.hg'):
                 shutil.rmtree(name, ignore_errors=True)
 
-        if tag.is_final or tag.level == 'rc':
+        if not skip_docs and (tag.is_final or tag.level == 'rc'):
             shutil.copytree(docdist, 'docs')
 
         with pushd(os.path.join(archivename, 'Doc')):
@@ -513,6 +518,8 @@ def main(argv):
     chdir_to_repo_root()
     parser = get_arg_parser()
     options, args = parser.parse_args(argv)
+    if options.skip_docs and not options.export:
+        error("--skip-docs option has no effect without --export")
     if len(args) != 2:
         if 'RELEASE_TAG' not in os.environ:
             parser.print_usage()
@@ -528,7 +535,7 @@ def main(argv):
     if options.tag:
         make_tag(tag)
     if options.export:
-        export(tag)
+        export(tag, skip_docs=options.skip_docs)
     if options.upload:
         upload(tag, options.upload)
     if options.done:
