@@ -29,7 +29,7 @@ param(
     [string]$target="/srv/www.python.org/ftp/python",
     [string]$tests=${env:TEMP},
     [string]$doc_htmlhelp=$null,
-    [string]$embed=$null
+    [string]$embed=$null,
     [string]$sbom=$null
 )
 
