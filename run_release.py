@@ -1139,6 +1139,7 @@ fix these things in this script so it also support your platform.
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(bump_version, "Bump version"),
+        Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
         Task(run_autoconf, "Running autoconf"),
         Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
         Task(check_pyspecific, "Checking pyspecific"),
