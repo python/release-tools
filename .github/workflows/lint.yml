@@ -19,3 +19,8 @@ jobs:
           python-version: "3.x"
           cache: pip
       - uses: pre-commit/action@v3.0.1
+
+      - name: Run PSScriptAnalyzer on PowerShell scripts
+        shell: pwsh
+        run: |
+          Invoke-ScriptAnalyzer -Path . -Recurse -Severity ParseError,Error -EnableExit
