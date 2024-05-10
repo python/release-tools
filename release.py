@@ -202,6 +202,8 @@ def bump(tag):
             'Doc/tutorial/stdlib2.rst',
             'LICENSE',
             'Doc/license.rst',
+            'PC/pyconfig.h.in',
+            'PCbuild/rt.bat',
             ]
     print('\nManual editing time...')
     for fn in other_files:
