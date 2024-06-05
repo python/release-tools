@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Recompile the .py files.
+#
+
+PYVER="@PYVER@"
+FWK="/Library/Frameworks/PythonT.framework/Versions/@PYVER@"
+PYTHON="${FWK}/bin/python@PYVER@"t
+
+${PYTHON} -E -s -Wi \
+    "${FWK}/lib/python${PYVER}/compileall.py" -q -j0 \
+    -f -x 'bad_coding|badsyntax|site-packages' \
+    "${FWK}/lib/python${PYVER}"
+
+${PYTHON} -E -s -Wi -O \
+    "${FWK}/lib/python${PYVER}/compileall.py" -q -j0 \
+    -f -x 'bad_coding|badsyntax|site-packages' \
+    "${FWK}/lib/python${PYVER}"
+
+${PYTHON} -E -s -Wi \
+    "${FWK}/lib/python${PYVER}/compileall.py" -q -j0 \
+    -f -x badsyntax \
+    "${FWK}/lib/python${PYVER}/site-packages"
+
+${PYTHON} -E -s -Wi -O \
+    "${FWK}/lib/python${PYVER}/compileall.py" -q -j0 \
+    -f -x badsyntax \
+    "${FWK}/lib/python${PYVER}/site-packages"
+
+chgrp -R admin "${FWK}"
+chmod -R g+w "${FWK}"
+
+exit 0

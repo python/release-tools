@@ -1,0 +1,51 @@
+# Build-specific non-sensitive settings
+
+# These settings are available to all steps of the build process
+#   whether in the build or signing / packaging environments.
+#   It will be pushed upstream to the public GitHub repo.
+#   As such, this file should not contain any potentially
+#   sensitive data, such as keys.
+
+#   To start a build:
+#       1. create a new branch in this repo
+#               git switch -C MI_3.13.0a0
+#       2. copy this template file to 00-build_settings.txt,
+#       3. edit (replace @NONE@ entries), commit, and push to GitHub
+#       4. copy 00-private_build_settings-pre.tx to 00-private_build_settings.txt
+#       $. edit but do *not* commit or push upstream
+
+# build source
+
+BP_GITHUB_USER="@NONE@"
+BP_CPYTHON_BUILD_REPO="https://github.com/${BP_GITHUB_USER}/cpython.git"
+BP_GITTAG="@NONE@"      # for example "v3.13.0rc1"
+BP_PY_VER="3.13"
+
+# installer options
+
+BP_UNIVERSAL_ARCHS="universal2"
+BP_DEPLOYMENT_TARGET="10.13"
+BP_MINIMUM_MACOS_VERSION="10.13.0"
+BP_MACOS_SDK_NAME="MacOSX13"
+BP_MACOS_SDK_ROOT="/Library/Developer/CommandLineTools/SDKs/${BP_MACOS_SDK_NAME}.sdk"
+
+# local build environment
+
+BP_ROOT="@NONE@"
+BP_CPYTHON_LOCAL_CACHE_REPO="@NONE@"  # optional
+BP_THIRD_PARTY_SOURCES_CACHE="@NONE@"
+BP_PYTHON="python3"
+
+# global process settings
+
+umask 022
+
+# --- vestigial global variables, TODO: to be removed ---
+
+BUILDNAME="${BP_GITTAG}"        # for now
+BUILD="${BUILDNAME}_variant"    # for now
+BUILDTARBALL="cpython.tgz"
+BUILDEXPORTS="cpython.exports"
+BUILDVERSION="cpython.version"
+BUILDOTHER_SOURCES="other-sources"
+

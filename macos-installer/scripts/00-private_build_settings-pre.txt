@@ -1,0 +1,21 @@
+# Environment and user-specific settings, potentially sensitive
+
+# Edit and copy to 00-private_build_settings.txt
+
+# For now, this file remains local to the signing / packaging host,
+#   so is not used in the 02-build_installer_binaries.txt step and
+#   is not copied to the build host environment, like GHA
+
+# keychain options
+
+BP_CERTIFICATE_DEVELOPER_ID_APPLICATION="Developer ID Application: @NONE@"
+BP_CERTIFICATE_DEVELOPER_ID_INSTALLER="Developer ID Installer: @NONE@"
+BP_KEYCHAIN="@NONE@"
+BP_NOTARYTOOL_KEYCHAIN_PROFILE="@NONE@"
+BP_GPG_USER="@NONE@"
+
+# download server options
+
+BP_DOWNLOAD_SERVER="@NONE@"   # ssh host name, may be configured in ~/.ssh/config
+BP_DOWNLOAD_SERVER_DEVTEST="@NONE@"
+BP_DOWNLOAD_SERVER_DEVTEST_URL="@NONE@"

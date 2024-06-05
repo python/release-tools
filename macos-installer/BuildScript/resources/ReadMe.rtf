@@ -1,0 +1,190 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fswiss\fcharset0 Helvetica-Bold;\f2\fswiss\fcharset0 Helvetica-Oblique;
+\f3\fmodern\fcharset0 CourierNewPSMT;\f4\fmodern\fcharset0 CourierNewPS-ItalicMT;\f5\fmodern\fcharset0 Courier;
+}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}}
+\margl1440\margr1440\vieww15140\viewh15740\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 This package will install Python $FULL_VERSION for macOS $MACOSX_DEPLOYMENT_TARGET for the following architecture(s): $ARCHITECTURES.\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\partightenfactor0
+
+\f1\b \cf0 NOTE: 
+\f0\b0 This is a beta preview of Python 3.13.0, the next feature release of Python 3.  It is not intended for production use.\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1\b \cf0 \ul \ulc0 Certificate verification and OpenSSL\
+
+\f0\b0 \ulnone \
+This package includes its own private copy of OpenSSL 3.0.   The trust certificates in system and user keychains managed by the 
+\f2\i Keychain Access 
+\f0\i0 application and the 
+\f2\i security
+\f0\i0  command line utility are not used as defaults by the Python 
+\f3 ssl
+\f0  module.  A sample command script is included in 
+\f3 /Applications/Python 3.13
+\f0  to install a curated bundle of default root certificates from the third-party 
+\f3 certifi
+\f0  package ({\field{\*\fldinst{HYPERLINK "https://pypi.org/project/certifi/"}}{\fldrslt https://pypi.org/project/certifi/}}).  Double-click on 
+\f3 Install Certificates
+\f0  to run it.\
+\
+The bundled 
+\f3 pip
+\f0  has its own default certificate store for verifying download connections.\
+\
+
+\f1\b \ul Install Options\
+
+\f0\b0 \ulnone \
+You can control some aspects of what is installed by this package. To see the options, click on the 
+\f1\b Customize
+\f0\b0  button in the 
+\f1\b Installation Type
+\f0\b0  step of the macOS installer app.  Click on a package name in the list shown to see more information about that option.\
+\
+
+\f1\b \ul Oldest supported macOS version is now 10.13\
+
+\f0\b0 \ulnone \
+
+\f1\b NEW as of 3.13.0b2
+\f0\b0 :  This Python builds provided by this installer now support macOS versions as old as macOS 10.13 High Sierra and native execution on all Macs supported by those macOS releases. Previous recent releases supported macOS 10.9 and above.  Currently, macOS 10.13 is the oldest deployment target supported by current releases of the Apple development toolset and many other projects and downstream suppliers of Python packages no longer provide pre-built binaries for these older versions.  Pre-built versions of Python and third-party libraries for specific older versions of macOS are available from some third-party distributors.\
+\
+
+\f1\b \ul Free-threading support\
+
+\f0\b0 \ulnone \
+
+\f1\b NEW as of 3.13.0b2
+\f0\b0 :  This installer package can now optionally install an additional build of Python 3.13 that supports the experimental free-threading feature (running with the 
+\f1\b global interpreter lock
+\f0\b0  disabled). \
+\
+See the release notice, the {\field{\*\fldinst{HYPERLINK "https://docs.python.org/3.13/whatsnew/3.13.html#free-threaded-cpython"}}{\fldrslt 3.13 What's New document}}, and {\field{\*\fldinst{HYPERLINK "https://github.com/python/cpython/issues/120098"}}{\fldrslt issue #120098}} for more information.\
+\
+Because this feature is still considered experimental, the support for it is not installed by default. It is packaged as a separate install option, available by clicking the 
+\f1\b Customize
+\f0\b0  button on the 
+\f1\b Installation Type
+\f0\b0  step of the installer as described above. When selected, a separate 
+\f3 PythonT.framework
+\f0  will also be installed alongside the normal 
+\f3 Python.framework
+\f0  in 
+\f3 /Library/Frameworks
+\f0 . This configuration allows a free-threaded Python 3.13 build to co-exist on your system with a traditional (GIL only) Python 3.13 build with minimal risk while installing or testing. This installation layout is itself experimental and is subject to change prior to the release of Python 3.13.0. \
+\
+Known cautions and limitations as of 3.13.0b2:\
+\
+\pard\tx220\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\li720\fi-720\pardirnatural\partightenfactor0
+\ls1\ilvl0\cf0 {\listtext	\uc0\u8226 	}The 
+\f1\b Free-threaded Python
+\f0\b0  package is not installed by default. To select it, click on the 
+\f1\b Customize
+\f0\b0  button in the Installation Type panel during the install and then click to select the Free-Threaded Python package. \
+{\listtext	\uc0\u8226 	}The 
+\f1\b UNIX command-line tools
+\f0\b0  package, which is selected by default, will install links in 
+\f3 /usr/local/bin
+\f0  for 
+\f3 python3.13t
+\f0 , the free-threaded interpreter, and 
+\f3 python3.13t-config
+\f0 , a configuration utility which may be useful for package builders. Since 
+\f3 /usr/local/bin
+\f0  is typically included in your shell 
+\f3 PATH
+\f0 , in most cases no changes to your 
+\f1\b PATH
+\f0\b0  environment variables should be needed to use 
+\f3 python3.13t
+\f0 .\
+{\listtext	\uc0\u8226 	}For this release, the 
+\f1\b Shell profile updater
+\f0\b0  package and the 
+\f3 Update Shell Profile.command
+\f0  in 
+\f3 /Applications/Python 3.13
+\f0  do not support the free-threaded package.\
+{\listtext	\uc0\u8226 	}When working with multiple Python environments, it is usually safest and easiest to {\field{\*\fldinst{HYPERLINK "https://docs.python.org/3.13/tutorial/venv.html#virtual-environments-and-packages"}}{\fldrslt create and use virtual environments}}. This can avoid possible command name conflicts and confusion about which Python is in use:   
+\f3 python3.13t -m venv 
+\f4\i directory_name
+\f3\i0  
+\f0 then activate.\
+{\listtext	\uc0\u8226 	}To install a separate instance of 
+\f3 pip
+\f0  for use with the free-threaded Python:   
+\f3 python3.13t -m ensurepip --upgrade\
+\ls1\ilvl0
+\f0 {\listtext	\uc0\u8226 	}To install a package using pip without a 
+\f3 venv
+\f0 :   
+\f3 python3.13t -m pip install 
+\f4\i package_name\
+\ls1\ilvl0
+\f0\i0 {\listtext	\uc0\u8226 	}To run a free-threaded version of IDLE:    
+\f3 python3.13t -m idlelib\
+\ls1\ilvl0
+\f0 {\listtext	\uc0\u8226 	}The free-threaded build and the traditional build have separate search paths and separate 
+\f3 site-packages
+\f0  directories so, by default, if you need a package available in both builds, it may need to be installed in both.\
+{\listtext	\uc0\u8226 	}The interpreters in both builds respond to the same {\field{\*\fldinst{HYPERLINK "https://docs.python.org/3.13/using/cmdline.html#environment-variables"}}{\fldrslt PYTHON environment variables}} which may have unexpected results, for example, if you have one, like 
+\f3 PYTHONPATH
+\f0 , set in a shell profile. If necessary, there are {\field{\*\fldinst{HYPERLINK "https://docs.python.org/3.13/using/cmdline.html#command-line"}}{\fldrslt command line options}} like 
+\f3 -E
+\f0  to ignore these environment variables.\
+{\listtext	\uc0\u8226 	}The free-threaded build links to the third-party shared libraries, such as 
+\f1\b OpenSSL
+\f0\b0  and 
+\f1\b Tk
+\f0\b0 , installed in the traditional framework. This means that both builds also share one set of trust certificates as installed by the 
+\f3 Install Certificates
+\f0  command script.\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0   \
+
+\f1\b \ul Using IDLE or other Tk applications 
+\f0\b0 \ulnone \
+\
+This package includes its own private version of Tcl/Tk 8.6. It does not use any system-supplied or third-party supplied versions of Tcl/Tk.\
+\
+Due to security checks introduced with macOS 10.15 Catalina, when launching IDLE, macOS may open a window with a message 
+\f1\b "Python" would like to access files in your Documents folder
+\f0\b0 .  This is normal as IDLE uses your 
+\f1\b Documents
+\f0\b0  folder as its default when opening and saving files; you can still choose other locations in the 
+\f1\b Open
+\f0\b0  and 
+\f1\b Save
+\f0\b0  file dialog windows.  Click on the 
+\f1\b OK
+\f0\b0  button to proceed.\
+\
+
+\f1\b \ul Apple Silicon Mac support\
+
+\f0\b0 \ulnone \
+On Apple Silicon Macs, it is possible to run Python either with native ARM64 code or under Intel 64 emulation using Rosetta2. This option might be useful for testing or if binary wheels are not yet available with native ARM64 binaries.  To easily force Python to run in emulation mode, invoke it from a command line shell with the 
+\f5 python3-intel64
+\f0  command instead of just 
+\f5 python3
+\f0 .\
+
+\f1\b \ul \
+Other changes\
+
+\f0\b0 \ulnone \
+For other changes in this release, see the 
+\f2\i What's new
+\f0\i0  section in the {\field{\*\fldinst{HYPERLINK "https://www.python.org/doc/"}}{\fldrslt Documentation Set}} for this release and its 
+\f2\i Release Notes
+\f0\i0  link at {\field{\*\fldinst{HYPERLINK "https://www.python.org/downloads/"}}{\fldrslt https://www.python.org/downloads/}}.\
+}
