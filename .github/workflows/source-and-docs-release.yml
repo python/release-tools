@@ -64,8 +64,8 @@ jobs:
 
       - name: "Verify CPython commit matches tag"
         run: |
-          if [[ "${{ env.GIT_COMMIT }}" != "$(cd cpython && git rev-parse HEAD)" ]]; then
-            echo "expected git commit ('${{ env.GIT_COMMIT }}') didn't match tagged commit ('$(git rev-parse HEAD)')"
+          if [[ "$GIT_COMMIT" != "$(cd cpython && git rev-parse HEAD)" ]]; then
+            echo "expected git commit ('$GIT_COMMIT') didn't match tagged commit ('$(git rev-parse HEAD)')"
             exit 1
           fi
 
@@ -97,7 +97,7 @@ jobs:
       - name: "Build Python release artifacts"
         run: |
           cd cpython
-          python ../release.py --export ${{ env.CPYTHON_RELEASE }} --skip-docs
+          python ../release.py --export $CPYTHON_RELEASE --skip-docs
 
       - name: "Upload the source artifacts"
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
@@ -161,10 +161,10 @@ jobs:
       - name: "Test Python source tarballs"
         run: |
           mkdir -p ./tmp/installation/
-          cp Python-${{ env.CPYTHON_RELEASE }}.tgz ./tmp/
+          cp Python-$CPYTHON_RELEASE.tgz ./tmp/
           cd tmp/
-          tar xvf Python-${{ env.CPYTHON_RELEASE }}.tgz
-          cd Python-${{ env.CPYTHON_RELEASE }}
+          tar xvf Python-$CPYTHON_RELEASE.tgz
+          cd Python-$CPYTHON_RELEASE
 
           ./configure "--prefix=$(realpath '../installation/')"
           make -j
