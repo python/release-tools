@@ -1,4 +1,22 @@
 on:
+  push:
+    paths-ignore:
+      - ".github/dependabot.yml"
+      - ".github/workflows/lint.yml"
+      - ".github/workflows/test.yml"
+      - ".pre-commit-config.yaml"
+      - ".ruff.toml"
+      - "README.md"
+      - "tests/**"
+  pull_request:
+    paths-ignore:
+      - ".github/dependabot.yml"
+      - ".github/workflows/lint.yml"
+      - ".github/workflows/test.yml"
+      - ".pre-commit-config.yaml"
+      - ".ruff.toml"
+      - "README.md"
+      - "tests/**"
   workflow_dispatch:
     inputs:
       git_remote:
@@ -18,27 +36,36 @@ on:
 
 name: "Build Python source and docs artifacts"
 
+# Set from inputs for workflow_dispatch, or set defaults to test push/PR events
+env:
+  GIT_REMOTE: ${{ github.event.inputs.git_remote || 'python' }}
+  GIT_COMMIT: ${{ github.event.inputs.git_commit || '2268289a47c6e3c9a220b53697f9480ec390466f' }}
+  CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.13.0b1' }}
+
 jobs:
   verify-input:
     runs-on: ubuntu-22.04
+    outputs:
+      # Needed because env vars are not available in the build-docs check below
+      cpython_release: ${{ env.CPYTHON_RELEASE }}
     steps:
       - name: "Workflow run information"
         run: |
-          echo "git_remote: ${{ inputs.git_remote }}"
-          echo "git_commit: ${{ inputs.git_commit }}"
-          echo "cpython_release: ${{ inputs.cpython_release }}"
+          echo "git_remote: $GIT_REMOTE"
+          echo "git_commit: $GIT_COMMIT"
+          echo "cpython_release: $CPYTHON_RELEASE"
 
-      - name: "Checkout ${{ inputs.git_remote }}/cpython"
+      - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-          repository: "${{ inputs.git_remote }}/cpython"
-          ref: "v${{ inputs.cpython_release }}"
+          repository: "${{ env.GIT_REMOTE }}/cpython"
+          ref: "v${{ env.CPYTHON_RELEASE }}"
           path: "cpython"
 
       - name: "Verify CPython commit matches tag"
         run: |
-          if [[ "${{ inputs.git_commit }}" != "$(cd cpython && git rev-parse HEAD)" ]]; then
-            echo "expected git commit ('${{ inputs.git_commit }}') didn't match tagged commit ('$(git rev-parse HEAD)')"
+          if [[ "${{ env.GIT_COMMIT }}" != "$(cd cpython && git rev-parse HEAD)" ]]; then
+            echo "expected git commit ('${{ env.GIT_COMMIT }}') didn't match tagged commit ('$(git rev-parse HEAD)')"
             exit 1
           fi
 
@@ -50,11 +77,11 @@ jobs:
       - name: "Checkout python/release-tools"
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - name: "Checkout ${{ inputs.git_remote }}/cpython"
+      - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-          repository: "${{ inputs.git_remote }}/cpython"
-          ref: "v${{ inputs.cpython_release }}"
+          repository: "${{ env.GIT_REMOTE }}/cpython"
+          ref: "v${{ env.CPYTHON_RELEASE }}"
           path: "cpython"
 
       - name: "Setup Python"
@@ -70,14 +97,14 @@ jobs:
       - name: "Build Python release artifacts"
         run: |
           cd cpython
-          python ../release.py --export ${{ inputs.cpython_release }} --skip-docs
+          python ../release.py --export ${{ env.CPYTHON_RELEASE }} --skip-docs
 
       - name: "Upload the source artifacts"
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: source
           path: |
-            cpython/${{ inputs.cpython_release }}/src
+            cpython/${{ env.CPYTHON_RELEASE }}/src
 
   build-docs:
     runs-on: ubuntu-22.04
@@ -85,14 +112,13 @@ jobs:
       - verify-input
 
     # Docs aren't built for alpha or beta releases.
-    if: ${{ !(contains(inputs.cpython_release, 'a') || contains(inputs.cpython_release, 'b')) }}
-
+    if: (!(contains(needs.verify-input.outputs.cpython_release, 'a') || contains(needs.verify-input.outputs.cpython_release, 'b')))
     steps:
-      - name: "Checkout ${{ inputs.git_remote }}/cpython"
+      - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-          repository: "${{ inputs.git_remote }}/cpython"
-          ref: "v${{ inputs.cpython_release }}"
+          repository: "${{ env.GIT_REMOTE }}/cpython"
+          ref: "v${{ env.CPYTHON_RELEASE }}"
 
       - name: "Setup Python"
         uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
@@ -135,10 +161,10 @@ jobs:
       - name: "Test Python source tarballs"
         run: |
           mkdir -p ./tmp/installation/
-          cp Python-${{ inputs.cpython_release }}.tgz ./tmp/
+          cp Python-${{ env.CPYTHON_RELEASE }}.tgz ./tmp/
           cd tmp/
-          tar xvf Python-${{ inputs.cpython_release }}.tgz
-          cd Python-${{ inputs.cpython_release }}
+          tar xvf Python-${{ env.CPYTHON_RELEASE }}.tgz
+          cd Python-${{ env.CPYTHON_RELEASE }}
 
           ./configure "--prefix=$(realpath '../installation/')"
           make -j
