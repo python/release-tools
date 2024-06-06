@@ -40,7 +40,7 @@ name: "Build Python source and docs artifacts"
 env:
   GIT_REMOTE: ${{ github.event.inputs.git_remote || 'python' }}
   GIT_COMMIT: ${{ github.event.inputs.git_commit || 'f6650f9ad73359051f3e558c2431a109bc016664' }}
-  CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.12.13' }}
+  CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.12.3' }}
 
 jobs:
   verify-input:
