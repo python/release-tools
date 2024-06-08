@@ -47,14 +47,14 @@ def run_cmd(cmd, silent=False, shell=True, **kwargs):
     if shell:
         cmd = " ".join(cmd)
     if not silent:
-        print("Executing %s" % cmd)
+        print(f"Executing {cmd}")
     try:
         if silent:
             subprocess.check_call(cmd, shell=shell, stdout=subprocess.PIPE, **kwargs)
         else:
             subprocess.check_call(cmd, shell=shell, **kwargs)
     except subprocess.CalledProcessError:
-        error("%s failed" % cmd)
+        error(f"{cmd} failed")
 
 
 try:
@@ -72,7 +72,7 @@ download_root = "https://www.python.org/ftp/python/"
 
 tag_cre = re.compile(r"(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$")
 
-headers = {"Authorization": "ApiKey %s" % auth_info, "Content-Type": "application/json"}
+headers = {"Authorization": f"ApiKey {auth_info}", "Content-Type": "application/json"}
 
 github_oidc_provider = "https://github.com/login/oauth"
 google_oidc_provider = "https://accounts.google.com"
@@ -153,9 +153,9 @@ def get_file_descriptions(release):
 
 
 def changelog_for(release):
-    new_url = "http://docs.python.org/release/%s/whatsnew/changelog.html" % release
+    new_url = f"http://docs.python.org/release/{release}/whatsnew/changelog.html"
     if requests.head(new_url).status_code != 200:
-        return "http://hg.python.org/cpython/file/v%s/Misc/NEWS" % release
+        return f"http://hg.python.org/cpython/file/v{release}/Misc/NEWS"
 
 
 def slug_for(release):
@@ -204,8 +204,8 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_download, add_
     d = {
         "name": file_desc,
         "slug": slug_for(release) + "-" + make_slug(file_desc)[:40],
-        "os": "/api/v1/downloads/os/%s/" % os_pk,
-        "release": "/api/v1/downloads/release/%s/" % rel_pk,
+        "os": f"/api/v1/downloads/os/{os_pk}/",
+        "release": f"/api/v1/downloads/release/{rel_pk}/",
         "description": add_desc,
         "is_source": os_pk == 3,
         "url": download_root + f"{base_version(release)}/{rfile}",
@@ -276,7 +276,7 @@ def list_files(release):
 
 def query_object(objtype, **params):
     """Find an API object by query parameters."""
-    uri = base_url + "downloads/%s/" % objtype
+    uri = base_url + f"downloads/{objtype}/"
     uri += "?" + "&".join(f"{k}={v}" for k, v in params.items())
     resp = requests.get(uri, headers=headers)
     if resp.status_code != 200 or not json.loads(resp.text)["objects"]:
@@ -391,20 +391,20 @@ def main():
             continue
         print("Creating ReleaseFile object for", rfile, key)
         if key in file_dicts:
-            raise RuntimeError("duplicate slug generated: %s" % key)
+            raise RuntimeError(f"duplicate slug generated: {key}")
         file_dicts[key] = file_dict
     print("Deleting previous release files")
     resp = requests.delete(
-        base_url + "downloads/release_file/?release=%s" % rel_pk, headers=headers
+        base_url + f"downloads/release_file/?release={rel_pk}", headers=headers
     )
     if resp.status_code != 204:
-        raise RuntimeError("deleting previous releases failed: %s" % resp.status_code)
+        raise RuntimeError(f"deleting previous releases failed: {resp.status_code}")
     for file_dict in file_dicts.values():
         file_pk = post_object("release_file", file_dict)
         if file_pk >= 0:
             print("Created as id =", file_pk)
             n += 1
-    print("Done - %d files added" % n)
+    print(f"Done - {n} files added")
 
 
 if not sys.flags.interactive:

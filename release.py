@@ -38,14 +38,14 @@ def run_cmd(cmd, silent=False, shell=False, **kwargs):
     if shell:
         cmd = SPACE.join(cmd)
     if not silent:
-        print("Executing %s" % cmd)
+        print(f"Executing {cmd}")
     try:
         if silent:
             subprocess.check_call(cmd, shell=shell, stdout=subprocess.PIPE, **kwargs)
         else:
             subprocess.check_call(cmd, shell=shell, **kwargs)
     except subprocess.CalledProcessError:
-        error("%s failed" % cmd)
+        error(f"{cmd} failed")
 
 
 readme_re = re.compile(r"This is Python version [23]\.\d").match
@@ -186,7 +186,7 @@ def constant_replace(fn, updated_constants, comment_start="/*", comment_end="*/"
             else:
                 outfile.write(line)
     if not found_constants:
-        error("Constant section delimiters not found: %s" % fn)
+        error(f"Constant section delimiters not found: {fn}")
     os.rename(fn + ".new", fn)
 
 
@@ -217,7 +217,7 @@ def tweak_patchlevel(tag, done=False):
 
 
 def bump(tag):
-    print("Bumping version to %s" % tag)
+    print(f"Bumping version to {tag}")
 
     tweak_patchlevel(tag)
 
@@ -240,10 +240,10 @@ def bump(tag):
     print("\nManual editing time...")
     for fn in other_files:
         if os.path.exists(fn):
-            print("Edit %s" % fn)
+            print(f"Edit {fn}")
             manual_edit(fn)
         else:
-            print("Skipping %s" % fn)
+            print(f"Skipping {fn}")
 
     print("Bumped revision")
     if extra_work:
@@ -258,7 +258,7 @@ def manual_edit(fn: str) -> None:
 
 @contextmanager
 def pushd(new):
-    print("chdir'ing to %s" % new)
+    print(f"chdir'ing to {new}")
     old = os.getcwd()
     os.chdir(new)
     try:
@@ -272,11 +272,11 @@ def make_dist(name):
         os.mkdir(name)
     except OSError:
         if os.path.isdir(name):
-            print("WARNING: dist dir %s already exists" % name, file=sys.stderr)
+            print(f"WARNING: dist dir {name} already exists", file=sys.stderr)
         else:
-            error("%s/ is not a directory" % name)
+            error(f"{name}/ is not a directory")
     else:
-        print("created dist directory %s" % name)
+        print(f"created dist directory {name}")
 
 
 def tarball(source, clamp_mtime):
@@ -330,17 +330,17 @@ def tarball(source, clamp_mtime):
 def export(tag, silent=False, skip_docs=False):
     make_dist(tag.text)
     print("Exporting tag:", tag.text)
-    archivename = "Python-%s" % tag.text
+    archivename = f"Python-{tag.text}"
     # I have not figured out how to get git to directly produce an
     # archive directory like hg can, so use git to produce a temporary
     # tarball then expand it with tar.
-    archivetempfile = "%s.tar" % archivename
+    archivetempfile = f"{archivename}.tar"
     run_cmd(
         [
             "git",
             "archive",
             "--format=tar",
-            "--prefix=%s/" % archivename,
+            f"--prefix={archivename}/",
             "-o",
             archivetempfile,
             tag.gitname,
@@ -348,7 +348,7 @@ def export(tag, silent=False, skip_docs=False):
         silent=silent,
     )
     with pushd(tag.text):
-        archivetempfile = "../%s" % archivetempfile
+        archivetempfile = f"../{archivetempfile}"
         run_cmd(["tar", "-xf", archivetempfile], silent=silent)
         os.unlink(archivetempfile)
         with pushd(archivename):
@@ -446,7 +446,7 @@ def export(tag, silent=False, skip_docs=False):
         os.mkdir("src")
         tarball(archivename, tag.committed_at.strftime("%Y-%m-%d %H:%M:%SZ"))
     print()
-    print("**Now extract the archives in %s/src and run the tests**" % tag.text)
+    print(f"**Now extract the archives in {tag.text}/src and run the tests**")
     print("**You may also want to run make install and re-test**")
 
 
@@ -469,16 +469,16 @@ def build_docs():
 
 def upload(tag, username):
     """scp everything to dinsdale"""
-    address = '"%s@dinsdale.python.org:' % username
+    address = f'"{username}@dinsdale.python.org:'
 
     def scp(from_loc, to_loc):
         run_cmd(["scp", from_loc, address + to_loc])
 
     with pushd(tag.text):
         print("Uploading source tarballs")
-        scp("src", "/data/python-releases/%s" % tag.nickname)
+        scp("src", f"/data/python-releases/{tag.nickname}")
         print("Upload doc tarballs")
-        scp("docs", "/data/python-releases/doc/%s" % tag.nickname)
+        scp("docs", f"/data/python-releases/doc/{tag.nickname}")
         print(
             "* Now change the permissions on the tarballs so they are "
             "writable by the webmaster group. *"
@@ -495,7 +495,7 @@ class Tag:
             tag_name = os.path.basename(os.getcwd())
         result = tag_cre.match(tag_name)
         if result is None:
-            error("tag %s is not valid" % tag_name)
+            error(f"tag {tag_name} is not valid")
         data = list(result.groups())
         if data[3] is None:
             # A final release.
