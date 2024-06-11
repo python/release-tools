@@ -27,6 +27,87 @@ tag_cre = re.compile(r"(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$")
 # Ideas stolen from Mailman's release script, Lib/tokens.py and welease
 
 
+class Tag:
+    def __init__(self, tag_name):
+        # if tag is ".", use current directory name as tag
+        # e.g. if current directory name is "3.4.6",
+        # "release.py --bump 3.4.6" and "release.py --bump ." are the same
+        if tag_name == ".":
+            tag_name = os.path.basename(os.getcwd())
+        result = tag_cre.match(tag_name)
+        if result is None:
+            error(f"tag {tag_name} is not valid")
+        data = list(result.groups())
+        if data[3] is None:
+            # A final release.
+            self.is_final = True
+            data[3] = "f"
+        else:
+            self.is_final = False
+        # For everything else, None means 0.
+        for i, thing in enumerate(data):
+            if thing is None:
+                data[i] = 0
+        self.major = int(data[0])
+        self.minor = int(data[1])
+        self.patch = int(data[2])
+        self.level = data[3]
+        self.serial = int(data[4])
+        # This has the effect of normalizing the version.
+        self.text = self.normalized()
+        if self.level != "f":
+            self.text += self.level + str(self.serial)
+        self.basic_version = f"{self.major}.{self.minor}"
+
+    def __str__(self):
+        return self.text
+
+    def normalized(self):
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    @property
+    def branch(self):
+        return "main" if self.is_alpha_release else f"{self.major}.{self.minor}"
+
+    @property
+    def is_alpha_release(self):
+        return self.level == "a"
+
+    @property
+    def is_release_candidate(self):
+        return self.level == "rc"
+
+    @property
+    def is_feature_freeze_release(self):
+        return self.level == "b" and self.serial == 1
+
+    @property
+    def nickname(self):
+        return self.text.replace(".", "")
+
+    @property
+    def gitname(self):
+        return "v" + self.text
+
+    def next_minor_release(self):
+        return self.__class__(f"{self.major}.{int(self.minor)+1}.0a0")
+
+    def as_tuple(self):
+        return (self.major, self.minor, self.patch, self.level, self.serial)
+
+    @property
+    def committed_at(self):
+        # Fetch the epoch of the tagged commit for build reproducibility.
+        proc = subprocess.run(
+            ["git", "log", self.gitname, "-1", "--pretty=%ct"], stdout=subprocess.PIPE
+        )
+        if proc.returncode != 0:
+            error(f"Couldn't fetch the epoch of tag {self.gitname}")
+        return datetime.datetime.fromtimestamp(
+            int(proc.stdout.decode().strip()), tz=datetime.timezone.utc
+        )
+
+
 def error(*msgs):
     print("**ERROR**", file=sys.stderr)
     for msg in msgs:
@@ -482,88 +563,6 @@ def upload(tag, username):
         print(
             "* Now change the permissions on the tarballs so they are "
             "writable by the webmaster group. *"
-        )
-
-
-class Tag:
-
-    def __init__(self, tag_name):
-        # if tag is ".", use current directory name as tag
-        # e.g. if current directory name is "3.4.6",
-        # "release.py --bump 3.4.6" and "release.py --bump ." are the same
-        if tag_name == ".":
-            tag_name = os.path.basename(os.getcwd())
-        result = tag_cre.match(tag_name)
-        if result is None:
-            error(f"tag {tag_name} is not valid")
-        data = list(result.groups())
-        if data[3] is None:
-            # A final release.
-            self.is_final = True
-            data[3] = "f"
-        else:
-            self.is_final = False
-        # For everything else, None means 0.
-        for i, thing in enumerate(data):
-            if thing is None:
-                data[i] = 0
-        self.major = int(data[0])
-        self.minor = int(data[1])
-        self.patch = int(data[2])
-        self.level = data[3]
-        self.serial = int(data[4])
-        # This has the effect of normalizing the version.
-        self.text = self.normalized()
-        if self.level != "f":
-            self.text += self.level + str(self.serial)
-        self.basic_version = f"{self.major}.{self.minor}"
-
-    def __str__(self):
-        return self.text
-
-    def normalized(self):
-        return f"{self.major}.{self.minor}.{self.patch}"
-
-    @property
-    def branch(self):
-        return "main" if self.is_alpha_release else f"{self.major}.{self.minor}"
-
-    @property
-    def is_alpha_release(self):
-        return self.level == "a"
-
-    @property
-    def is_release_candidate(self):
-        return self.level == "rc"
-
-    @property
-    def is_feature_freeze_release(self):
-        return self.level == "b" and self.serial == 1
-
-    @property
-    def nickname(self):
-        return self.text.replace(".", "")
-
-    @property
-    def gitname(self):
-        return "v" + self.text
-
-    def next_minor_release(self):
-        return self.__class__(f"{self.major}.{int(self.minor)+1}.0a0")
-
-    def as_tuple(self):
-        return (self.major, self.minor, self.patch, self.level, self.serial)
-
-    @property
-    def committed_at(self):
-        # Fetch the epoch of the tagged commit for build reproducibility.
-        proc = subprocess.run(
-            ["git", "log", self.gitname, "-1", "--pretty=%ct"], stdout=subprocess.PIPE
-        )
-        if proc.returncode != 0:
-            error(f"Couldn't fetch the epoch of tag {self.gitname}")
-        return datetime.datetime.fromtimestamp(
-            int(proc.stdout.decode().strip()), tz=datetime.timezone.utc
         )
 
 
