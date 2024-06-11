@@ -1,0 +1,20 @@
+[tool.mypy]
+python_version = "3.12"
+pretty = true
+disallow_any_generics = true
+enable_error_code = "ignore-without-code"
+extra_checks = true
+follow_imports = "silent"
+strict = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_ignores = true
+exclude = [
+  "^add-to-pydotorg.py$",
+  "^buildbotapi.py$",
+  "^run_release.py$",
+  "^sbom.py$",
+  "^tests/test_release_tag.py$",
+  "^tests/test_sbom.py$",
+  "^windows-release/purge.py$",
+]
