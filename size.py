@@ -6,12 +6,16 @@ import hashlib
 import os
 import sys
 
-DOT = '.'
+DOT = "."
 
 
 # For consistency with historical use.
-sort_order = {ext: i for i, ext in enumerate(
-    ('tgz', 'tar.bz2', 'tar.xz', 'pdb.zip', 'amd64.msi', 'msi', 'chm', 'dmg'))}
+sort_order = {
+    ext: i
+    for i, ext in enumerate(
+        ("tgz", "tar.bz2", "tar.xz", "pdb.zip", "amd64.msi", "msi", "chm", "dmg")
+    )
+}
 
 
 def ignore(filename: str) -> bool:
@@ -33,11 +37,11 @@ def main() -> None:
         if ignore(filename):
             continue
         md5 = hashlib.md5()
-        with open(filename, 'rb') as fp:
+        with open(filename, "rb") as fp:
             md5.update(fp.read())
         size = os.stat(filename).st_size
-        print(f'  {md5.hexdigest()}  {size:8}  {filename}')
+        print(f"  {md5.hexdigest()}  {size:8}  {filename}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
