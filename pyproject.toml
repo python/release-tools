@@ -2,7 +2,6 @@
 python_version = "3.12"
 pretty = true
 strict = true
-follow_imports = "silent"
 
 # Extra checks that aren't included in --strict
 enable_error_code = "ignore-without-code"
