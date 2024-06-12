@@ -4,7 +4,7 @@ pretty = true
 strict = true
 
 # Extra checks that aren't included in --strict
-enable_error_code = "ignore-without-code"
+enable_error_code = "ignore-without-code,redundant-expr,truthy-iterable"
 extra_checks = true
 warn_unreachable = true
 
