@@ -8,6 +8,7 @@ follow_imports = "silent"
 enable_error_code = "ignore-without-code"
 extra_checks = true
 warn_unreachable = true
+
 exclude = [
   "^add-to-pydotorg.py$",
   "^buildbotapi.py$",
