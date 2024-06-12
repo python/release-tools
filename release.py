@@ -162,7 +162,7 @@ def chdir_to_repo_root() -> str:
 
         def test_first_line(
             filename: str,
-            test: Callable[[str], re.Match[str] | None] | Callable[[object], bool],
+            test: Callable[[str], object],
         ) -> bool:
             if not os.path.exists(filename):
                 return False
