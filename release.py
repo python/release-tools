@@ -295,7 +295,7 @@ def tweak_patchlevel(tag: Tag, done: bool = False) -> None:
 
 /* Version as a string */
 #define PY_VERSION      \t\"{tag.text}{plus}"'''.strip()
-    assert tag.level is str
+    assert isinstance(tag.level, str)
     level_def = {
         "a": "PY_RELEASE_LEVEL_ALPHA",
         "b": "PY_RELEASE_LEVEL_BETA",
