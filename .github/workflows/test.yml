@@ -17,9 +17,9 @@ jobs:
           cache: pip
           cache-dependency-path: dev-requirements.txt
       - run: |
-          python -m pip install -r dev-requirements.txt
+          python -m pip install tox
       - run: |
-          pytest tests/ --cov . --cov tests --cov-report term --cov-report xml
+          tox -e py
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4.3.0

@@ -14,11 +14,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5.1.0
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
           cache: pip
       - uses: pre-commit/action@v3.0.1
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install -U pip
+          python3 -m pip install -U tox
+
+      - name: Mypy
+        run: tox -e mypy
 
       - name: Run PSScriptAnalyzer on PowerShell scripts
         shell: pwsh

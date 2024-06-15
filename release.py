@@ -6,6 +6,8 @@ Original code by Benjamin Peterson
 Additions by Barry Warsaw, Georg Brandl and Benjamin Peterson
 """
 
+from __future__ import annotations
+
 import datetime
 import glob
 import hashlib
@@ -18,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 from contextlib import contextmanager
+from typing import Any, Callable, Generator, Self
 
 COMMASPACE = ", "
 SPACE = " "
@@ -27,14 +30,100 @@ tag_cre = re.compile(r"(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$")
 # Ideas stolen from Mailman's release script, Lib/tokens.py and welease
 
 
-def error(*msgs):
+class Tag:
+    def __init__(self, tag_name: str) -> None:
+        # if tag is ".", use current directory name as tag
+        # e.g. if current directory name is "3.4.6",
+        # "release.py --bump 3.4.6" and "release.py --bump ." are the same
+        if tag_name == ".":
+            tag_name = os.path.basename(os.getcwd())
+        result = tag_cre.match(tag_name)
+        if result is None:
+            error(f"tag {tag_name} is not valid")
+        assert result is not None
+        data = list(result.groups())
+        if data[3] is None:
+            # A final release.
+            self.is_final = True
+            data[3] = "f"
+        else:
+            self.is_final = False
+        # For everything else, None means 0.
+        for i, thing in enumerate(data):
+            if thing is None:
+                data[i] = 0
+        self.major = int(data[0])
+        self.minor = int(data[1])
+        self.patch = int(data[2])
+        self.level = data[3]
+        self.serial = int(data[4])
+        # This has the effect of normalizing the version.
+        self.text = self.normalized()
+        if self.level != "f":
+            assert self.level is not None
+            self.text += self.level + str(self.serial)
+        self.basic_version = f"{self.major}.{self.minor}"
+
+    def __str__(self) -> str:
+        return self.text
+
+    def normalized(self) -> str:
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    @property
+    def branch(self) -> str:
+        return "main" if self.is_alpha_release else f"{self.major}.{self.minor}"
+
+    @property
+    def is_alpha_release(self) -> bool:
+        return self.level == "a"
+
+    @property
+    def is_release_candidate(self) -> bool:
+        return self.level == "rc"
+
+    @property
+    def is_feature_freeze_release(self) -> bool:
+        return self.level == "b" and self.serial == 1
+
+    @property
+    def nickname(self) -> str:
+        return self.text.replace(".", "")
+
+    @property
+    def gitname(self) -> str:
+        return "v" + self.text
+
+    def next_minor_release(self) -> Self:
+        return self.__class__(f"{self.major}.{int(self.minor)+1}.0a0")
+
+    def as_tuple(self) -> tuple[int, int, int, str, int]:
+        assert isinstance(self.level, str)
+        return self.major, self.minor, self.patch, self.level, self.serial
+
+    @property
+    def committed_at(self) -> datetime.datetime:
+        # Fetch the epoch of the tagged commit for build reproducibility.
+        proc = subprocess.run(
+            ["git", "log", self.gitname, "-1", "--pretty=%ct"], stdout=subprocess.PIPE
+        )
+        if proc.returncode != 0:
+            error(f"Couldn't fetch the epoch of tag {self.gitname}")
+        return datetime.datetime.fromtimestamp(
+            int(proc.stdout.decode().strip()), tz=datetime.timezone.utc
+        )
+
+
+def error(*msgs: str) -> None:
     print("**ERROR**", file=sys.stderr)
     for msg in msgs:
         print(msg, file=sys.stderr)
     sys.exit(1)
 
 
-def run_cmd(cmd, silent=False, shell=False, **kwargs):
+def run_cmd(
+    cmd: list[str] | str, silent: bool = False, shell: bool = False, **kwargs: Any
+) -> None:
     if shell:
         cmd = SPACE.join(cmd)
     if not silent:
@@ -53,7 +142,7 @@ readme_re = re.compile(r"This is Python version [23]\.\d").match
 root = None
 
 
-def chdir_to_repo_root():
+def chdir_to_repo_root() -> str:
     global root
 
     # find the root of the local CPython repo
@@ -71,7 +160,10 @@ def chdir_to_repo_root():
 
         os.chdir(path)
 
-        def test_first_line(filename, test):
+        def test_first_line(
+            filename: str,
+            test: Callable[[str], object],
+        ) -> bool:
             if not os.path.exists(filename):
                 return False
             with open(filename) as f:
@@ -99,18 +191,18 @@ def chdir_to_repo_root():
     return root
 
 
-def get_output(args):
+def get_output(args: list[str]) -> bytes:
     return subprocess.check_output(args)
 
 
-def check_env():
+def check_env() -> None:
     if "EDITOR" not in os.environ:
         error("editor not detected.", "Please set your EDITOR environment variable")
     if not os.path.exists(".git"):
         error("CWD is not a git clone")
 
 
-def get_arg_parser():
+def get_arg_parser() -> optparse.OptionParser:
     usage = "%prog [options] tagname"
     p = optparse.OptionParser(usage=usage)
     p.add_option(
@@ -163,7 +255,9 @@ def get_arg_parser():
     return p
 
 
-def constant_replace(fn, updated_constants, comment_start="/*", comment_end="*/"):
+def constant_replace(
+    fn: str, updated_constants: str, comment_start: str = "/*", comment_end: str = "*/"
+) -> None:
     """Inserts in between --start constant-- and --end constant-- in a file"""
     start_tag = comment_start + "--start constants--" + comment_end
     end_tag = comment_start + "--end constants--" + comment_end
@@ -190,7 +284,7 @@ def constant_replace(fn, updated_constants, comment_start="/*", comment_end="*/"
     os.rename(fn + ".new", fn)
 
 
-def tweak_patchlevel(tag, done=False):
+def tweak_patchlevel(tag: Tag, done: bool = False) -> None:
     print("Updating Include/patchlevel.h...", end=" ")
     template = '''
 #define PY_MAJOR_VERSION\t{tag.major}
@@ -201,6 +295,7 @@ def tweak_patchlevel(tag, done=False):
 
 /* Version as a string */
 #define PY_VERSION      \t\"{tag.text}{plus}"'''.strip()
+    assert isinstance(tag.level, str)
     level_def = {
         "a": "PY_RELEASE_LEVEL_ALPHA",
         "b": "PY_RELEASE_LEVEL_BETA",
@@ -216,7 +311,7 @@ def tweak_patchlevel(tag, done=False):
     print("done")
 
 
-def bump(tag):
+def bump(tag: Tag) -> None:
     print(f"Bumping version to {tag}")
 
     tweak_patchlevel(tag)
@@ -257,7 +352,7 @@ def manual_edit(fn: str) -> None:
 
 
 @contextmanager
-def pushd(new):
+def pushd(new: str) -> Generator[None, None, None]:
     print(f"chdir'ing to {new}")
     old = os.getcwd()
     os.chdir(new)
@@ -267,7 +362,7 @@ def pushd(new):
         os.chdir(old)
 
 
-def make_dist(name):
+def make_dist(name: str) -> None:
     try:
         os.mkdir(name)
     except OSError:
@@ -279,7 +374,7 @@ def make_dist(name):
         print(f"created dist directory {name}")
 
 
-def tarball(source, clamp_mtime):
+def tarball(source: str, clamp_mtime: str) -> None:
     """Build tarballs for a directory."""
     print("Making .tgz")
     base = os.path.basename(source)
@@ -327,7 +422,7 @@ def tarball(source, clamp_mtime):
     print("  %s  %8s  %s" % (checksum_xz.hexdigest(), int(os.path.getsize(xz)), xz))
 
 
-def export(tag, silent=False, skip_docs=False):
+def export(tag: Tag, silent: bool = False, skip_docs: bool = False) -> None:
     make_dist(tag.text)
     print("Exporting tag:", tag.text)
     archivename = f"Python-{tag.text}"
@@ -450,7 +545,7 @@ def export(tag, silent=False, skip_docs=False):
     print("**You may also want to run make install and re-test**")
 
 
-def build_docs():
+def build_docs() -> str:
     """Build and tarball the documentation"""
     print("Building docs")
     with tempfile.TemporaryDirectory() as venv:
@@ -467,11 +562,11 @@ def build_docs():
             return os.path.abspath("dist")
 
 
-def upload(tag, username):
+def upload(tag: Tag, username: str) -> None:
     """scp everything to dinsdale"""
     address = f'"{username}@dinsdale.python.org:'
 
-    def scp(from_loc, to_loc):
+    def scp(from_loc: str, to_loc: str) -> None:
         run_cmd(["scp", from_loc, address + to_loc])
 
     with pushd(tag.text):
@@ -485,89 +580,7 @@ def upload(tag, username):
         )
 
 
-class Tag:
-
-    def __init__(self, tag_name):
-        # if tag is ".", use current directory name as tag
-        # e.g. if current directory name is "3.4.6",
-        # "release.py --bump 3.4.6" and "release.py --bump ." are the same
-        if tag_name == ".":
-            tag_name = os.path.basename(os.getcwd())
-        result = tag_cre.match(tag_name)
-        if result is None:
-            error(f"tag {tag_name} is not valid")
-        data = list(result.groups())
-        if data[3] is None:
-            # A final release.
-            self.is_final = True
-            data[3] = "f"
-        else:
-            self.is_final = False
-        # For everything else, None means 0.
-        for i, thing in enumerate(data):
-            if thing is None:
-                data[i] = 0
-        self.major = int(data[0])
-        self.minor = int(data[1])
-        self.patch = int(data[2])
-        self.level = data[3]
-        self.serial = int(data[4])
-        # This has the effect of normalizing the version.
-        self.text = self.normalized()
-        if self.level != "f":
-            self.text += self.level + str(self.serial)
-        self.basic_version = f"{self.major}.{self.minor}"
-
-    def __str__(self):
-        return self.text
-
-    def normalized(self):
-        return f"{self.major}.{self.minor}.{self.patch}"
-
-    @property
-    def branch(self):
-        return "main" if self.is_alpha_release else f"{self.major}.{self.minor}"
-
-    @property
-    def is_alpha_release(self):
-        return self.level == "a"
-
-    @property
-    def is_release_candidate(self):
-        return self.level == "rc"
-
-    @property
-    def is_feature_freeze_release(self):
-        return self.level == "b" and self.serial == 1
-
-    @property
-    def nickname(self):
-        return self.text.replace(".", "")
-
-    @property
-    def gitname(self):
-        return "v" + self.text
-
-    def next_minor_release(self):
-        return self.__class__(f"{self.major}.{int(self.minor)+1}.0a0")
-
-    def as_tuple(self):
-        return (self.major, self.minor, self.patch, self.level, self.serial)
-
-    @property
-    def committed_at(self):
-        # Fetch the epoch of the tagged commit for build reproducibility.
-        proc = subprocess.run(
-            ["git", "log", self.gitname, "-1", "--pretty=%ct"], stdout=subprocess.PIPE
-        )
-        if proc.returncode != 0:
-            error(f"Couldn't fetch the epoch of tag {self.gitname}")
-        return datetime.datetime.fromtimestamp(
-            int(proc.stdout.decode().strip()), tz=datetime.timezone.utc
-        )
-
-
-def make_tag(tag):
+def make_tag(tag: Tag) -> bool:
     # make sure we've run blurb export
     good_files = glob.glob("Misc/NEWS.d/" + str(tag) + ".rst")
     bad_files = list(glob.glob("Misc/NEWS.d/next/*/0*.rst"))
@@ -605,11 +618,11 @@ def make_tag(tag):
     return True
 
 
-def done(tag):
+def done(tag: Tag) -> None:
     tweak_patchlevel(tag, done=True)
 
 
-def main(argv):
+def main(argv: Any) -> None:
     chdir_to_repo_root()
     parser = get_arg_parser()
     options, args = parser.parse_args(argv)
