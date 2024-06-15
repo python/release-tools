@@ -22,4 +22,4 @@ jobs:
           tox -e py
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4.3.0
+        uses: codecov/codecov-action@v4.5.0
