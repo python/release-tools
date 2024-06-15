@@ -1096,7 +1096,7 @@ def push_to_upstream(db: DbfilenameShelf) -> None:
 
 def main() -> None:
 
-    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser = argparse.ArgumentParser(description="Make a CPython release.")
 
     def _release_type(release: str) -> str:
         if not RELEASE_REGEXP.match(release):
