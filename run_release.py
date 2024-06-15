@@ -1096,21 +1096,6 @@ def push_to_upstream(db: DbfilenameShelf) -> None:
 
 def main() -> None:
 
-    if "linux" not in sys.platform:
-        print(
-            """\
-WARNING! This script has not been tested on a platform other than Linux.
-
-Although it should work correctly as long as you have all the dependencies,
-some things may not work as expected. As a release manager, you should try to
-fix these things in this script so it also support your platform.
-"""
-        )
-        if not ask_question("Do you want to continue?"):
-            raise ReleaseException(
-                "This release script is not compatible with the running platform"
-            )
-
     parser = argparse.ArgumentParser(description="Process some integers.")
 
     def _release_type(release: str) -> str:
@@ -1154,8 +1139,25 @@ fix these things in this script so it also support your platform.
         type=str,
     )
     args = parser.parse_args()
+
     auth_key = args.auth_key or os.getenv("AUTH_INFO")
     assert isinstance(auth_key, str), "We need an AUTH_INFO env var or --auth-key"
+
+    if "linux" not in sys.platform:
+        print(
+            """\
+WARNING! This script has not been tested on a platform other than Linux.
+
+Although it should work correctly as long as you have all the dependencies,
+some things may not work as expected. As a release manager, you should try to
+fix these things in this script so it also support your platform.
+"""
+        )
+        if not ask_question("Do you want to continue?"):
+            raise ReleaseException(
+                "This release script is not compatible with the running platform"
+            )
+
     tasks = [
         Task(check_git, "Checking git is available"),
         Task(check_make, "Checking make is available"),
