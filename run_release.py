@@ -24,7 +24,7 @@ import time
 import urllib.request
 from dataclasses import dataclass
 from shelve import DbfilenameShelf
-from typing import Callable, Iterator
+from typing import Any, Callable, Generator, Iterator
 
 import aiohttp
 import gnupg
@@ -34,7 +34,7 @@ from alive_progress import alive_bar
 
 import release as release_mod
 import sbom
-from buildbotapi import BuildBotAPI
+from buildbotapi import BuildBotAPI, Builder
 
 API_KEY_REGEXP = re.compile(r"(?P<major>\w+):(?P<minor>\w+)")
 
@@ -185,7 +185,7 @@ class Task:
     function: Callable[[DbfilenameShelf], None]
     description: str
 
-    def __call__(self, db: DbfilenameShelf) -> None:
+    def __call__(self, db: DbfilenameShelf) -> Any:
         return getattr(self, "function")(db)
 
 
@@ -283,7 +283,7 @@ def cd(path: str) -> Iterator[None]:
 
 
 @contextlib.contextmanager
-def supress_print():
+def supress_print() -> Generator[None, None, None]:
     print_func = builtins.print
     builtins.print = lambda *args, **kwargs: None
     yield
@@ -334,8 +334,10 @@ def check_ssh_connection(db: DbfilenameShelf) -> None:
 
 
 def check_buildbots(db: DbfilenameShelf) -> None:
-    async def _check():
-        async def _get_builder_status(buildbot_api, the_builder):
+    async def _check() -> set[Builder]:
+        async def _get_builder_status(
+            buildbot_api: BuildBotAPI, the_builder: Builder
+        ) -> tuple[Builder, bool]:
             return the_builder, await buildbot_api.is_builder_failing_currently(
                 the_builder
             )
@@ -568,7 +570,7 @@ def build_sbom_artifacts(db):
 
 
 class MySFTPClient(paramiko.SFTPClient):
-    def put_dir(self, source, target, progress=None):
+    def put_dir(self, source: str, target: str, progress: Any = None) -> None:
         for item in os.listdir(source):
             if os.path.isfile(os.path.join(source, item)):
                 progress.text(item)
@@ -582,7 +584,7 @@ class MySFTPClient(paramiko.SFTPClient):
                     progress=progress,
                 )
 
-    def mkdir(self, path, mode=511, ignore_existing=False):
+    def mkdir(self, path: str, mode: int = 511, ignore_existing: bool = False) -> None:
         try:
             super().mkdir(path, mode)
         except OSError:
@@ -610,7 +612,7 @@ def upload_files_to_server(db: DbfilenameShelf) -> None:
 
     shutil.rmtree(artifacts_path / f"Python-{db['release']}", ignore_errors=True)
 
-    def upload_subdir(subdir):
+    def upload_subdir(subdir: str) -> None:
         with contextlib.suppress(OSError):
             ftp_client.mkdir(str(destination / subdir))
         with alive_bar(len(tuple((artifacts_path / subdir).glob("**/*")))) as progress:
@@ -637,7 +639,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
     source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
     destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
 
-    def execute_command(command):
+    def execute_command(command: str) -> None:
         channel = client.get_transport().open_session()
         channel.exec_command(command)
         if channel.recv_exit_status() != 0:
@@ -656,7 +658,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
         source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
         destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
 
-        def execute_command(command):
+        def execute_command(command: str) -> None:
             channel = client.get_transport().open_session()
             channel.exec_command(command)
             if channel.recv_exit_status() != 0:
@@ -691,7 +693,7 @@ def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
 
     shutil.rmtree(artifacts_path / f"Python-{db['release']}", ignore_errors=True)
 
-    def upload_subdir(subdir):
+    def upload_subdir(subdir: str) -> None:
         with contextlib.suppress(OSError):
             ftp_client.mkdir(str(destination / subdir))
         with alive_bar(len(tuple((artifacts_path / subdir).glob("**/*")))) as progress:
@@ -720,7 +722,7 @@ def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
     source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
     destination = f"/srv/docs.python.org/release/{release_tag}"
 
-    def execute_command(command):
+    def execute_command(command: str) -> None:
         channel = client.get_transport().open_session()
         channel.exec_command(command)
         if channel.recv_exit_status() != 0:
@@ -927,8 +929,6 @@ def modify_the_release_to_the_prerelease_pages(db: DbfilenameShelf) -> None:
 
 
 def post_release_merge(db: DbfilenameShelf) -> None:
-    release_tag: release_mod.Tag = db["release"]
-
     subprocess.check_call(
         ["git", "fetch", "--all"],
         cwd=db["git_repo"],
@@ -1032,7 +1032,7 @@ def is_mirror(repo: pathlib.Path, remote: str) -> bool:
 
 
 def push_to_local_fork(db: DbfilenameShelf) -> None:
-    def _push_to_local(dry_run=False):
+    def _push_to_local(dry_run: bool = False) -> None:
         git_command = ["git", "push"]
         if dry_run:
             git_command.append("--dry-run")
@@ -1058,7 +1058,7 @@ def push_to_local_fork(db: DbfilenameShelf) -> None:
 def push_to_upstream(db: DbfilenameShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
 
-    def _push_to_upstream(dry_run=False):
+    def _push_to_upstream(dry_run: bool = False) -> None:
         branch = f"{release_tag.major}.{release_tag.minor}"
         git_command = ["git", "push"]
         if dry_run:
@@ -1113,7 +1113,7 @@ fix these things in this script so it also support your platform.
 
     parser = argparse.ArgumentParser(description="Process some integers.")
 
-    def _release_type(release):
+    def _release_type(release: str) -> str:
         if not RELEASE_REGEXP.match(release):
             raise argparse.ArgumentTypeError("Invalid release string")
         return release
@@ -1133,7 +1133,7 @@ fix these things in this script so it also support your platform.
         type=str,
     )
 
-    def _api_key(api_key):
+    def _api_key(api_key: str) -> str:
         if not API_KEY_REGEXP.match(api_key):
             raise argparse.ArgumentTypeError(
                 "Invalid api key format. It must be on the form USER:API_KEY"
