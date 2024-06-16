@@ -4,6 +4,7 @@
 
 Original code by Pablo Galindo
 """
+from __future__ import annotations
 
 import argparse
 import asyncio
@@ -23,7 +24,7 @@ import time
 import urllib.request
 from dataclasses import dataclass
 from shelve import DbfilenameShelf
-from typing import Callable, Iterator, List, Optional
+from typing import Callable, Iterator
 
 import aiohttp
 import gnupg
@@ -195,13 +196,13 @@ class ReleaseException(Exception):
 class ReleaseDriver:
     def __init__(
         self,
-        tasks: List[Task],
+        tasks: list[Task],
         *,
         release_tag: release_mod.Tag,
         git_repo: str,
         api_key: str,
         ssh_user: str,
-        first_state: Optional[Task] = None,
+        first_state: Task | None = None,
     ) -> None:
         self.tasks = tasks
         dbfile = pathlib.Path.home() / ".python_release"
@@ -212,7 +213,7 @@ class ReleaseDriver:
             self.db.close()
             self.db = shelve.open(str(dbfile), "n")
 
-        self.current_task: Optional[Task] = first_state
+        self.current_task: Task | None = first_state
         self.completed_tasks = self.db.get("completed_tasks", [])
         self.remaining_tasks = iter(tasks[len(self.completed_tasks) :])
         if self.db.get("gpg_key"):
