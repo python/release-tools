@@ -52,9 +52,7 @@ class BuildBotAPI:
         async with self._session.get(url) as resp:
             return await resp.text()
 
-    async def _fetch_json(
-        self, url: str
-    ) -> Dict[
+    async def _fetch_json(self, url: str) -> Dict[
         str,
         Union[
             List[Dict[str, Union[int, bool, str]]],

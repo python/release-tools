@@ -1,0 +1,19 @@
+[tool.mypy]
+python_version = "3.12"
+pretty = true
+strict = true
+
+# Extra checks that aren't included in --strict
+enable_error_code = "ignore-without-code,redundant-expr,truthy-iterable"
+extra_checks = true
+warn_unreachable = true
+
+exclude = [
+  "^add-to-pydotorg.py$",
+  "^buildbotapi.py$",
+  "^run_release.py$",
+  "^sbom.py$",
+  "^tests/test_release_tag.py$",
+  "^tests/test_sbom.py$",
+  "^windows-release/purge.py$",
+]

@@ -4,19 +4,19 @@
 #   py -3 purge.py 3.5.1rc1
 #
 
-__author__ = 'Steve Dower <steve.dower@python.org>'
-__version__ = '1.0.0'
+__author__ = "Steve Dower <steve.dower@python.org>"
+__version__ = "1.0.0"
 
 import re
 import sys
 from urllib.request import Request, urlopen
 
-VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)([A-Za-z_]+\d+)?$')
+VERSION_RE = re.compile(r"(\d+\.\d+\.\d+)([A-Za-z_]+\d+)?$")
 
 try:
     m = VERSION_RE.match(sys.argv[1])
     if not m:
-        print('Invalid version:', sys.argv[1])
+        print("Invalid version:", sys.argv[1])
         print('Expected something like "3.5.1rc1"')
         sys.exit(1)
 except LookupError:
@@ -24,7 +24,7 @@ except LookupError:
     sys.exit(1)
 
 URL = f"https://www.python.org/ftp/python/{m.group(1)}/"
-REL = m.group(2) or ''
+REL = m.group(2) or ""
 
 FILES = [
     "core.msi",
@@ -78,9 +78,9 @@ PATHS = [
 ]
 PATHS = PATHS + [p + ".asc" for p in PATHS]
 
-print('Purged:')
+print("Purged:")
 for n in PATHS:
     u = URL + n
-    with urlopen(Request(u, method='PURGE', headers={'Fastly-Soft-Purge': 1})) as r:
+    with urlopen(Request(u, method="PURGE", headers={"Fastly-Soft-Purge": 1})) as r:
         r.read()
-    print('  ', u)
+    print("  ", u)
