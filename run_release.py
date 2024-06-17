@@ -1121,7 +1121,7 @@ def main() -> None:
     def _api_key(api_key: str) -> str:
         if not API_KEY_REGEXP.match(api_key):
             raise argparse.ArgumentTypeError(
-                "Invalid api key format. It must be on the form USER:API_KEY"
+                "Invalid API key format. It must be on the form USER:API_KEY"
             )
         return api_key
 
@@ -1159,25 +1159,25 @@ fix these things in this script so it also support your platform.
             )
 
     tasks = [
-        Task(check_git, "Checking git is available"),
+        Task(check_git, "Checking Git is available"),
         Task(check_make, "Checking make is available"),
         Task(check_blurb, "Checking blurb is available"),
-        Task(check_docker, "Checking docker is available"),
+        Task(check_docker, "Checking Docker is available"),
         Task(check_autoconf, "Checking autoconf is available"),
         Task(check_gpg_keys, "Checking GPG keys"),
         Task(check_ssh_connection, f"Validating ssh connection to {DOWNLOADS_SERVER}"),
         Task(check_buildbots, "Check buildbots are good"),
-        Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(preapre_temporary_branch, "Checking out a temporary release branch"),
         Task(run_blurb_release, "Run blurb release"),
-        Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(bump_version, "Bump version"),
-        Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(run_autoconf, "Running autoconf"),
-        Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(check_pyspecific, "Checking pyspecific"),
-        Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(create_tag, "Create tag"),
         Task(push_to_local_fork, "Push new tags and branches to private fork"),
         Task(
