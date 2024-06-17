@@ -36,7 +36,7 @@ import release as release_mod
 import sbom
 from buildbotapi import BuildBotAPI, Builder
 
-API_KEY_REGEXP = re.compile(r"(?P<major>\w+):(?P<minor>\w+)")
+API_KEY_REGEXP = re.compile(r"(?P<user>\w+):(?P<key>\w+)")
 
 
 RELEASE_REGEXP = re.compile(
