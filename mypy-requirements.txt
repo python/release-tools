@@ -1,3 +1,5 @@
+aiohttp==3.9.4
 mypy==1.10
 pytest
 pytest-mock
+sigstore==1.1.2
