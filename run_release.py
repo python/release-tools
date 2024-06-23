@@ -389,7 +389,7 @@ def check_cpython_repo_is_clean(db: DbfilenameShelf) -> None:
         raise ReleaseException("Git repository is not clean")
 
 
-def preapre_temporary_branch(db: DbfilenameShelf) -> None:
+def prepare_temporary_branch(db: DbfilenameShelf) -> None:
     subprocess.check_call(
         ["git", "checkout", "-b", f"branch-{db['release']}"], cwd=db["git_repo"]
     )
@@ -803,7 +803,7 @@ def send_email_to_platform_release_managers(db: DbfilenameShelf) -> None:
     if not ask_question(
         "Have you notified the platform release managers about the availability of the commit SHA and tag?"
     ):
-        raise ReleaseException("Platform release managers muy be notified")
+        raise ReleaseException("Platform release managers must be notified")
 
 
 def create_release_object_in_db(db: DbfilenameShelf) -> None:
@@ -1168,7 +1168,7 @@ fix these things in this script so it also support your platform.
         Task(check_ssh_connection, f"Validating ssh connection to {DOWNLOADS_SERVER}"),
         Task(check_buildbots, "Check buildbots are good"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
-        Task(preapre_temporary_branch, "Checking out a temporary release branch"),
+        Task(prepare_temporary_branch, "Checking out a temporary release branch"),
         Task(run_blurb_release, "Run blurb release"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
