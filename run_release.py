@@ -376,6 +376,10 @@ def check_buildbots(db: DbfilenameShelf) -> None:
         raise ReleaseException("Buildbots are failing!")
 
 
+def check_docker_running(db: DbfilenameShelf) -> None:
+    subprocess.check_call(["docker", "container", "ls"])
+
+
 def run_blurb_release(db: DbfilenameShelf) -> None:
     subprocess.check_call(["blurb", "release", str(db["release"])], cwd=db["git_repo"])
     subprocess.check_call(
@@ -1163,6 +1167,7 @@ fix these things in this script so it also support your platform.
         Task(check_make, "Checking make is available"),
         Task(check_blurb, "Checking blurb is available"),
         Task(check_docker, "Checking Docker is available"),
+        Task(check_docker_running, "Checking Docker is running"),
         Task(check_autoconf, "Checking autoconf is available"),
         Task(check_gpg_keys, "Checking GPG keys"),
         Task(check_ssh_connection, f"Validating ssh connection to {DOWNLOADS_SERVER}"),
