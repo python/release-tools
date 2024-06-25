@@ -1156,10 +1156,27 @@ def buildPythonFramework(python_framework_name, buildDir, configure_options):
     #   TODO: But do not delete the canonical executable name,
     #         i.e. "python3.13", as this currently breaks venv
     #         creation (caused by gh-31958)
+    #   [gh-120285] for now, first rename some bin files that are
+    #       not currently being suffixed by the main Makefile:
+    #           "python3.x-intel64" -> "python3.xt-intel64"
+    #   TODO: Handle this in main Makefile ?
+
     if not main_framework:
         main_framework_bin = os.path.join(ROOTDIR, 'Library', 'Frameworks',
                     'Python.framework', 'Versions', getVersion(), 'bin')
         our_framework_bin = os.path.join(frmDir, 'Versions', getVersion(), 'bin')
+
+        renames = [
+            (f'python{getVersion()}-intel64', f'python{getVersion()}t-intel64'),
+        ]
+        for bin_name in os.listdir(our_framework_bin):
+            for bn, new_bin_name in renames:
+                if bin_name == bn:
+                    print(f'-- renaming bin file: {bin_name} to {new_bin_name}')
+                    os.rename(os.path.join(our_framework_bin, bin_name), 
+                              os.path.join(our_framework_bin, new_bin_name))
+                    break
+
         for bin_name in (set(os.listdir(main_framework_bin))
                             & set(os.listdir(our_framework_bin))):
             if bin_name == f'python{getVersion()}':
