@@ -23,6 +23,7 @@ import sys
 import tarfile
 import typing
 import zipfile
+from typing import Any
 from urllib.request import urlopen
 
 
@@ -118,13 +119,13 @@ def get_release_tools_commit_sha() -> str:
     return stdout
 
 
-def normalize_sbom_data(sbom_data):
+def normalize_sbom_data(sbom_data: dict[str, Any]) -> None:
     """
     Normalize SBOM data in-place by recursion
     and sorting lists by some repeatable key.
     """
 
-    def recursive_sort_in_place(value):
+    def recursive_sort_in_place(value: list | dict) -> None:
         if isinstance(value, list):
             # We need to recurse first so bottom-most elements are sorted first.
             for item in value:
@@ -338,7 +339,7 @@ def create_cpython_sbom(
     sbom_data: dict[str, typing.Any],
     cpython_version: str,
     artifact_path: str,
-):
+) -> None:
     """Creates the top-level SBOM metadata and the CPython SBOM package."""
 
     cpython_version_without_suffix = re.match(r"^([0-9.]+)", cpython_version).group(1)
@@ -412,7 +413,7 @@ def create_cpython_sbom(
     sbom_data["packages"].append(sbom_cpython_package)
 
 
-def create_sbom_for_source_tarball(tarball_path: str):
+def create_sbom_for_source_tarball(tarball_path: str) -> dict[str, Any]:
     """Stitches together an SBOM for a source tarball"""
     tarball_name = os.path.basename(tarball_path)
 
@@ -567,7 +568,9 @@ def create_sbom_for_source_tarball(tarball_path: str):
     return sbom_data
 
 
-def create_sbom_for_windows_artifact(artifact_path, cpython_source_dir: str):
+def create_sbom_for_windows_artifact(
+    artifact_path: str, cpython_source_dir: str
+) -> dict[str, Any]:
     artifact_name = os.path.basename(artifact_path)
     cpython_version = re.match(
         r"^python-([0-9abrc.]+)(?:-|\.exe|\.zip)", artifact_name
