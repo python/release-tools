@@ -147,7 +147,12 @@ def get_file_descriptions(release):
         ),
         (
             rx(r"-macos(x)?1[1-9](\.[0-9]*)?\.pkg$"),
-            ("macOS 64-bit universal2 installer", 2, True, "for macOS 10.9 and later"),
+            (
+                "macOS 64-bit universal2 installer",
+                2,
+                True,
+                f"for macOS {'10.13' if v >= (3, 13) else '10.9'} and later",
+            ),
         ),
     ]
 
