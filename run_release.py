@@ -1154,7 +1154,7 @@ WARNING! This script has not been tested on a platform other than Linux.
 
 Although it should work correctly as long as you have all the dependencies,
 some things may not work as expected. As a release manager, you should try to
-fix these things in this script so it also support your platform.
+fix these things in this script so it also supports your platform.
 """
         )
         if not ask_question("Do you want to continue?"):
