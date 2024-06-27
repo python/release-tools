@@ -739,8 +739,8 @@ def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
 
 
 def extract_github_owner(url: str) -> str:
-    if https_match := re.match(r"github\.com/([^/]+)/", url):
-        return https_match.group(1)
+    if https_match := re.match(r"(https://)?github\.com/([^/]+)/", url):
+        return https_match.group(2)
     elif ssh_match := re.match(r"^git@github\.com:([^/]+)/", url):
         return ssh_match.group(1)
     else:

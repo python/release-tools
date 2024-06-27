@@ -8,6 +8,7 @@ import run_release
     [
         ("github.com/hugovk/cpython.git", "hugovk"),
         ("git@github.com:hugovk/cpython.git", "hugovk"),
+        ("https://github.com/hugovk/cpython.git", "hugovk"),
     ],
 )
 def test_extract_github_owner(url: str, expected: str) -> None:
