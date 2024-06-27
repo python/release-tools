@@ -14,6 +14,7 @@ exclude = [
   "^run_release.py$",
   "^sbom.py$",
   "^tests/test_release_tag.py$",
+  "^tests/test_run_release.py$",
   "^tests/test_sbom.py$",
   "^windows-release/purge.py$",
 ]
