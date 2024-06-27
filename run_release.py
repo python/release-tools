@@ -1170,7 +1170,10 @@ fix these things in this script so it also support your platform.
         Task(check_docker_running, "Checking Docker is running"),
         Task(check_autoconf, "Checking autoconf is available"),
         Task(check_gpg_keys, "Checking GPG keys"),
-        Task(check_ssh_connection, f"Validating ssh connection to {DOWNLOADS_SERVER}"),
+        Task(
+            check_ssh_connection,
+            f"Validating ssh connection to {DOWNLOADS_SERVER} and {DOCS_SERVER}",
+        ),
         Task(check_buildbots, "Check buildbots are good"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(prepare_temporary_branch, "Checking out a temporary release branch"),
