@@ -738,6 +738,17 @@ def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
     execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
 
 
+def extract_github_owner(url: str) -> str:
+    if https_match := re.match(r"(https://)?github\.com/([^/]+)/", url):
+        return https_match.group(2)
+    elif ssh_match := re.match(r"^git@github\.com:([^/]+)/", url):
+        return ssh_match.group(1)
+    else:
+        raise ReleaseException(
+            f"Could not parse GitHub owner from 'origin' remote URL: {url}"
+        )
+
+
 def start_build_of_source_and_docs(db: DbfilenameShelf) -> None:
     # Get the git commit SHA for the tag
     commit_sha = (
@@ -757,14 +768,7 @@ def start_build_of_source_and_docs(db: DbfilenameShelf) -> None:
         .decode()
         .strip()
     )
-    if https_match := re.match(r"github\.com/([^/]+)/", origin_remote_url):
-        origin_remote_github_owner = https_match.group(1)
-    elif ssh_match := re.match(r"^git@github\.com:([^/]+)/", origin_remote_url):
-        origin_remote_github_owner = ssh_match.group(1)
-    else:
-        raise ReleaseException(
-            f"Could not parse GitHub owner from 'origin' remote URL: {origin_remote_url}"
-        )
+    origin_remote_github_owner = extract_github_owner(origin_remote_url)
     # We ask for human verification at this point since this commit SHA is 'locked in'
     print()
     print(
