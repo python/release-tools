@@ -79,13 +79,13 @@ google_oidc_provider = "https://accounts.google.com"
 
 # Update this list when new release managers are added.
 release_to_sigstore_identity_and_oidc_issuer = {
-    "3.7": ("nad@python.org", github_oidc_provider),
     "3.8": ("lukasz@langa.pl", github_oidc_provider),
     "3.9": ("lukasz@langa.pl", github_oidc_provider),
     "3.10": ("pablogsal@python.org", google_oidc_provider),
     "3.11": ("pablogsal@python.org", google_oidc_provider),
     "3.12": ("thomas@python.org", google_oidc_provider),
     "3.13": ("thomas@python.org", google_oidc_provider),
+    "3.14": ("hugo@python.org", github_oidc_provider),
 }
 
 
@@ -147,7 +147,12 @@ def get_file_descriptions(release):
         ),
         (
             rx(r"-macos(x)?1[1-9](\.[0-9]*)?\.pkg$"),
-            ("macOS 64-bit universal2 installer", 2, True, "for macOS 10.9 and later"),
+            (
+                "macOS 64-bit universal2 installer",
+                2,
+                True,
+                f"for macOS {'10.13' if v >= (3, 13) else '10.9'} and later",
+            ),
         ),
     ]
 
