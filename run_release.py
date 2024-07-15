@@ -36,7 +36,7 @@ import release as release_mod
 import sbom
 from buildbotapi import BuildBotAPI, Builder
 
-API_KEY_REGEXP = re.compile(r"(?P<major>\w+):(?P<minor>\w+)")
+API_KEY_REGEXP = re.compile(r"(?P<user>\w+):(?P<key>\w+)")
 
 
 RELEASE_REGEXP = re.compile(
@@ -376,6 +376,10 @@ def check_buildbots(db: DbfilenameShelf) -> None:
         raise ReleaseException("Buildbots are failing!")
 
 
+def check_docker_running(db: DbfilenameShelf) -> None:
+    subprocess.check_call(["docker", "container", "ls"])
+
+
 def run_blurb_release(db: DbfilenameShelf) -> None:
     subprocess.check_call(["blurb", "release", str(db["release"])], cwd=db["git_repo"])
     subprocess.check_call(
@@ -389,7 +393,7 @@ def check_cpython_repo_is_clean(db: DbfilenameShelf) -> None:
         raise ReleaseException("Git repository is not clean")
 
 
-def preapre_temporary_branch(db: DbfilenameShelf) -> None:
+def prepare_temporary_branch(db: DbfilenameShelf) -> None:
     subprocess.check_call(
         ["git", "checkout", "-b", f"branch-{db['release']}"], cwd=db["git_repo"]
     )
@@ -807,7 +811,7 @@ def send_email_to_platform_release_managers(db: DbfilenameShelf) -> None:
     if not ask_question(
         "Have you notified the platform release managers about the availability of the commit SHA and tag?"
     ):
-        raise ReleaseException("Platform release managers muy be notified")
+        raise ReleaseException("Platform release managers must be notified")
 
 
 def create_release_object_in_db(db: DbfilenameShelf) -> None:
@@ -1100,22 +1104,7 @@ def push_to_upstream(db: DbfilenameShelf) -> None:
 
 def main() -> None:
 
-    if "linux" not in sys.platform:
-        print(
-            """\
-WARNING! This script has not been tested on a platform other than Linux.
-
-Although it should work correctly as long as you have all the dependencies,
-some things may not work as expected. As a release manager, you should try to
-fix these things in this script so it also support your platform.
-"""
-        )
-        if not ask_question("Do you want to continue?"):
-            raise ReleaseException(
-                "This release script is not compatible with the running platform"
-            )
-
-    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser = argparse.ArgumentParser(description="Make a CPython release.")
 
     def _release_type(release: str) -> str:
         if not RELEASE_REGEXP.match(release):
@@ -1140,7 +1129,7 @@ fix these things in this script so it also support your platform.
     def _api_key(api_key: str) -> str:
         if not API_KEY_REGEXP.match(api_key):
             raise argparse.ArgumentTypeError(
-                "Invalid api key format. It must be on the form USER:API_KEY"
+                "Invalid API key format. It must be on the form USER:API_KEY"
             )
         return api_key
 
@@ -1158,28 +1147,49 @@ fix these things in this script so it also support your platform.
         type=str,
     )
     args = parser.parse_args()
+
     auth_key = args.auth_key or os.getenv("AUTH_INFO")
     assert isinstance(auth_key, str), "We need an AUTH_INFO env var or --auth-key"
+
+    if "linux" not in sys.platform:
+        print(
+            """\
+WARNING! This script has not been tested on a platform other than Linux.
+
+Although it should work correctly as long as you have all the dependencies,
+some things may not work as expected. As a release manager, you should try to
+fix these things in this script so it also supports your platform.
+"""
+        )
+        if not ask_question("Do you want to continue?"):
+            raise ReleaseException(
+                "This release script is not compatible with the running platform"
+            )
+
     tasks = [
-        Task(check_git, "Checking git is available"),
+        Task(check_git, "Checking Git is available"),
         Task(check_make, "Checking make is available"),
         Task(check_blurb, "Checking blurb is available"),
-        Task(check_docker, "Checking docker is available"),
+        Task(check_docker, "Checking Docker is available"),
+        Task(check_docker_running, "Checking Docker is running"),
         Task(check_autoconf, "Checking autoconf is available"),
         Task(check_gpg_keys, "Checking GPG keys"),
-        Task(check_ssh_connection, f"Validating ssh connection to {DOWNLOADS_SERVER}"),
+        Task(
+            check_ssh_connection,
+            f"Validating ssh connection to {DOWNLOADS_SERVER} and {DOCS_SERVER}",
+        ),
         Task(check_buildbots, "Check buildbots are good"),
-        Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
-        Task(preapre_temporary_branch, "Checking out a temporary release branch"),
+        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(prepare_temporary_branch, "Checking out a temporary release branch"),
         Task(run_blurb_release, "Run blurb release"),
-        Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(bump_version, "Bump version"),
-        Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(run_autoconf, "Running autoconf"),
-        Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(check_pyspecific, "Checking pyspecific"),
-        Task(check_cpython_repo_is_clean, "Checking git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(create_tag, "Create tag"),
         Task(push_to_local_fork, "Push new tags and branches to private fork"),
         Task(
