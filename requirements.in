@@ -9,5 +9,5 @@ paramiko
 alive_progress
 python-gnupg
 aiohttp
-blurb
+blurb>=1.2
 sigstore>1.1
