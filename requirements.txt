@@ -136,8 +136,8 @@ betterproto==2.0.0b5 \
     --hash=sha256:00a301c70a2db4d3cdd2b261522ae1d34972fb04b655a154d67daaaf4131102e \
     --hash=sha256:d3e6115c7d5136f1d5974e565b7560273f66b43065e74218e472321ee1258f4c
     # via sigstore-protobuf-specs
-blurb==1.2.0 \
-    --hash=sha256:aba772793c494df15c4e4f70cd2e7d4e950c62a7566b09e22b815c9f9ce9e8ec
+blurb==1.2.1 \
+    --hash=sha256:71e3adfc9425bc0f3a2d88dde05a9975391044bde000a67395758001ff3a19b5
     # via -r requirements.in
 certifi==2023.7.22 \
     --hash=sha256:539cc1d13202e33ca466e88b2807e29f4c13049d6d87031a3c110744495cb082 \
