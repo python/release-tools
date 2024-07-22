@@ -157,12 +157,6 @@ def get_file_descriptions(release):
     ]
 
 
-def changelog_for(release):
-    new_url = f"http://docs.python.org/release/{release}/whatsnew/changelog.html"
-    if requests.head(new_url).status_code != 200:
-        return f"http://hg.python.org/cpython/file/v{release}/Misc/NEWS"
-
-
 def slug_for(release):
     return base_version(release).replace(".", "") + (
         "-" + release[len(base_version(release)) :]
