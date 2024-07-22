@@ -867,8 +867,8 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
 
     # Ensure the file is there
-    source = pathlib.Path(__file__).parent / "add-to-pydotorg.py"
-    destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/add-to-pydotorg.py")
+    source = pathlib.Path(__file__).parent / "add_to_pydotorg.py"
+    destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/add_to_pydotorg.py")
     ftp_client = MySFTPClient.from_transport(client.get_transport())
     ftp_client.put(str(source), str(destination))
     ftp_client.close()
@@ -881,7 +881,7 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
     identity_token = issuer.identity_token()
 
     stdin, stdout, stderr = client.exec_command(
-        f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add-to-pydotorg.py {db['release']}"
+        f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add_to_pydotorg.py {db['release']}"
     )
     stderr_text = stderr.read().decode()
     if stderr_text:

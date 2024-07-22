@@ -15,7 +15,7 @@ To use (RELEASE is something like 3.3.5rc2):
 
 * Put an AUTH_INFO variable containing "username:api_key" in your environment.
 
-* Call this script as "python add-to-pydotorg.py RELEASE".
+* Call this script as "python add_to_pydotorg.py RELEASE".
 
   Each call will remove all previous file objects, so you can call the script
   multiple times.
