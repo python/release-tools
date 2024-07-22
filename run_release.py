@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import builtins
 import contextlib
 import functools
 import getpass
@@ -24,7 +23,7 @@ import time
 import urllib.request
 from dataclasses import dataclass
 from shelve import DbfilenameShelf
-from typing import Any, Callable, Generator, Iterator
+from typing import Any, Callable, Iterator
 
 import aiohttp
 import gnupg
@@ -280,14 +279,6 @@ def cd(path: str) -> Iterator[None]:
     os.chdir(path)
     yield
     os.chdir(current_path)
-
-
-@contextlib.contextmanager
-def supress_print() -> Generator[None, None, None]:
-    print_func = builtins.print
-    builtins.print = lambda *args, **kwargs: None
-    yield
-    builtins.print = print_func
 
 
 def check_tool(db: DbfilenameShelf, tool: str) -> None:
