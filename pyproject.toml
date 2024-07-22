@@ -9,7 +9,6 @@ extra_checks = true
 warn_unreachable = true
 
 exclude = [
-  "^add_to_pydotorg.py$",
   "^buildbotapi.py$",
   "^run_release.py$",
   "^sbom.py$",

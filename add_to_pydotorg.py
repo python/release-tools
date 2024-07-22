@@ -30,12 +30,13 @@ import re
 import subprocess
 import sys
 from os import path
+from typing import Any, Generator
 
 import requests
 
 
 # Copied from release.py
-def error(*msgs):
+def error(*msgs: Any) -> None:
     print("**ERROR**", file=sys.stderr)
     for msg in msgs:
         print(msg, file=sys.stderr)
@@ -43,7 +44,9 @@ def error(*msgs):
 
 
 # Copied from release.py
-def run_cmd(cmd, silent=False, shell=True, **kwargs):
+def run_cmd(
+    cmd: list[str] | str, silent: bool = False, shell: bool = False, **kwargs: Any
+) -> None:
     if shell:
         cmd = " ".join(cmd)
     if not silent:
@@ -89,7 +92,9 @@ release_to_sigstore_identity_and_oidc_issuer = {
 }
 
 
-def get_file_descriptions(release):
+def get_file_descriptions(
+    release: str,
+) -> list[tuple[re.Pattern[str], tuple[str, int, bool, str]]]:
     v = minor_version_tuple(release)
     rx = re.compile
     # value is (file "name", OS id, download button, file "description").
@@ -157,7 +162,7 @@ def get_file_descriptions(release):
     ]
 
 
-def slug_for(release):
+def slug_for(release: str) -> str:
     return base_version(release).replace(".", "") + (
         "-" + release[len(base_version(release)) :]
         if release[len(base_version(release)) :]
@@ -165,40 +170,51 @@ def slug_for(release):
     )
 
 
-def sigfile_for(release, rfile):
+def sigfile_for(release: str, rfile: str) -> str:
     return download_root + f"{release}/{rfile}.asc"
 
 
-def md5sum_for(release, rfile):
+def md5sum_for(release: str, rfile: str) -> str:
     return hashlib.md5(
         open(ftp_root + base_version(release) + "/" + rfile, "rb").read()
     ).hexdigest()
 
 
-def filesize_for(release, rfile):
+def filesize_for(release: str, rfile: str) -> int:
     return path.getsize(ftp_root + base_version(release) + "/" + rfile)
 
 
-def make_slug(text):
+def make_slug(text: str) -> str:
     return re.sub("[^a-zA-Z0-9_-]", "", text.replace(" ", "-"))
 
 
-def base_version(release):
+def base_version(release: str) -> str:
     m = tag_cre.match(release)
+    assert m is not None, f"Invalid release: {release}"
     return ".".join(m.groups()[:3])
 
 
-def minor_version(release):
+def minor_version(release: str) -> str:
     m = tag_cre.match(release)
+    assert m is not None, f"Invalid release: {release}"
     return ".".join(m.groups()[:2])
 
 
-def minor_version_tuple(release):
+def minor_version_tuple(release: str) -> tuple[int, int]:
     m = tag_cre.match(release)
+    assert m is not None, f"Invalid release: {release}"
     return int(m.groups()[0]), int(m.groups()[1])
 
 
-def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_download, add_desc):
+def build_file_dict(
+    release: str,
+    rfile: str,
+    rel_pk: int,
+    file_desc: str,
+    os_pk: int,
+    add_download: bool,
+    add_desc: str,
+) -> dict[str, Any]:
     """Return a dictionary with all needed fields for a ReleaseFile object."""
     d = {
         "name": file_desc,
@@ -237,7 +253,7 @@ def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_download, add_
     return d
 
 
-def list_files(release):
+def list_files(release: str) -> Generator[tuple[str, str, int, bool, str], None, None]:
     """List all of the release's download files."""
     reldir = base_version(release)
     for rfile in os.listdir(path.join(ftp_root, reldir)):
@@ -273,7 +289,7 @@ def list_files(release):
             continue
 
 
-def query_object(objtype, **params):
+def query_object(objtype: str, **params: Any) -> int:
     """Find an API object by query parameters."""
     uri = base_url + f"downloads/{objtype}/"
     uri += "?" + "&".join(f"{k}={v}" for k, v in params.items())
@@ -284,7 +300,7 @@ def query_object(objtype, **params):
     return int(obj["resource_uri"].strip("/").split("/")[-1])
 
 
-def post_object(objtype, datadict):
+def post_object(objtype: str, datadict: dict[str, Any]) -> int:
     """Create a new API object."""
     resp = requests.post(
         base_url + "downloads/" + objtype + "/",
@@ -305,13 +321,15 @@ def post_object(objtype, datadict):
     return pk
 
 
-def sign_release_files_with_sigstore(release, release_files):
+def sign_release_files_with_sigstore(
+    release: str, release_files: list[tuple[str, str, int, bool, str]]
+) -> None:
     filenames = [
         ftp_root + f"{base_version(release)}/{rfile}"
         for rfile, file_desc, os_pk, add_download, add_desc in release_files
     ]
 
-    def has_sigstore_signature(filename):
+    def has_sigstore_signature(filename: str) -> bool:
         return os.path.exists(filename + ".sigstore") or (
             os.path.exists(filename + ".sig") and os.path.exists(filename + ".crt")
         )
@@ -372,7 +390,7 @@ def sign_release_files_with_sigstore(release, release_files):
             )
 
 
-def main():
+def main() -> None:
     rel = sys.argv[1]
     print("Querying python.org for release", rel)
     rel_pk = query_object("release", name="Python+" + rel)
@@ -406,5 +424,5 @@ def main():
     print(f"Done - {n} files added")
 
 
-if not sys.flags.interactive:
+if __name__ == "__main__" and not sys.flags.interactive:
     main()
