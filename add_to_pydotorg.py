@@ -195,7 +195,7 @@ def minor_version(release):
 
 def minor_version_tuple(release):
     m = tag_cre.match(release)
-    return (int(m.groups()[0]), int(m.groups()[1]))
+    return int(m.groups()[0]), int(m.groups()[1])
 
 
 def build_file_dict(release, rfile, rel_pk, file_desc, os_pk, add_download, add_desc):

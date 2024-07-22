@@ -524,8 +524,8 @@ def sign_source_artifacts(db: DbfilenameShelf) -> None:
         uid = input("Please enter key ID to use for signing: ")
 
     tarballs_path = pathlib.Path(db["git_repo"] / str(db["release"]) / "src")
-    tgz = str(tarballs_path / (f"Python-{db['release']}.tgz"))
-    xz = str(tarballs_path / (f"Python-{db['release']}.tar.xz"))
+    tgz = str(tarballs_path / f"Python-{db['release']}.tgz")
+    xz = str(tarballs_path / f"Python-{db['release']}.tar.xz")
 
     subprocess.check_call(["gpg", "-bas", "-u", uid, tgz])
     subprocess.check_call(["gpg", "-bas", "-u", uid, xz])
