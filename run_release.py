@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import builtins
 import contextlib
 import functools
 import getpass
@@ -24,7 +23,7 @@ import time
 import urllib.request
 from dataclasses import dataclass
 from shelve import DbfilenameShelf
-from typing import Any, Callable, Generator, Iterator
+from typing import Any, Callable, Iterator
 
 import aiohttp
 import gnupg
@@ -282,14 +281,6 @@ def cd(path: str) -> Iterator[None]:
     os.chdir(current_path)
 
 
-@contextlib.contextmanager
-def supress_print() -> Generator[None, None, None]:
-    print_func = builtins.print
-    builtins.print = lambda *args, **kwargs: None
-    yield
-    builtins.print = print_func
-
-
 def check_tool(db: DbfilenameShelf, tool: str) -> None:
     if shutil.which(tool) is None:
         raise ReleaseException(f"{tool} is not available")
@@ -533,8 +524,8 @@ def sign_source_artifacts(db: DbfilenameShelf) -> None:
         uid = input("Please enter key ID to use for signing: ")
 
     tarballs_path = pathlib.Path(db["git_repo"] / str(db["release"]) / "src")
-    tgz = str(tarballs_path / (f"Python-{db['release']}.tgz"))
-    xz = str(tarballs_path / (f"Python-{db['release']}.tar.xz"))
+    tgz = str(tarballs_path / f"Python-{db['release']}.tgz")
+    xz = str(tarballs_path / f"Python-{db['release']}.tar.xz")
 
     subprocess.check_call(["gpg", "-bas", "-u", uid, tgz])
     subprocess.check_call(["gpg", "-bas", "-u", uid, xz])
@@ -867,8 +858,8 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
 
     # Ensure the file is there
-    source = pathlib.Path(__file__).parent / "add-to-pydotorg.py"
-    destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/add-to-pydotorg.py")
+    source = pathlib.Path(__file__).parent / "add_to_pydotorg.py"
+    destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/add_to_pydotorg.py")
     ftp_client = MySFTPClient.from_transport(client.get_transport())
     ftp_client.put(str(source), str(destination))
     ftp_client.close()
@@ -881,7 +872,7 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
     identity_token = issuer.identity_token()
 
     stdin, stdout, stderr = client.exec_command(
-        f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add-to-pydotorg.py {db['release']}"
+        f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add_to_pydotorg.py {db['release']}"
     )
     stderr_text = stderr.read().decode()
     if stderr_text:
