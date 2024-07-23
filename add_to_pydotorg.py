@@ -121,7 +121,7 @@ def get_file_descriptions(
             rx(r"-embed-win32\.zip$"),
             ("Windows embeddable package (32-bit)", 1, False, ""),
         ),
-        (rx(r"\.exe$"), ("Windows installer (32 -bit)", 1, v < (3, 9), "")),
+        (rx(r"\.exe$"), ("Windows installer (32-bit)", 1, v < (3, 9), "")),
         (rx(r"\.chm$"), ("Windows help file", 1, False, "")),
         (
             rx(r"-macosx10\.5(_rev\d)?\.(dm|pk)g$"),
