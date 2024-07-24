@@ -63,10 +63,6 @@ parameters:
   displayName: "Run ARM64 PGO (requires custom VM)"
   type: boolean
   default: true
-- name: DoCHM
-  displayName: "Produce compiled help document (pre-3.11)"
-  type: boolean
-  default: false
 - name: DoLayout
   displayName: "Produce full layout artifact"
   type: boolean
@@ -109,7 +105,6 @@ variables:
     IsRealSigned: true
   ${{ else }}:
     IsRealSigned: false
-  DoCHM: ${{ parameters.DoCHM }}
   DoFreethreaded: ${{ parameters.DoFreethreaded }}
   DoLayout: ${{ parameters.DoLayout }}
   DoMSIX: ${{ parameters.DoMSIX }}
