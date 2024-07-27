@@ -201,6 +201,7 @@ class ReleaseDriver:
         git_repo: str,
         api_key: str,
         ssh_user: str,
+        sign_gpg: bool,
         first_state: Task | None = None,
     ) -> None:
         self.tasks = tasks
@@ -223,6 +224,8 @@ class ReleaseDriver:
             self.db["auth_info"] = api_key
         if not self.db.get("ssh_user"):
             self.db["ssh_user"] = ssh_user
+        if not self.db.get("sign_gpg"):
+            self.db["sign_gpg"] = sign_gpg
 
         if not self.db.get("release"):
             self.db["release"] = release_tag
@@ -233,7 +236,8 @@ class ReleaseDriver:
         print(f"- Normalized release tag: {release_tag.normalized()}")
         print(f"- Git repo: {self.db['git_repo']}")
         print(f"- SSH username: {self.db['ssh_user']}")
-        print(f"- python.org API key : {self.db['auth_info']}")
+        print(f"- python.org API key: {self.db['auth_info']}")
+        print(f"- Sign with GPG: {self.db['sign_gpg']}")
         print()
 
     def checkpoint(self) -> None:
@@ -465,7 +469,7 @@ def bump_version(db: DbfilenameShelf) -> None:
 
 def create_tag(db: DbfilenameShelf) -> None:
     with cd(db["git_repo"]):
-        if not release_mod.make_tag(db["release"]):
+        if not release_mod.make_tag(db["release"], sign_gpg=db["sign_gpg"]):
             raise ReleaseException("Error when creating tag")
     subprocess.check_call(
         ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
@@ -1137,6 +1141,11 @@ def main() -> None:
         help="Username to be used when authenticating via ssh",
         type=str,
     )
+    parser.add_argument(
+        "--no-gpg",
+        action="store_true",
+        help="Skip GPG signing",
+    )
     args = parser.parse_args()
 
     auth_key = args.auth_key or os.getenv("AUTH_INFO")
@@ -1164,7 +1173,7 @@ fix these things in this script so it also supports your platform.
         Task(check_docker, "Checking Docker is available"),
         Task(check_docker_running, "Checking Docker is running"),
         Task(check_autoconf, "Checking autoconf is available"),
-        Task(check_gpg_keys, "Checking GPG keys"),
+        None if args.no_gpg else Task(check_gpg_keys, "Checking GPG keys"),
         Task(
             check_ssh_connection,
             f"Validating ssh connection to {DOWNLOADS_SERVER} and {DOCS_SERVER}",
@@ -1196,7 +1205,7 @@ fix these things in this script so it also supports your platform.
             "Wait for source and docs artifacts to build",
         ),
         Task(build_sbom_artifacts, "Building SBOM artifacts"),
-        Task(sign_source_artifacts, "Sign source artifacts"),
+        None if args.no_gpg else Task(sign_source_artifacts, "Sign source artifacts"),
         Task(upload_files_to_server, "Upload files to the PSF server"),
         Task(place_files_in_download_folder, "Place files in the download folder"),
         Task(upload_docs_to_the_docs_server, "Upload docs to the PSF docs server"),
@@ -1216,11 +1225,14 @@ fix these things in this script so it also supports your platform.
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
         Task(modify_the_release_to_the_prerelease_pages, "Modify the pre-release page"),
     ]
+    # Remove any skipped tasks
+    tasks = [task for task in tasks if task]
     automata = ReleaseDriver(
         git_repo=args.repo,
         release_tag=release_mod.Tag(args.release),
         api_key=auth_key,
         ssh_user=args.ssh_user,
+        sign_gpg=not args.no_gpg,
         tasks=tasks,
     )
     automata.run()
