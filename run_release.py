@@ -814,7 +814,7 @@ def create_release_object_in_db(db: DbfilenameShelf) -> None:
         "Go to https://www.python.org/admin/downloads/release/add/ and create a new release"
     )
     if not ask_question(f"Have you already created a new release for {db['release']}"):
-        raise ReleaseException("The django release object has not been created")
+        raise ReleaseException("The Django release object has not been created")
 
 
 def wait_until_all_files_are_in_folder(db: DbfilenameShelf) -> None:
@@ -1211,7 +1211,7 @@ fix these things in this script so it also supports your platform.
         Task(upload_docs_to_the_docs_server, "Upload docs to the PSF docs server"),
         Task(unpack_docs_in_the_docs_server, "Place docs files in the docs folder"),
         Task(wait_until_all_files_are_in_folder, "Wait until all files are ready"),
-        Task(create_release_object_in_db, "The django release object has been created"),
+        Task(create_release_object_in_db, "The Django release object has been created"),
         Task(post_release_merge, "Merge the tag into the release branch"),
         Task(branch_new_versions, "Branch out new versions and prepare main branch"),
         Task(post_release_tagging, "Final touches for the release"),
