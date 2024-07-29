@@ -580,7 +580,7 @@ def upload(tag: Tag, username: str) -> None:
         )
 
 
-def make_tag(tag: Tag) -> bool:
+def make_tag(tag: Tag, *, sign_gpg: bool = True) -> bool:
     # make sure we've run blurb export
     good_files = glob.glob("Misc/NEWS.d/" + str(tag) + ".rst")
     bad_files = list(glob.glob("Misc/NEWS.d/next/*/0*.rst"))
@@ -608,13 +608,21 @@ def make_tag(tag: Tag) -> bool:
             ):
                 print("Aborting.")
                 return False
-    print("Signing tag")
-    uid = os.environ.get("GPG_KEY_FOR_RELEASE")
-    if not uid:
-        print("List of available private keys:")
-        run_cmd(['gpg -K | grep -A 1 "^sec"'], shell=True)
-        uid = input("Please enter key ID to use for signing: ")
-    run_cmd(["git", "tag", "-s", "-u", uid, tag.gitname, "-m", "Python " + str(tag)])
+
+    if sign_gpg:
+        print("Signing tag")
+        uid = os.environ.get("GPG_KEY_FOR_RELEASE")
+        if not uid:
+            print("List of available private keys:")
+            run_cmd(['gpg -K | grep -A 1 "^sec"'], shell=True)
+            uid = input("Please enter key ID to use for signing: ")
+        run_cmd(
+            ["git", "tag", "-s", "-u", uid, tag.gitname, "-m", "Python " + str(tag)]
+        )
+    else:
+        print("Creating tag")
+        run_cmd(["git", "tag", tag.gitname, "-m", "Python " + str(tag)])
+
     return True
 
 
