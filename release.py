@@ -37,7 +37,7 @@ SPACE = " "
 tag_cre = re.compile(r"(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$")
 
 
-class ReleaseShelf(Protocol):  # this will be easier to type in 3.13
+class ReleaseShelf(Protocol):
     def close(self) -> None: ...
 
     @overload
