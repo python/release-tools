@@ -10,21 +10,84 @@ For example:
 
 """
 
+from __future__ import annotations
+
 import argparse
 import datetime
 import hashlib
 import io
 import json
 import os
-import pathlib
 import re
 import subprocess
 import sys
 import tarfile
 import typing
 import zipfile
-from typing import Any
+from pathlib import Path
+from typing import Any, NotRequired, TypedDict, cast
 from urllib.request import urlopen
+
+
+class SBOM(TypedDict):
+    SPDXID: str
+    spdxVersion: str
+    name: str
+    dataLicense: str
+    documentNamespace: str
+    creationInfo: CreationInfo
+    packages: list[Package]
+    files: list[File]
+    relationships: list[Relationship]
+
+
+class Package(TypedDict):
+    SPDXID: str
+    name: str
+    versionInfo: str
+    packageFileName: NotRequired[str]
+    supplier: NotRequired[str]
+    originator: NotRequired[str]
+    licenseConcluded: str
+    downloadLocation: str
+    checksums: list[Checksum]
+    primaryPackagePurpose: str
+    packageVerificationCode: NotRequired[PackageVerificationCode]
+    externalRefs: list[Ref]
+    filesAnalyzed: NotRequired[bool]
+
+
+class File(TypedDict):
+    SPDXID: str
+    fileName: str
+    checksums: list[Checksum]
+
+
+class Relationship(TypedDict):
+    spdxElementId: str
+    relatedSpdxElement: str
+    relationshipType: str
+
+
+class Checksum(TypedDict):
+    algorithm: str
+    checksumValue: str
+
+
+class PackageVerificationCode(TypedDict):
+    packageVerificationCodeValue: str
+
+
+class Ref(TypedDict):
+    referenceCategory: str
+    referenceLocator: str
+    referenceType: str
+
+
+class CreationInfo(TypedDict):
+    created: str  # timestamp
+    creators: list[str]
+    licenseListVersion: str
 
 
 def spdx_id(value: str) -> str:
@@ -32,7 +95,7 @@ def spdx_id(value: str) -> str:
     return re.sub(r"[^a-zA-Z0-9.\-]+", "-", value)
 
 
-def calculate_package_verification_codes(sbom) -> None:
+def calculate_package_verification_codes(sbom: SBOM) -> None:
     """
     Calculate SPDX 'packageVerificationCode' values for
     each package with 'filesAnalyzed' set to 'true'.
@@ -46,7 +109,7 @@ def calculate_package_verification_codes(sbom) -> None:
     sbom_package_id_to_file_sha1s: dict[str, list[bytes]] = {}
     for sbom_package in sbom["packages"]:
         # If this value is 'false' we skip calculating.
-        if sbom_package["filesAnalyzed"]:
+        if sbom_package.get("filesAnalyzed", False):
             sbom_package_id = sbom_package["SPDXID"]
             sbom_package_id_to_file_sha1s[sbom_package_id] = []
 
@@ -119,13 +182,13 @@ def get_release_tools_commit_sha() -> str:
     return stdout
 
 
-def normalize_sbom_data(sbom_data: dict[str, Any]) -> None:
+def normalize_sbom_data(sbom_data: SBOM) -> None:
     """
     Normalize SBOM data in-place by recursion
     and sorting lists by some repeatable key.
     """
 
-    def recursive_sort_in_place(value: list | dict) -> None:
+    def recursive_sort_in_place(value: list[Any] | dict[str, Any]) -> None:
         if isinstance(value, list):
             # We need to recurse first so bottom-most elements are sorted first.
             for item in value:
@@ -140,12 +203,12 @@ def normalize_sbom_data(sbom_data: dict[str, Any]) -> None:
             for dict_val in value.values():
                 recursive_sort_in_place(dict_val)
 
-    recursive_sort_in_place(sbom_data)
+    recursive_sort_in_place(cast(dict[str, Any], sbom_data))
 
 
 def fetch_package_metadata_from_pypi(
     project: str, version: str, filename: str | None = None
-) -> tuple[str, str] | None:
+) -> tuple[str, str]:
     """
     Fetches the SHA256 checksum and download location from PyPI.
     If we're given a filename then we match with that, otherwise we use wheels.
@@ -173,13 +236,13 @@ def fetch_package_metadata_from_pypi(
         checksum_sha256 = url["digests"]["sha256"]
         return download_url, checksum_sha256
 
-    except (OSError, ValueError) as e:
+    except Exception as e:
         raise ValueError(
             f"Couldn't fetch metadata for project '{project}' from PyPI: {e}"
         )
 
 
-def remove_pip_from_sbom(sbom_data: dict[str, typing.Any]) -> None:
+def remove_pip_from_sbom(sbom_data: SBOM) -> None:
     """
     Removes pip and its dependencies from the SBOM data.
     This is only necessary if there's potential we get
@@ -210,7 +273,7 @@ def remove_pip_from_sbom(sbom_data: dict[str, typing.Any]) -> None:
 
 
 def create_pip_sbom_from_wheel(
-    sbom_data: dict[str, typing.Any], pip_wheel_filename: str, pip_wheel_bytes: bytes
+    sbom_data: SBOM, pip_wheel_filename: str, pip_wheel_bytes: bytes
 ) -> None:
     """
     pip is a part of a packaging ecosystem (Python, surprise!) so it's actually
@@ -336,13 +399,16 @@ def create_pip_sbom_from_wheel(
 
 
 def create_cpython_sbom(
-    sbom_data: dict[str, typing.Any],
+    sbom_data: SBOM,
     cpython_version: str,
     artifact_path: str,
 ) -> None:
     """Creates the top-level SBOM metadata and the CPython SBOM package."""
 
-    cpython_version_without_suffix = re.match(r"^([0-9.]+)", cpython_version).group(1)
+    if m := re.match(pat := r"^([0-9.]+)", cpython_version):
+        cpython_version_without_suffix = m.group(1)
+    else:
+        raise ValueError(f"Invalid {cpython_version=}, expected {pat!r}")
     artifact_name = os.path.basename(artifact_path)
     artifact_download_location = f"https://www.python.org/ftp/python/{cpython_version_without_suffix}/{artifact_name}"
 
@@ -378,7 +444,7 @@ def create_cpython_sbom(
 
     # Create the SBOM entry for the CPython package. We use
     # the SPDXID later on for creating relationships to files.
-    sbom_cpython_package = {
+    sbom_cpython_package: Package = {
         "SPDXID": "SPDXRef-PACKAGE-cpython",
         "name": "CPython",
         "versionInfo": cpython_version,
@@ -413,7 +479,7 @@ def create_cpython_sbom(
     sbom_data["packages"].append(sbom_cpython_package)
 
 
-def create_sbom_for_source_tarball(tarball_path: str) -> dict[str, Any]:
+def create_sbom_for_source_tarball(tarball_path: str) -> SBOM:
     """Stitches together an SBOM for a source tarball"""
     tarball_name = os.path.basename(tarball_path)
 
@@ -427,7 +493,11 @@ def create_sbom_for_source_tarball(tarball_path: str) -> dict[str, Any]:
 
     # Parse the CPython version from the tarball.
     # Calculate the download locations from the CPython version and tarball name.
-    cpython_version = re.match(r"^Python-([0-9abrc.]+)\.t", tarball_name).group(1)
+
+    if m := re.match(pat := r"^Python-([0-9abrc.]+)\.t", tarball_name):
+        cpython_version = m.group(1)
+    else:
+        raise ValueError(f"Invalid {tarball_name=}, expected {pat!r}")
 
     # There should be an SBOM included in the tarball.
     # If there's not we can't create an SBOM.
@@ -439,8 +509,10 @@ def create_sbom_for_source_tarball(tarball_path: str) -> dict[str, Any]:
         raise ValueError(
             "Tarball doesn't contain an SBOM at 'Misc/sbom.spdx.json'"
         ) from None
-    sbom_bytes = tarball.extractfile(sbom_tarball_member).read()
-    sbom_data = json.loads(sbom_bytes)
+    reader = tarball.extractfile(sbom_tarball_member)
+    assert reader, f"{sbom_tarball_member} is not a file in {tarball_path}"
+    sbom_bytes = reader.read()
+    sbom_data: SBOM = json.loads(sbom_bytes)
 
     create_cpython_sbom(
         sbom_data, cpython_version=cpython_version, artifact_path=tarball_path
@@ -449,13 +521,14 @@ def create_sbom_for_source_tarball(tarball_path: str) -> dict[str, Any]:
 
     # Find the pip wheel in ensurepip in the tarball
     for member in tarball.getmembers():
-        match = re.match(
+        if match := re.match(
             rf"^Python-{cpython_version}/Lib/ensurepip/_bundled/(pip-.*\.whl)$",
             member.name,
-        )
-        if match is not None:
+        ):
             pip_wheel_filename = match.group(1)
-            pip_wheel_bytes = tarball.extractfile(member).read()
+            reader = tarball.extractfile(member)
+            assert reader, f"{member} is not a file in {tarball_path}"
+            pip_wheel_bytes = reader.read()
             break
     else:
         raise ValueError("Could not find pip wheel in 'Lib/ensurepip/_bundled/...'")
@@ -496,7 +569,9 @@ def create_sbom_for_source_tarball(tarball_path: str) -> dict[str, Any]:
         # Calculate the hashes, either for comparison with a known value
         # or to embed in the SBOM as a new file. SHA1 is only used because
         # SPDX requires it for all file entries.
-        file_bytes = tarball.extractfile(member).read()
+        reader = tarball.extractfile(member)
+        assert reader, f"{member} is not a file in {tarball_path}"
+        file_bytes = reader.read()
         actual_file_checksum_sha1 = hashlib.sha1(file_bytes).hexdigest()
         actual_file_checksum_sha256 = hashlib.sha256(file_bytes).hexdigest()
 
@@ -569,20 +644,21 @@ def create_sbom_for_source_tarball(tarball_path: str) -> dict[str, Any]:
 
 
 def create_sbom_for_windows_artifact(
-    artifact_path: str, cpython_source_dir: str
-) -> dict[str, Any]:
+    artifact_path: str, cpython_source_dir: Path | str
+) -> SBOM:
     artifact_name = os.path.basename(artifact_path)
-    cpython_version = re.match(
-        r"^python-([0-9abrc.]+)(?:-|\.exe|\.zip)", artifact_name
-    ).group(1)
+    if m := re.match(pat := r"^python-([0-9abrc.]+)(?:-|\.exe|\.zip)", artifact_name):
+        cpython_version = m.group(1)
+    else:
+        raise ValueError(f"Invalid {artifact_name=}, expected {pat!r}")
 
     if not cpython_source_dir:
         raise ValueError("Must specify --cpython-source-dir for Windows artifacts")
-    cpython_source_dir = pathlib.Path(cpython_source_dir)
+    cpython_source_dir = Path(cpython_source_dir)
 
     # Start with the CPython source SBOM as a base
     with (cpython_source_dir / "Misc/externals.spdx.json").open() as f:
-        sbom_data = json.loads(f.read())
+        sbom_data: SBOM = json.loads(f.read())
 
     sbom_data["relationships"] = []
     sbom_data["files"] = []
