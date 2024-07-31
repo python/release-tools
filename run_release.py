@@ -375,6 +375,49 @@ def check_cpython_repo_is_clean(db: ReleaseShelf) -> None:
         raise ReleaseException("Git repository is not clean")
 
 
+def check_magic_number(db: ReleaseShelf) -> None:
+    release_tag = db["release"]
+    if release_tag.is_final or release_tag.is_release_candidate:
+
+        def out(msg: str) -> None:
+            raise ReleaseException(msg)
+
+    else:
+
+        def out(msg: str) -> None:
+            print("warning:", msg, file=sys.stderr, flush=True)
+
+    def get_magic(source: Path, regex: re.Pattern[str]) -> str:
+        if m := regex.search(source.read_text()):
+            return m.group("magic")
+
+        out(f"Cannot find magic in {source}, tried {regex.pattern}")
+        return "unknown"
+
+    work_dir = Path(db["git_repo"])
+    magic_actual_file = work_dir / "Include" / "internal" / "pycore_magic_number.h"
+    magic_actual_re = re.compile(
+        r"^#define\s+PYC_MAGIC_NUMBER\s+(?P<magic>\d+)$", re.MULTILINE
+    )
+    magic_actual = get_magic(magic_actual_file, magic_actual_re)
+
+    magic_expected_file = work_dir / "Lib" / "test" / "test_importlib" / "test_util.py"
+    magic_expected_re = re.compile(
+        r"^\s+EXPECTED_MAGIC_NUMBER = (?P<magic>\d+)$", re.MULTILINE
+    )
+    magic_expected = get_magic(magic_expected_file, magic_expected_re)
+
+    if magic_actual == magic_expected:
+        return
+
+    out(
+        f"Magic numbers in {magic_actual_file} ({magic_actual})"
+        f" and {magic_expected_file} ({magic_expected}) don't match."
+    )
+    if not ask_question("Do you want to continue? This will fail tests in RC stage."):
+        raise ReleaseException("Magic numbers don't match!")
+
+
 def prepare_temporary_branch(db: ReleaseShelf) -> None:
     subprocess.check_call(
         ["git", "checkout", "-b", f"branch-{db['release']}"], cwd=db["git_repo"]
@@ -1179,6 +1222,7 @@ fix these things in this script so it also supports your platform.
         ),
         Task(check_buildbots, "Check buildbots are good"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(check_magic_number, "Checking the magic number is up-to-date"),
         Task(prepare_temporary_branch, "Checking out a temporary release branch"),
         Task(run_blurb_release, "Run blurb release"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
