@@ -9,7 +9,6 @@ extra_checks = true
 warn_unreachable = true
 
 exclude = [
-  "^buildbotapi.py$",
   "^run_release.py$",
   "^tests/test_release_tag.py$",
   "^tests/test_run_release.py$",
