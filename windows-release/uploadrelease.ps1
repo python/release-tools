@@ -15,8 +15,6 @@
     The subdirectory on the host to copy files to.
 .Parameter tests
     The path to run download tests in.
-.Parameter doc_htmlhelp
-    Optional path besides -build to locate CHM files.
 .Parameter embed
     Optional path besides -build to locate ZIP files.
 #>
@@ -28,7 +26,6 @@ param(
     [Parameter(Mandatory=$true)][string]$keyfile,
     [string]$target="/srv/www.python.org/ftp/python",
     [string]$tests=${env:TEMP},
-    [string]$doc_htmlhelp=$null,
     [string]$embed=$null,
     [string]$sbom=$null
 )
@@ -69,20 +66,10 @@ $plink = find-putty-tool "plink"
 "Upload using $pscp and $plink"
 ""
 
-if ($doc_htmlhelp) {
-    $chm = gci -EA 0 $doc_htmlhelp\python*.chm, $doc_htmlhelp\python*.chm.asc
-} else {
-    $chm = gci -EA 0 $build\python*.chm, $build\python*.chm.asc
-}
-
 $d = "$target/$($p[0])/"
 & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" mkdir $d
 & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chgrp downloads $d
 & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chmod "a+rx" $d
-if ($chm) {
-    & $pscp -batch -hostkey $hostkey -noagent -i $keyfile $chm.FullName "$user@${server}:$d"
-    if (-not $?) { throw "Failed to upload $chm" }
-}
 
 $dirs = gci "$build" -Directory
 if ($embed) {

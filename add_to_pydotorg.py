@@ -122,7 +122,6 @@ def get_file_descriptions(
             ("Windows embeddable package (32-bit)", 1, False, ""),
         ),
         (rx(r"\.exe$"), ("Windows installer (32-bit)", 1, v < (3, 9), "")),
-        (rx(r"\.chm$"), ("Windows help file", 1, False, "")),
         (
             rx(r"-macosx10\.5(_rev\d)?\.(dm|pk)g$"),
             (
@@ -259,26 +258,26 @@ def list_files(release: str) -> Generator[tuple[str, str, int, bool, str], None,
     for rfile in os.listdir(path.join(ftp_root, reldir)):
         if not path.isfile(path.join(ftp_root, reldir, rfile)):
             continue
+
         if rfile.endswith((".asc", ".sig", ".crt", ".sigstore", ".spdx.json")):
             continue
+
         for prefix in ("python", "Python"):
             if rfile.startswith(prefix):
                 break
         else:
             print(f"    File {reldir}/{rfile} has wrong prefix")
             continue
-        if rfile.endswith(".chm"):
-            if rfile[:-4] != "python" + release.replace(".", ""):
-                print(f"    File {reldir}/{rfile} has a different version")
-                continue
-        else:
-            try:
-                prefix, rest = rfile.split("-", 1)
-            except:  # noqa: E722
-                prefix, rest = rfile, ""
-            if not rest.startswith((release + "-", release + ".")):
-                print(f"    File {reldir}/{rfile} has a different version")
-                continue
+
+        try:
+            prefix, rest = rfile.split("-", 1)
+        except:  # noqa: E722
+            prefix, rest = rfile, ""
+
+        if not rest.startswith((release + "-", release + ".")):
+            print(f"    File {reldir}/{rfile} has a different version")
+            continue
+
         for rx, info in get_file_descriptions(release):
             if rx.search(rfile):
                 file_desc, os_pk, add_download, add_desc = info
