@@ -13,7 +13,6 @@ import functools
 import getpass
 import json
 import os
-import pathlib
 import re
 import shelve
 import shutil
@@ -21,27 +20,24 @@ import subprocess
 import sys
 import time
 import urllib.request
-from dataclasses import dataclass
-from shelve import DbfilenameShelf
-from typing import Any, Callable, Iterator
+from pathlib import Path
+from typing import Any, Iterator, cast
 
 import aiohttp
-import gnupg
+import gnupg  # type: ignore[import-untyped]
 import paramiko
-import sigstore.oidc
-from alive_progress import alive_bar
+import sigstore.oidc  # type: ignore[import-untyped]
+from alive_progress import alive_bar  # type: ignore[import-untyped]
 
 import release as release_mod
 import sbom
 from buildbotapi import BuildBotAPI, Builder
+from release import ReleaseShelf, Tag, Task
 
 API_KEY_REGEXP = re.compile(r"(?P<user>\w+):(?P<key>\w+)")
-
-
 RELEASE_REGEXP = re.compile(
     r"(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)\.?(?P<extra>.*)?"
 )
-
 DOWNLOADS_SERVER = "downloads.nyc1.psf.io"
 DOCS_SERVER = "docs.nyc1.psf.io"
 
@@ -179,15 +175,6 @@ Removed
 """
 
 
-@dataclass
-class Task:
-    function: Callable[[DbfilenameShelf], None]
-    description: str
-
-    def __call__(self, db: DbfilenameShelf) -> Any:
-        return getattr(self, "function")(db)
-
-
 class ReleaseException(Exception):
     """An error happened in the release process"""
 
@@ -197,7 +184,7 @@ class ReleaseDriver:
         self,
         tasks: list[Task],
         *,
-        release_tag: release_mod.Tag,
+        release_tag: Tag,
         git_repo: str,
         api_key: str,
         ssh_user: str,
@@ -205,13 +192,13 @@ class ReleaseDriver:
         first_state: Task | None = None,
     ) -> None:
         self.tasks = tasks
-        dbfile = pathlib.Path.home() / ".python_release"
-        self.db = shelve.open(str(dbfile), "c")
+        dbfile = Path.home() / ".python_release"
+        self.db: ReleaseShelf = cast(ReleaseShelf, shelve.open(str(dbfile), "c"))
         if not self.db.get("finished"):
             self.db["finished"] = False
         else:
             self.db.close()
-            self.db = shelve.open(str(dbfile), "n")
+            self.db = cast(ReleaseShelf, shelve.open(str(dbfile), "n"))
 
         self.current_task: Task | None = first_state
         self.completed_tasks = self.db.get("completed_tasks", [])
@@ -219,7 +206,7 @@ class ReleaseDriver:
         if self.db.get("gpg_key"):
             os.environ["GPG_KEY_FOR_RELEASE"] = self.db["gpg_key"]
         if not self.db.get("git_repo"):
-            self.db["git_repo"] = pathlib.Path(git_repo)
+            self.db["git_repo"] = Path(git_repo)
         if not self.db.get("auth_info"):
             self.db["auth_info"] = api_key
         if not self.db.get("ssh_user"):
@@ -278,14 +265,14 @@ def ask_question(question: str) -> bool:
 
 
 @contextlib.contextmanager
-def cd(path: str) -> Iterator[None]:
+def cd(path: Path) -> Iterator[None]:
     current_path = os.getcwd()
     os.chdir(path)
     yield
     os.chdir(current_path)
 
 
-def check_tool(db: DbfilenameShelf, tool: str) -> None:
+def check_tool(db: ReleaseShelf, tool: str) -> None:
     if shutil.which(tool) is None:
         raise ReleaseException(f"{tool} is not available")
 
@@ -297,7 +284,7 @@ check_autoconf = functools.partial(check_tool, tool="autoconf")
 check_docker = functools.partial(check_tool, tool="docker")
 
 
-def check_gpg_keys(db: DbfilenameShelf) -> None:
+def check_gpg_keys(db: ReleaseShelf) -> None:
     pg = gnupg.GPG()
     keys = pg.list_keys(secret=True)
     if not keys:
@@ -318,7 +305,7 @@ def check_gpg_keys(db: DbfilenameShelf) -> None:
     os.environ["GPG_KEY_FOR_RELEASE"] = db["gpg_key"]
 
 
-def check_ssh_connection(db: DbfilenameShelf) -> None:
+def check_ssh_connection(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
@@ -328,7 +315,7 @@ def check_ssh_connection(db: DbfilenameShelf) -> None:
     client.exec_command("pwd")
 
 
-def check_buildbots(db: DbfilenameShelf) -> None:
+def check_buildbots(db: ReleaseShelf) -> None:
     async def _check() -> set[Builder]:
         async def _get_builder_status(
             buildbot_api: BuildBotAPI, the_builder: Builder
@@ -371,11 +358,11 @@ def check_buildbots(db: DbfilenameShelf) -> None:
         raise ReleaseException("Buildbots are failing!")
 
 
-def check_docker_running(db: DbfilenameShelf) -> None:
+def check_docker_running(db: ReleaseShelf) -> None:
     subprocess.check_call(["docker", "container", "ls"])
 
 
-def run_blurb_release(db: DbfilenameShelf) -> None:
+def run_blurb_release(db: ReleaseShelf) -> None:
     subprocess.check_call(["blurb", "release", str(db["release"])], cwd=db["git_repo"])
     subprocess.check_call(
         ["git", "commit", "-m", f"Python {db['release']}"],
@@ -383,24 +370,24 @@ def run_blurb_release(db: DbfilenameShelf) -> None:
     )
 
 
-def check_cpython_repo_is_clean(db: DbfilenameShelf) -> None:
+def check_cpython_repo_is_clean(db: ReleaseShelf) -> None:
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=db["git_repo"]):
         raise ReleaseException("Git repository is not clean")
 
 
-def prepare_temporary_branch(db: DbfilenameShelf) -> None:
+def prepare_temporary_branch(db: ReleaseShelf) -> None:
     subprocess.check_call(
         ["git", "checkout", "-b", f"branch-{db['release']}"], cwd=db["git_repo"]
     )
 
 
-def remove_temporary_branch(db: DbfilenameShelf) -> None:
+def remove_temporary_branch(db: ReleaseShelf) -> None:
     subprocess.check_call(
         ["git", "branch", "-D", f"branch-{db['release']}"], cwd=db["git_repo"]
     )
 
 
-def prepare_pydoc_topics(db: DbfilenameShelf) -> None:
+def prepare_pydoc_topics(db: ReleaseShelf) -> None:
     subprocess.check_call(["make", "pydoc-topics"], cwd=db["git_repo"] / "Doc")
     shutil.copy2(
         db["git_repo"] / "Doc" / "build" / "pydoc-topics" / "topics.py",
@@ -411,7 +398,7 @@ def prepare_pydoc_topics(db: DbfilenameShelf) -> None:
     )
 
 
-def run_autoconf(db: DbfilenameShelf) -> None:
+def run_autoconf(db: ReleaseShelf) -> None:
     # Python 3.12 and newer have a script that runs autoconf.
     regen_configure_sh = db["git_repo"] / "Tools/build/regen-configure.sh"
     if regen_configure_sh.exists():
@@ -444,7 +431,7 @@ def run_autoconf(db: DbfilenameShelf) -> None:
     )
 
 
-def check_pyspecific(db):
+def check_pyspecific(db: ReleaseShelf) -> None:
     with open(
         db["git_repo"] / "Doc" / "tools" / "extensions" / "pyspecific.py"
     ) as pyspecific:
@@ -459,7 +446,7 @@ def check_pyspecific(db):
         raise ReleaseException("SOURCE_URI is incorrect")
 
 
-def bump_version(db: DbfilenameShelf) -> None:
+def bump_version(db: ReleaseShelf) -> None:
     with cd(db["git_repo"]):
         release_mod.bump(db["release"])
     subprocess.check_call(
@@ -467,7 +454,7 @@ def bump_version(db: DbfilenameShelf) -> None:
     )
 
 
-def create_tag(db: DbfilenameShelf) -> None:
+def create_tag(db: ReleaseShelf) -> None:
     with cd(db["git_repo"]):
         if not release_mod.make_tag(db["release"], sign_gpg=db["sign_gpg"]):
             raise ReleaseException("Error when creating tag")
@@ -476,13 +463,13 @@ def create_tag(db: DbfilenameShelf) -> None:
     )
 
 
-def wait_for_source_and_docs_artifacts(db: DbfilenameShelf) -> None:
+def wait_for_source_and_docs_artifacts(db: ReleaseShelf) -> None:
     # Determine if we need to wait for docs or only source artifacts.
     release_tag = db["release"]
     should_wait_for_docs = release_tag.is_final or release_tag.is_release_candidate
 
     # Create the directory so it's easier to place the artifacts there.
-    release_path = pathlib.Path(db["git_repo"] / str(release_tag))
+    release_path = Path(db["git_repo"] / str(release_tag))
     release_path.mkdir(parents=True, exist_ok=True)
 
     # Build the list of filepaths we're expecting.
@@ -519,7 +506,7 @@ def wait_for_source_and_docs_artifacts(db: DbfilenameShelf) -> None:
         time.sleep(1)
 
 
-def sign_source_artifacts(db: DbfilenameShelf) -> None:
+def sign_source_artifacts(db: ReleaseShelf) -> None:
     print("Signing tarballs with GPG")
     uid = os.environ.get("GPG_KEY_FOR_RELEASE")
     if not uid:
@@ -527,7 +514,7 @@ def sign_source_artifacts(db: DbfilenameShelf) -> None:
         subprocess.check_call('gpg -K | grep -A 1 "^sec"', shell=True)
         uid = input("Please enter key ID to use for signing: ")
 
-    tarballs_path = pathlib.Path(db["git_repo"] / str(db["release"]) / "src")
+    tarballs_path = Path(db["git_repo"] / str(db["release"]) / "src")
     tgz = str(tarballs_path / f"Python-{db['release']}.tgz")
     xz = str(tarballs_path / f"Python-{db['release']}.tar.xz")
 
@@ -548,7 +535,7 @@ def sign_source_artifacts(db: DbfilenameShelf) -> None:
     )
 
 
-def build_sbom_artifacts(db):
+def build_sbom_artifacts(db: ReleaseShelf) -> None:
 
     # Skip building an SBOM if there isn't a 'Misc/sbom.spdx.json' file.
     if not (db["git_repo"] / "Misc/sbom.spdx.json").exists():
@@ -569,7 +556,9 @@ def build_sbom_artifacts(db):
 
 
 class MySFTPClient(paramiko.SFTPClient):
-    def put_dir(self, source: str, target: str, progress: Any = None) -> None:
+    def put_dir(
+        self, source: str | Path, target: str | Path, progress: Any = None
+    ) -> None:
         for item in os.listdir(source):
             if os.path.isfile(os.path.join(source, item)):
                 progress.text(item)
@@ -583,7 +572,9 @@ class MySFTPClient(paramiko.SFTPClient):
                     progress=progress,
                 )
 
-    def mkdir(self, path: str, mode: int = 511, ignore_existing: bool = False) -> None:
+    def mkdir(
+        self, path: bytes | str, mode: int = 511, ignore_existing: bool = False
+    ) -> None:
         try:
             super().mkdir(path, mode)
         except OSError:
@@ -593,21 +584,24 @@ class MySFTPClient(paramiko.SFTPClient):
                 raise
 
 
-def upload_files_to_server(db: DbfilenameShelf) -> None:
+def upload_files_to_server(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
+    transport = client.get_transport()
+    assert transport is not None, f"SSH transport to {DOWNLOADS_SERVER} is None"
 
-    destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
-    ftp_client = MySFTPClient.from_transport(client.get_transport())
+    destination = Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
+    ftp_client = MySFTPClient.from_transport(transport)
+    assert ftp_client is not None, f"SFTP client to {DOWNLOADS_SERVER} is None"
 
     client.exec_command(f"rm -rf {destination}")
 
     with contextlib.suppress(OSError):
         ftp_client.mkdir(str(destination))
 
-    artifacts_path = pathlib.Path(db["git_repo"] / str(db["release"]))
+    artifacts_path = Path(db["git_repo"] / str(db["release"]))
 
     shutil.rmtree(artifacts_path / f"Python-{db['release']}", ignore_errors=True)
 
@@ -627,11 +621,13 @@ def upload_files_to_server(db: DbfilenameShelf) -> None:
     ftp_client.close()
 
 
-def place_files_in_download_folder(db: DbfilenameShelf) -> None:
+def place_files_in_download_folder(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
+    transport = client.get_transport()
+    assert transport is not None, f"SSH transport to {DOWNLOADS_SERVER} is None"
 
     # Sources
 
@@ -639,7 +635,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
     destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
 
     def execute_command(command: str) -> None:
-        channel = client.get_transport().open_session()
+        channel = transport.open_session()
         channel.exec_command(command)
         if channel.recv_exit_status() != 0:
             raise ReleaseException(channel.recv_stderr(1000))
@@ -652,16 +648,10 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
 
     # Docs
 
-    release_tag: release_mod.Tag = db["release"]
+    release_tag = db["release"]
     if release_tag.is_final or release_tag.is_release_candidate:
         source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
         destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
-
-        def execute_command(command: str) -> None:
-            channel = client.get_transport().open_session()
-            channel.exec_command(command)
-            if channel.recv_exit_status() != 0:
-                raise ReleaseException(channel.recv_stderr(1000))
 
         execute_command(f"mkdir -p {destination}")
         execute_command(f"cp {source}/docs/* {destination}")
@@ -670,7 +660,7 @@ def place_files_in_download_folder(db: DbfilenameShelf) -> None:
         execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
 
 
-def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
+def upload_docs_to_the_docs_server(db: ReleaseShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
     if not (release_tag.is_final or release_tag.is_release_candidate):
         return
@@ -679,16 +669,19 @@ def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
     client.connect(DOCS_SERVER, port=22, username=db["ssh_user"])
+    transport = client.get_transport()
+    assert transport is not None, f"SSH transport to {DOCS_SERVER} is None"
 
-    destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
-    ftp_client = MySFTPClient.from_transport(client.get_transport())
+    destination = Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
+    ftp_client = MySFTPClient.from_transport(transport)
+    assert ftp_client is not None, f"SFTP client to {DOCS_SERVER} is None"
 
     client.exec_command(f"rm -rf {destination}")
 
     with contextlib.suppress(OSError):
         ftp_client.mkdir(str(destination))
 
-    artifacts_path = pathlib.Path(db["git_repo"] / str(db["release"]))
+    artifacts_path = Path(db["git_repo"] / str(db["release"]))
 
     shutil.rmtree(artifacts_path / f"Python-{db['release']}", ignore_errors=True)
 
@@ -706,7 +699,7 @@ def upload_docs_to_the_docs_server(db: DbfilenameShelf) -> None:
     ftp_client.close()
 
 
-def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
+def unpack_docs_in_the_docs_server(db: ReleaseShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
     if not (release_tag.is_final or release_tag.is_release_candidate):
         return
@@ -715,6 +708,8 @@ def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
     client.connect(DOCS_SERVER, port=22, username=db["ssh_user"])
+    transport = client.get_transport()
+    assert transport is not None, f"SSH transport to {DOCS_SERVER} is None"
 
     # Sources
 
@@ -722,7 +717,7 @@ def unpack_docs_in_the_docs_server(db: DbfilenameShelf) -> None:
     destination = f"/srv/docs.python.org/release/{release_tag}"
 
     def execute_command(command: str) -> None:
-        channel = client.get_transport().open_session()
+        channel = transport.open_session()
         channel.exec_command(command)
         if channel.recv_exit_status() != 0:
             raise ReleaseException(channel.recv_stderr(1000))
@@ -748,7 +743,7 @@ def extract_github_owner(url: str) -> str:
         )
 
 
-def start_build_of_source_and_docs(db: DbfilenameShelf) -> None:
+def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
     # Get the git commit SHA for the tag
     commit_sha = (
         subprocess.check_output(
@@ -802,14 +797,14 @@ def start_build_of_source_and_docs(db: DbfilenameShelf) -> None:
         raise ReleaseException("Source and docs build must be started")
 
 
-def send_email_to_platform_release_managers(db: DbfilenameShelf) -> None:
+def send_email_to_platform_release_managers(db: ReleaseShelf) -> None:
     if not ask_question(
         "Have you notified the platform release managers about the availability of the commit SHA and tag?"
     ):
         raise ReleaseException("Platform release managers must be notified")
 
 
-def create_release_object_in_db(db: DbfilenameShelf) -> None:
+def create_release_object_in_db(db: ReleaseShelf) -> None:
     print(
         "Go to https://www.python.org/admin/downloads/release/add/ and create a new release"
     )
@@ -817,7 +812,7 @@ def create_release_object_in_db(db: DbfilenameShelf) -> None:
         raise ReleaseException("The Django release object has not been created")
 
 
-def wait_until_all_files_are_in_folder(db: DbfilenameShelf) -> None:
+def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
@@ -855,16 +850,19 @@ def wait_until_all_files_are_in_folder(db: DbfilenameShelf) -> None:
     print()
 
 
-def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
+def run_add_to_python_dot_org(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
+    transport = client.get_transport()
+    assert transport is not None, f"SSH transport to {DOWNLOADS_SERVER} is None"
 
     # Ensure the file is there
-    source = pathlib.Path(__file__).parent / "add_to_pydotorg.py"
-    destination = pathlib.Path(f"/home/psf-users/{db['ssh_user']}/add_to_pydotorg.py")
-    ftp_client = MySFTPClient.from_transport(client.get_transport())
+    source = Path(__file__).parent / "add_to_pydotorg.py"
+    destination = Path(f"/home/psf-users/{db['ssh_user']}/add_to_pydotorg.py")
+    ftp_client = MySFTPClient.from_transport(transport)
+    assert ftp_client is not None, f"SFTP client to {DOWNLOADS_SERVER} is None"
     ftp_client.put(str(source), str(destination))
     ftp_client.close()
 
@@ -887,7 +885,7 @@ def run_add_to_python_dot_org(db: DbfilenameShelf) -> None:
     print("-- End of command output --")
 
 
-def purge_the_cdn(db: DbfilenameShelf) -> None:
+def purge_the_cdn(db: ReleaseShelf) -> None:
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6"
     }
@@ -913,7 +911,7 @@ def purge_the_cdn(db: DbfilenameShelf) -> None:
             raise RuntimeError("Failed to purge the python.org/downloads CDN")
 
 
-def modify_the_release_to_the_prerelease_pages(db: DbfilenameShelf) -> None:
+def modify_the_release_to_the_prerelease_pages(db: ReleaseShelf) -> None:
     pre_release_tags = {"rc", "b", "a"}
     if any(tag in str(db["release"]) for tag in pre_release_tags):
         if not ask_question(
@@ -931,7 +929,7 @@ def modify_the_release_to_the_prerelease_pages(db: DbfilenameShelf) -> None:
             )
 
 
-def post_release_merge(db: DbfilenameShelf) -> None:
+def post_release_merge(db: ReleaseShelf) -> None:
     subprocess.check_call(
         ["git", "fetch", "--all"],
         cwd=db["git_repo"],
@@ -955,7 +953,7 @@ def post_release_merge(db: DbfilenameShelf) -> None:
     )
 
 
-def post_release_tagging(db: DbfilenameShelf) -> None:
+def post_release_tagging(db: ReleaseShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
 
     subprocess.check_call(
@@ -977,7 +975,7 @@ def post_release_tagging(db: DbfilenameShelf) -> None:
     )
 
 
-def maybe_prepare_new_main_branch(db: DbfilenameShelf) -> None:
+def maybe_prepare_new_main_branch(db: ReleaseShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
 
     if not release_tag.is_feature_freeze_release:
@@ -1009,7 +1007,7 @@ def maybe_prepare_new_main_branch(db: DbfilenameShelf) -> None:
     )
 
 
-def branch_new_versions(db: DbfilenameShelf) -> None:
+def branch_new_versions(db: ReleaseShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
 
     if not release_tag.is_feature_freeze_release:
@@ -1023,7 +1021,7 @@ def branch_new_versions(db: DbfilenameShelf) -> None:
     )
 
 
-def is_mirror(repo: pathlib.Path, remote: str) -> bool:
+def is_mirror(repo: Path, remote: str) -> bool:
     """Return True if the `repo` directory was created with --mirror."""
 
     cmd = ["git", "config", "--local", "--get", f"remote.{remote}.mirror"]
@@ -1034,7 +1032,7 @@ def is_mirror(repo: pathlib.Path, remote: str) -> bool:
     return out.startswith(b"true")
 
 
-def push_to_local_fork(db: DbfilenameShelf) -> None:
+def push_to_local_fork(db: ReleaseShelf) -> None:
     def _push_to_local(dry_run: bool = False) -> None:
         git_command = ["git", "push"]
         if dry_run:
@@ -1058,7 +1056,7 @@ def push_to_local_fork(db: DbfilenameShelf) -> None:
     _push_to_local(dry_run=False)
 
 
-def push_to_upstream(db: DbfilenameShelf) -> None:
+def push_to_upstream(db: ReleaseShelf) -> None:
     release_tag: release_mod.Tag = db["release"]
 
     def _push_to_upstream(dry_run: bool = False) -> None:
@@ -1166,6 +1164,7 @@ fix these things in this script so it also supports your platform.
                 "This release script is not compatible with the running platform"
             )
 
+    no_gpg = args.no_gpg
     tasks = [
         Task(check_git, "Checking Git is available"),
         Task(check_make, "Checking make is available"),
@@ -1173,7 +1172,7 @@ fix these things in this script so it also supports your platform.
         Task(check_docker, "Checking Docker is available"),
         Task(check_docker_running, "Checking Docker is running"),
         Task(check_autoconf, "Checking autoconf is available"),
-        None if args.no_gpg else Task(check_gpg_keys, "Checking GPG keys"),
+        *([] if no_gpg else [Task(check_gpg_keys, "Checking GPG keys")]),
         Task(
             check_ssh_connection,
             f"Validating ssh connection to {DOWNLOADS_SERVER} and {DOCS_SERVER}",
@@ -1205,7 +1204,7 @@ fix these things in this script so it also supports your platform.
             "Wait for source and docs artifacts to build",
         ),
         Task(build_sbom_artifacts, "Building SBOM artifacts"),
-        None if args.no_gpg else Task(sign_source_artifacts, "Sign source artifacts"),
+        *([] if no_gpg else [Task(sign_source_artifacts, "Sign source artifacts")]),
         Task(upload_files_to_server, "Upload files to the PSF server"),
         Task(place_files_in_download_folder, "Place files in the download folder"),
         Task(upload_docs_to_the_docs_server, "Upload docs to the PSF docs server"),
@@ -1225,8 +1224,6 @@ fix these things in this script so it also supports your platform.
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
         Task(modify_the_release_to_the_prerelease_pages, "Modify the pre-release page"),
     ]
-    # Remove any skipped tasks
-    tasks = [task for task in tasks if task]
     automata = ReleaseDriver(
         git_repo=args.repo,
         release_tag=release_mod.Tag(args.release),
