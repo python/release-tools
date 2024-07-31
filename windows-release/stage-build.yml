@@ -22,12 +22,6 @@ jobs:
     env:
       BUILDDIR: $(Build.BinariesDirectory)\Doc
 
-  - script: Doc\make.bat htmlhelp
-    displayName: 'Build CHM docs'
-    condition: and(succeeded(), eq(variables['DoCHM'], 'true'))
-    env:
-      BUILDDIR: $(Build.BinariesDirectory)\Doc
-
   - task: CopyFiles@2
     displayName: 'Assemble artifact: Doc'
     inputs:
@@ -35,7 +29,6 @@ jobs:
       targetFolder: $(Build.ArtifactStagingDirectory)\Doc
       contents: |
         html\**\*
-        htmlhelp\*.chm
 
   - task: PublishPipelineArtifact@0
     displayName: 'Publish artifact: doc'

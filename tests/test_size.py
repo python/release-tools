@@ -12,7 +12,6 @@ import size
         ("file.pdb.zip", False),
         ("file.amd64.msi", False),
         ("file.msi", False),
-        ("file.chm", False),
         ("file.dmg", False),
         ("file.ext", True),
     ],
@@ -30,8 +29,7 @@ def test_ignore(filename: str, expected: bool) -> None:
         ("file.pdb.zip", 3),
         ("file.amd64.msi", 4),
         ("file.msi", 5),
-        ("file.chm", 6),
-        ("file.dmg", 7),
+        ("file.dmg", 6),
         ("file.ext", 9999),
     ],
 )

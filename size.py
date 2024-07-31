@@ -13,7 +13,7 @@ DOT = "."
 sort_order = {
     ext: i
     for i, ext in enumerate(
-        ("tgz", "tar.bz2", "tar.xz", "pdb.zip", "amd64.msi", "msi", "chm", "dmg")
+        ("tgz", "tar.bz2", "tar.xz", "pdb.zip", "amd64.msi", "msi", "dmg")
     )
 }
 
