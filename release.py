@@ -20,14 +20,110 @@ import subprocess
 import sys
 import tempfile
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Self
+from dataclasses import dataclass
+from pathlib import Path
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    Literal,
+    Protocol,
+    Self,
+    overload,
+)
 
 COMMASPACE = ", "
 SPACE = " "
 tag_cre = re.compile(r"(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$")
 
 
-# Ideas stolen from Mailman's release script, Lib/tokens.py and welease
+class ReleaseShelf(Protocol):
+    def close(self) -> None: ...
+
+    @overload
+    def get(self, key: Literal["finished"], default: bool | None = None) -> bool: ...
+
+    @overload
+    def get(
+        self, key: Literal["completed_tasks"], default: list[Task] | None = None
+    ) -> list[Task]: ...
+
+    @overload
+    def get(self, key: Literal["gpg_key"], default: str | None = None) -> str: ...
+
+    @overload
+    def get(self, key: Literal["git_repo"], default: Path | None = None) -> Path: ...
+
+    @overload
+    def get(self, key: Literal["auth_info"], default: str | None = None) -> str: ...
+
+    @overload
+    def get(self, key: Literal["ssh_user"], default: str | None = None) -> str: ...
+
+    @overload
+    def get(self, key: Literal["sign_gpg"], default: bool | None = None) -> bool: ...
+
+    @overload
+    def get(self, key: Literal["release"], default: Tag | None = None) -> Tag: ...
+
+    @overload
+    def __getitem__(self, key: Literal["finished"]) -> bool: ...
+
+    @overload
+    def __getitem__(self, key: Literal["completed_tasks"]) -> list[Task]: ...
+
+    @overload
+    def __getitem__(self, key: Literal["gpg_key"]) -> str: ...
+
+    @overload
+    def __getitem__(self, key: Literal["git_repo"]) -> Path: ...
+
+    @overload
+    def __getitem__(self, key: Literal["auth_info"]) -> str: ...
+
+    @overload
+    def __getitem__(self, key: Literal["ssh_user"]) -> str: ...
+
+    @overload
+    def __getitem__(self, key: Literal["sign_gpg"]) -> bool: ...
+
+    @overload
+    def __getitem__(self, key: Literal["release"]) -> Tag: ...
+
+    @overload
+    def __setitem__(self, key: Literal["finished"], value: bool) -> None: ...
+
+    @overload
+    def __setitem__(
+        self, key: Literal["completed_tasks"], value: list[Task]
+    ) -> None: ...
+
+    @overload
+    def __setitem__(self, key: Literal["gpg_key"], value: str) -> None: ...
+
+    @overload
+    def __setitem__(self, key: Literal["git_repo"], value: Path) -> None: ...
+
+    @overload
+    def __setitem__(self, key: Literal["auth_info"], value: str) -> None: ...
+
+    @overload
+    def __setitem__(self, key: Literal["ssh_user"], value: str) -> None: ...
+
+    @overload
+    def __setitem__(self, key: Literal["sign_gpg"], value: bool) -> None: ...
+
+    @overload
+    def __setitem__(self, key: Literal["release"], value: Tag) -> None: ...
+
+
+@dataclass
+class Task:
+    function: Callable[[ReleaseShelf], None]
+    description: str
+
+    def __call__(self, db: ReleaseShelf) -> Any:
+        return getattr(self, "function")(db)
 
 
 class Tag:
@@ -139,12 +235,8 @@ def run_cmd(
 
 readme_re = re.compile(r"This is Python version [23]\.\d").match
 
-root = None
-
 
 def chdir_to_repo_root() -> str:
-    global root
-
     # find the root of the local CPython repo
     # note that we can't ask git, because we might
     # be in an exported directory tree!

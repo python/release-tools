@@ -1,7 +1,9 @@
 aiohttp==3.9.4
+alive_progress  # untyped :(
 mypy==1.10
 pytest
 pytest-mock
+python-gnupg  # untyped :(
 sigstore==1.1.2
-types-requests
 types-paramiko
+types-requests
