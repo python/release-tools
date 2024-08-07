@@ -897,15 +897,26 @@ def purge_the_cdn(db: DbfilenameShelf) -> None:
         f"https://www.python.org/downloads/release/python-{str(db['release']).replace('.', '')}/",
         f"https://docs.python.org/release/{db['release']}/",
         f"https://www.python.org/ftp/python/{normalized_release}/",
-        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tgz",
-        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tgz.asc",
-        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tar.xz",
-        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tar.xz.asc",
         f"https://docs.python.org/release/{normalized_release}/",
         "https://www.python.org/downloads/",
         "https://www.python.org/downloads/windows/",
         "https://www.python.org/downloads/macos/",
     ]
+    # Purge the source URLs and their associated metadata files.
+    source_urls = [
+        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tgz",
+        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tar.xz",
+    ]
+    for source_url in source_urls:
+        urls.extend([
+            f"{source_url}",
+            f"{source_url}.asc",
+            f"{source_url}.crt",
+            f"{source_url}.sig",
+            f"{source_url}.sigstore",
+            f"{source_url}.spdx.json",
+        ])
+
     for url in urls:
         req = urllib.request.Request(url=url, headers=headers, method="PURGE")
         # try:
