@@ -908,14 +908,16 @@ def purge_the_cdn(db: DbfilenameShelf) -> None:
         f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tar.xz",
     ]
     for source_url in source_urls:
-        urls.extend([
-            f"{source_url}",
-            f"{source_url}.asc",
-            f"{source_url}.crt",
-            f"{source_url}.sig",
-            f"{source_url}.sigstore",
-            f"{source_url}.spdx.json",
-        ])
+        urls.extend(
+            [
+                f"{source_url}",
+                f"{source_url}.asc",
+                f"{source_url}.crt",
+                f"{source_url}.sig",
+                f"{source_url}.sigstore",
+                f"{source_url}.spdx.json",
+            ]
+        )
 
     for url in urls:
         req = urllib.request.Request(url=url, headers=headers, method="PURGE")
