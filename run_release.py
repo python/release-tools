@@ -565,17 +565,27 @@ def sign_source_artifacts(db: ReleaseShelf) -> None:
     subprocess.check_call(["gpg", "-bas", "-u", uid, xz])
 
     print("Signing tarballs with Sigstore")
-    subprocess.check_call(
-        [
-            "python3",
-            "-m",
-            "sigstore",
-            "sign",
-            "--oidc-disable-ambient-providers",
-            tgz,
-            xz,
-        ]
-    )
+    for filename in (tgz, xz):
+        cert_file = filename + ".crt"
+        sig_file = filename + ".sig"
+        bundle_file = filename + ".sigstore"
+
+        subprocess.check_call(
+            [
+                "python3",
+                "-m",
+                "sigstore",
+                "sign",
+                "--oidc-disable-ambient-providers",
+                "--signature",
+                sig_file,
+                "--certificate",
+                cert_file,
+                "--bundle",
+                bundle_file,
+                filename,
+            ]
+        )
 
 
 def build_sbom_artifacts(db: ReleaseShelf) -> None:
