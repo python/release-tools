@@ -362,11 +362,6 @@ def sign_release_files_with_sigstore(
                 ]
             )
 
-            # New sigstore CLI makes Sigstore bundles end in '.json'
-            # but our users expect bundles to be '.sigstore'
-            if os.path.exists(bundle_file + ".json"):
-                os.rename(bundle_file + ".json", bundle_file)
-
             run_cmd(["chmod", "644", sig_file])
             run_cmd(["chmod", "644", cert_file])
             run_cmd(["chmod", "644", bundle_file])
