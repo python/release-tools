@@ -942,22 +942,26 @@ def purge_the_cdn(db: ReleaseShelf) -> None:
         "https://www.python.org/downloads/windows/",
         "https://www.python.org/downloads/macos/",
     ]
-    # Purge the source URLs and their associated metadata files.
-    source_urls = [
-        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tgz",
-        f"https://www.python.org/ftp/python/{normalized_release}/Python-{db['release']}.tar.xz",
-    ]
-    for source_url in source_urls:
-        urls.extend(
-            [
-                f"{source_url}",
-                f"{source_url}.asc",
-                f"{source_url}.crt",
-                f"{source_url}.sig",
-                f"{source_url}.sigstore",
-                f"{source_url}.spdx.json",
-            ]
+
+    # Recursively discover artifacts to purge.
+    ftp_download_pages = [f"https://www.python.org/ftp/python/{normalized_release}/"]
+    while ftp_download_pages:
+        ftp_download_page = ftp_download_pages.pop(0)
+        req = urllib.request.Request(
+            method="GET", url=ftp_download_page, headers=headers
         )
+        resp = urllib.request.urlopen(req)
+        if resp.code != 200:
+            raise RuntimeError("Failed to purge the python.org/downloads CDN")
+        for link in re.findall(r"<a href=\"([^\"]+)\">", resp.read().decode()):
+            if link in ("../", "./"):  # Special value, ignore it.
+                continue
+
+            if link.endswith("/"):  # Directory, recurse into it.
+                ftp_download_pages.append(f"{ftp_download_page}{link}")
+
+            # We want to purge both directories and files.
+            urls.append(f"{ftp_download_page}{link}")
 
     for url in urls:
         req = urllib.request.Request(url=url, headers=headers, method="PURGE")
