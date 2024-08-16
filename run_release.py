@@ -33,6 +33,7 @@ import release as release_mod
 import sbom
 from buildbotapi import BuildBotAPI, Builder
 from release import ReleaseShelf, Tag, Task
+import update_version_next
 
 API_KEY_REGEXP = re.compile(r"(?P<user>\w+):(?P<key>\w+)")
 RELEASE_REGEXP = re.compile(
@@ -492,6 +493,13 @@ def check_pyspecific(db: ReleaseShelf) -> None:
 def bump_version(db: ReleaseShelf) -> None:
     with cd(db["git_repo"]):
         release_mod.bump(db["release"])
+    subprocess.check_call(
+        ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
+    )
+
+
+def bump_version_in_docs(db: ReleaseShelf) -> None:
+    update_version_next.main([db['release'].doc_version, str(db["git_repo"])])
     subprocess.check_call(
         ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
     )
@@ -1251,6 +1259,7 @@ fix these things in this script so it also supports your platform.
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(bump_version, "Bump version"),
+        Task(bump_version_in_docs, "Bump version in docs"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(run_autoconf, "Running autoconf"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),

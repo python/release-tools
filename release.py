@@ -209,6 +209,16 @@ class Tag:
             int(proc.stdout.decode().strip()), tz=datetime.timezone.utc
         )
 
+    @property
+    def doc_version(self) -> str:
+        """Text used for notes in docs like 'Added in x.y'"""
+        # - ignore levels (alpha/beta/rc are preparatiomn for the full release)
+        # - use just X.Y for patch 0
+        if self.patch == 0:
+            return f"{self.major}.{self.minor}"
+        else:
+            return f"{self.major}.{self.minor}.{self.patch}"
+
 
 def error(*msgs: str) -> None:
     print("**ERROR**", file=sys.stderr)
