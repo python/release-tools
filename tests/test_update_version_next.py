@@ -1,8 +1,7 @@
 """Tests for the update_version_next tool."""
 
-from pathlib import Path
 import unittest
-
+from pathlib import Path
 from test.support import os_helper
 
 import update_version_next
@@ -58,7 +57,7 @@ foo .. versionchanged:: next
 .. deprecated-removed: 3.0 next
 """
 
-EXPECTED_CHANGED = TO_CHANGE.replace('next', 'VER')
+EXPECTED_CHANGED = TO_CHANGE.replace("next", "VER")
 
 
 class TestVersionNext(unittest.TestCase):
@@ -67,21 +66,23 @@ class TestVersionNext(unittest.TestCase):
     def test_freeze_simple_script(self):
         with os_helper.temp_dir() as testdir:
             path = Path(testdir)
-            path.joinpath('source.rst').write_text(TO_CHANGE + UNCHANGED)
-            path.joinpath('subdir').mkdir()
-            path.joinpath('subdir/change.rst').write_text(
-                '.. versionadded:: next')
-            path.joinpath('subdir/keep.not-rst').write_text(
-                '.. versionadded:: next')
-            path.joinpath('subdir/keep.rst').write_text(
-                'nothing to see here')
-            args = ['VER', testdir]
+            path.joinpath("source.rst").write_text(TO_CHANGE + UNCHANGED)
+            path.joinpath("subdir").mkdir()
+            path.joinpath("subdir/change.rst").write_text(".. versionadded:: next")
+            path.joinpath("subdir/keep.not-rst").write_text(".. versionadded:: next")
+            path.joinpath("subdir/keep.rst").write_text("nothing to see here")
+            args = ["VER", testdir]
             update_version_next.main(args)
-            self.assertEqual(path.joinpath('source.rst').read_text(),
-                             EXPECTED_CHANGED + UNCHANGED)
-            self.assertEqual(path.joinpath('subdir/change.rst').read_text(),
-                             '.. versionadded:: VER')
-            self.assertEqual(path.joinpath('subdir/keep.not-rst').read_text(),
-                             '.. versionadded:: next')
-            self.assertEqual(path.joinpath('subdir/keep.rst').read_text(),
-                             'nothing to see here')
+            self.assertEqual(
+                path.joinpath("source.rst").read_text(), EXPECTED_CHANGED + UNCHANGED
+            )
+            self.assertEqual(
+                path.joinpath("subdir/change.rst").read_text(), ".. versionadded:: VER"
+            )
+            self.assertEqual(
+                path.joinpath("subdir/keep.not-rst").read_text(),
+                ".. versionadded:: next",
+            )
+            self.assertEqual(
+                path.joinpath("subdir/keep.rst").read_text(), "nothing to see here"
+            )

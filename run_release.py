@@ -31,9 +31,9 @@ from alive_progress import alive_bar  # type: ignore[import-untyped]
 
 import release as release_mod
 import sbom
+import update_version_next
 from buildbotapi import BuildBotAPI, Builder
 from release import ReleaseShelf, Tag, Task
-import update_version_next
 
 API_KEY_REGEXP = re.compile(r"(?P<user>\w+):(?P<key>\w+)")
 RELEASE_REGEXP = re.compile(
@@ -499,7 +499,7 @@ def bump_version(db: ReleaseShelf) -> None:
 
 
 def bump_version_in_docs(db: ReleaseShelf) -> None:
-    update_version_next.main([db['release'].doc_version, str(db["git_repo"])])
+    update_version_next.main([db["release"].doc_version, str(db["git_repo"])])
     subprocess.check_call(
         ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
     )
@@ -564,7 +564,7 @@ def check_doc_unreleased_version(db: ReleaseShelf) -> None:
     # didn't do its job.
     # But, there could also be a false positive.
     release_tag = db["release"]
-    docs_path = Path(db["git_repo"] / str(release_tag) / 'docs')
+    docs_path = Path(db["git_repo"] / str(release_tag) / "docs")
     archive_path = docs_path / f"python-{release_tag}-docs-html.tar.bz2"
     if release_tag.includes_docs:
         assert archive_path.exists()
@@ -574,13 +574,11 @@ def check_doc_unreleased_version(db: ReleaseShelf) -> None:
                 "tar",
                 "-xjf",
                 archive_path,
-                '--to-command=! grep -Hn --label="$TAR_FILENAME" "[(]unrelesed[)]"'
+                '--to-command=! grep -Hn --label="$TAR_FILENAME" "[(]unrelesed[)]"',
             ],
         )
         if proc.returncode != 0:
-            if not ask_question(
-                "Are these `(unreleased)` strings in built docs OK?"
-            ):
+            if not ask_question("Are these `(unreleased)` strings in built docs OK?"):
                 proc.check_returncode()
 
 
