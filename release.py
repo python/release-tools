@@ -210,6 +210,10 @@ class Tag:
         )
 
     @property
+    def includes_docs(self) -> bool:
+        return self.is_final or self.is_release_candidate
+
+    @property
     def doc_version(self) -> str:
         """Text used for notes in docs like 'Added in x.y'"""
         # - ignore levels (alpha/beta/rc are preparatiomn for the full release)

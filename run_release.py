@@ -517,7 +517,7 @@ def create_tag(db: ReleaseShelf) -> None:
 def wait_for_source_and_docs_artifacts(db: ReleaseShelf) -> None:
     # Determine if we need to wait for docs or only source artifacts.
     release_tag = db["release"]
-    should_wait_for_docs = release_tag.is_final or release_tag.is_release_candidate
+    should_wait_for_docs = release_tag.includes_docs
 
     # Create the directory so it's easier to place the artifacts there.
     release_path = Path(db["git_repo"] / str(release_tag))
@@ -555,6 +555,33 @@ def wait_for_source_and_docs_artifacts(db: ReleaseShelf) -> None:
 
     while not all(path.exists() for path in wait_for_paths):
         time.sleep(1)
+
+
+def check_doc_unreleased_version(db: ReleaseShelf) -> None:
+    print("Checking built docs for '(unreleased)'")
+    # This string is generated when a `versionadded:: next` directive is
+    # left in the docs, which means the `bump_version_in_docs` step
+    # didn't do its job.
+    # But, there could also be a false positive.
+    release_tag = db["release"]
+    docs_path = Path(db["git_repo"] / str(release_tag) / 'docs')
+    archive_path = docs_path / f"python-{release_tag}-docs-html.tar.bz2"
+    if release_tag.includes_docs:
+        assert archive_path.exists()
+    if archive_path.exists():
+        proc = subprocess.run(
+            [
+                "tar",
+                "-xjf",
+                archive_path,
+                '--to-command=! grep -Hn --label="$TAR_FILENAME" "[(]unrelesed[)]"'
+            ],
+        )
+        if proc.returncode != 0:
+            if not ask_question(
+                "Are these `(unreleased)` strings in built docs OK?"
+            ):
+                proc.check_returncode()
 
 
 def sign_source_artifacts(db: ReleaseShelf) -> None:
@@ -1279,6 +1306,7 @@ fix these things in this script so it also supports your platform.
             wait_for_source_and_docs_artifacts,
             "Wait for source and docs artifacts to build",
         ),
+        Task(check_doc_unreleased_version, "Check docs for `(unreleased)`"),
         Task(build_sbom_artifacts, "Building SBOM artifacts"),
         *([] if no_gpg else [Task(sign_source_artifacts, "Sign source artifacts")]),
         Task(upload_files_to_server, "Upload files to the PSF server"),
