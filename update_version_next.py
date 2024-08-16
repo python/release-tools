@@ -57,7 +57,7 @@ parser.add_argument(
 )
 
 
-def main(argv):
+def main(argv: list[str]) -> None:
     args = parser.parse_args(argv)
     version = args.version
     if args.verbose:

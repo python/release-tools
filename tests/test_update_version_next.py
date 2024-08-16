@@ -2,7 +2,9 @@
 
 import unittest
 from pathlib import Path
-from test.support import os_helper
+
+# typeshed doesn't have stubs for os_helper
+from test.support import os_helper  # type: ignore[import-not-found]
 
 import update_version_next
 
@@ -63,7 +65,7 @@ EXPECTED_CHANGED = TO_CHANGE.replace("next", "VER")
 class TestVersionNext(unittest.TestCase):
     maxDiff = len(TO_CHANGE + UNCHANGED) * 10
 
-    def test_freeze_simple_script(self):
+    def test_freeze_simple_script(self) -> None:
         with os_helper.temp_dir() as testdir:
             path = Path(testdir)
             path.joinpath("source.rst").write_text(TO_CHANGE + UNCHANGED)
