@@ -91,3 +91,25 @@ def test_tag_invalid() -> None:
     # Act / Assert
     with pytest.raises(SystemExit):
         release.Tag(tag_name)
+
+
+def test_tag_docs_attributes() -> None:
+    # Arrange
+    alpha = release.Tag("3.13.0a7")
+    beta = release.Tag("3.13.0b1")
+    rc = release.Tag("3.13.0rc3")
+    final_zero = release.Tag("3.13.0")
+    final_3 = release.Tag("3.13.3")
+
+    # Act / Assert
+    assert alpha.includes_docs is False
+    assert beta.includes_docs is False
+    assert rc.includes_docs is True
+    assert final_zero.includes_docs is True
+    assert final_3.includes_docs is True
+
+    assert alpha.doc_version == "3.13"
+    assert beta.doc_version == "3.13"
+    assert rc.doc_version == "3.13"
+    assert final_zero.doc_version == "3.13"
+    assert final_3.doc_version == "3.13.3"
