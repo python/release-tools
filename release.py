@@ -211,6 +211,7 @@ class Tag:
 
     @property
     def includes_docs(self) -> bool:
+        """True if docs should be included in the release"""
         return self.is_final or self.is_release_candidate
 
     @property

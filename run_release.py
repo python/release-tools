@@ -564,7 +564,7 @@ def check_doc_unreleased_version(db: ReleaseShelf) -> None:
     # didn't do its job.
     # But, there could also be a false positive.
     release_tag = db["release"]
-    docs_path = Path(db["git_repo"] / str(release_tag) / "docs")
+    docs_path = Path(db["git_repo"]) / str(release_tag) / "docs"
     archive_path = docs_path / f"python-{release_tag}-docs-html.tar.bz2"
     if release_tag.includes_docs:
         assert archive_path.exists()
@@ -574,12 +574,12 @@ def check_doc_unreleased_version(db: ReleaseShelf) -> None:
                 "tar",
                 "-xjf",
                 archive_path,
-                '--to-command=! grep -Hn --label="$TAR_FILENAME" "[(]unrelesed[)]"',
+                '--to-command=! grep -Hn --label="$TAR_FILENAME" "[(]unreleased[)]"',
             ],
         )
         if proc.returncode != 0:
             if not ask_question("Are these `(unreleased)` strings in built docs OK?"):
-                proc.check_returncode()
+                raise AssertionError("`(unreleased)` strings found in docs")
 
 
 def sign_source_artifacts(db: ReleaseShelf) -> None:
