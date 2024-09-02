@@ -1,11 +1,5 @@
 """Tests for the update_version_next tool."""
 
-import unittest
-from pathlib import Path
-
-# typeshed doesn't have stubs for os_helper
-from test.support import os_helper  # type: ignore[import-not-found]
-
 import update_version_next
 
 TO_CHANGE = """
@@ -62,29 +56,17 @@ foo .. versionchanged:: next
 EXPECTED_CHANGED = TO_CHANGE.replace("next", "VER")
 
 
-class TestVersionNext(unittest.TestCase):
-    maxDiff = len(TO_CHANGE + UNCHANGED) * 10
+def test_freeze_simple_script(tmp_path) -> None:
+    p = tmp_path.joinpath
 
-    def test_freeze_simple_script(self) -> None:
-        with os_helper.temp_dir() as testdir:
-            path = Path(testdir)
-            path.joinpath("source.rst").write_text(TO_CHANGE + UNCHANGED)
-            path.joinpath("subdir").mkdir()
-            path.joinpath("subdir/change.rst").write_text(".. versionadded:: next")
-            path.joinpath("subdir/keep.not-rst").write_text(".. versionadded:: next")
-            path.joinpath("subdir/keep.rst").write_text("nothing to see here")
-            args = ["VER", testdir]
-            update_version_next.main(args)
-            self.assertEqual(
-                path.joinpath("source.rst").read_text(), EXPECTED_CHANGED + UNCHANGED
-            )
-            self.assertEqual(
-                path.joinpath("subdir/change.rst").read_text(), ".. versionadded:: VER"
-            )
-            self.assertEqual(
-                path.joinpath("subdir/keep.not-rst").read_text(),
-                ".. versionadded:: next",
-            )
-            self.assertEqual(
-                path.joinpath("subdir/keep.rst").read_text(), "nothing to see here"
-            )
+    p("source.rst").write_text(TO_CHANGE + UNCHANGED)
+    p("subdir").mkdir()
+    p("subdir/change.rst").write_text(".. versionadded:: next")
+    p("subdir/keep.not-rst").write_text(".. versionadded:: next")
+    p("subdir/keep.rst").write_text("nothing to see here")
+    args = ["VER", str(tmp_path)]
+    update_version_next.main(args)
+    assert p("source.rst").read_text() == EXPECTED_CHANGED + UNCHANGED
+    assert p("subdir/change.rst").read_text() == ".. versionadded:: VER"
+    assert p("subdir/keep.not-rst").read_text() == ".. versionadded:: next"
+    assert p("subdir/keep.rst").read_text() == "nothing to see here"
