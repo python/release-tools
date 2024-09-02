@@ -39,7 +39,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     "version",
-    help='String to replace "next" with. Usually `x.y`, ' + "but can be anything.",
+    help='String to replace "next" with. Usually `x.y`, but can be anything.',
 )
 parser.add_argument(
     "directory",

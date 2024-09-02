@@ -217,7 +217,7 @@ class Tag:
     @property
     def doc_version(self) -> str:
         """Text used for notes in docs like 'Added in x.y'"""
-        # - ignore levels (alpha/beta/rc are preparatiomn for the full release)
+        # - ignore levels (alpha/beta/rc are preparation for the full release)
         # - use just X.Y for patch 0
         if self.patch == 0:
             return f"{self.major}.{self.minor}"
