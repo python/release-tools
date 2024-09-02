@@ -32,8 +32,6 @@ DIRECTIVE_RE = re.compile(
     re.VERBOSE | re.DOTALL,
 )
 
-doc_dir = Path(__file__).parent.parent.resolve()  # cpython/Doc/tools  # cpython/Doc
-
 parser = argparse.ArgumentParser(
     description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
 )
@@ -45,8 +43,7 @@ parser.add_argument(
     "directory",
     type=Path,
     nargs="?",
-    help=f"Directory to process. Default: {doc_dir}",
-    default=doc_dir,
+    help="Directory to process",
 )
 parser.add_argument(
     "--verbose",
