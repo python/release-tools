@@ -1,5 +1,7 @@
 """Tests for the update_version_next tool."""
 
+from pathlib import Path
+
 import update_version_next
 
 TO_CHANGE = """
@@ -56,7 +58,7 @@ foo .. versionchanged:: next
 EXPECTED_CHANGED = TO_CHANGE.replace("next", "VER")
 
 
-def test_freeze_simple_script(tmp_path) -> None:
+def test_freeze_simple_script(tmp_path: Path) -> None:
     p = tmp_path.joinpath
 
     p("source.rst").write_text(TO_CHANGE + UNCHANGED)
