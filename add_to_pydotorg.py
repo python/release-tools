@@ -30,13 +30,13 @@ import re
 import subprocess
 import sys
 from os import path
-from typing import Any, Generator
+from typing import Any, Generator, NoReturn
 
 import requests
 
 
 # Copied from release.py
-def error(*msgs: Any) -> None:
+def error(*msgs: Any) -> NoReturn:
     print("**ERROR**", file=sys.stderr)
     for msg in msgs:
         print(msg, file=sys.stderr)
@@ -332,6 +332,29 @@ def sign_release_files_with_sigstore(
         return os.path.exists(filename + ".sigstore") or (
             os.path.exists(filename + ".sig") and os.path.exists(filename + ".crt")
         )
+
+    # Ensure that Sigstore CLI installed on the download server is
+    # at least v3.0.0 or later to ensure valid Sigstore bundles are generated.
+    try:
+        sigstore_version_stdout = subprocess.check_output(
+            ["python3", "-m", "sigstore", "--version"]
+        )
+        sigstore_version_match = re.search(
+            r"([0-9][0-9.]*[0-9])", sigstore_version_stdout.decode()
+        )
+        if not sigstore_version_match:
+            error(
+                f"Couldn't determine version of Sigstore CLI: {sigstore_version_stdout.decode()}"
+            )
+        sigstore_version = sigstore_version_match.group(1)
+        sigstore_major_version = int(sigstore_version.partition(".")[0])
+        if sigstore_major_version < 3:
+            error(
+                f"Sigstore v3 or later must be installed (currently {sigstore_version}), run python -m pip install -r requirements.txt"
+            )
+    except subprocess.CalledProcessError:
+        error("Couldn't determine version of Sigstore CLI")
+    print(f"Sigstore CLI installed is version v{sigstore_version}")
 
     # Skip files that already have a signature (likely source distributions)
     unsigned_files = [
