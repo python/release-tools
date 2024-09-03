@@ -344,13 +344,16 @@ def sign_release_files_with_sigstore(
         )
         if not sigstore_version_match:
             error(
-                f"Couldn't determine version of Sigstore CLI: {sigstore_version_stdout.decode()}"
+                f"Couldn't determine version of Sigstore CLI: "
+                f"{sigstore_version_stdout.decode()}"
             )
         sigstore_version = sigstore_version_match.group(1)
         sigstore_major_version = int(sigstore_version.partition(".")[0])
         if sigstore_major_version < 3:
             error(
-                f"Sigstore v3 or later must be installed (currently {sigstore_version}), run python -m pip install -r requirements.txt"
+                f"Sigstore v3 or later must be installed "
+                f"(currently {sigstore_version}), "
+                f"run: python -m pip install -r requirements.txt"
             )
     except subprocess.CalledProcessError:
         error("Couldn't determine version of Sigstore CLI")
