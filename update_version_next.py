@@ -42,7 +42,6 @@ parser.add_argument(
 parser.add_argument(
     "directory",
     type=Path,
-    nargs="?",
     help="Directory to process",
 )
 parser.add_argument(
@@ -77,8 +76,9 @@ def main(argv: list[str]) -> None:
                     raise
         if num_changed_lines:
             if args.verbose:
+                s = "" if num_changed_lines == 1 else "s"
                 print(
-                    f"Updating file {path} ({num_changed_lines} changes)",
+                    f"Updating file {path} ({num_changed_lines} change{s})",
                     file=sys.stderr,
                 )
             with open(path, "w", encoding="utf-8") as file:
