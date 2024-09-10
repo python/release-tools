@@ -529,8 +529,6 @@ def wait_for_source_and_docs_artifacts(db: ReleaseShelf) -> None:
                 docs_path / f"python-{release_tag}-docs-html.zip",
                 docs_path / f"python-{release_tag}-docs-pdf-a4.tar.bz2",
                 docs_path / f"python-{release_tag}-docs-pdf-a4.zip",
-                docs_path / f"python-{release_tag}-docs-pdf-letter.tar.bz2",
-                docs_path / f"python-{release_tag}-docs-pdf-letter.zip",
                 docs_path / f"python-{release_tag}-docs-texinfo.tar.bz2",
                 docs_path / f"python-{release_tag}-docs-texinfo.zip",
                 docs_path / f"python-{release_tag}-docs-text.tar.bz2",
