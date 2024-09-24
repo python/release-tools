@@ -31,6 +31,7 @@ from alive_progress import alive_bar  # type: ignore[import-untyped]
 
 import release as release_mod
 import sbom
+import update_version_next
 from buildbotapi import BuildBotAPI, Builder
 from release import ReleaseShelf, Tag, Task
 
@@ -497,6 +498,13 @@ def bump_version(db: ReleaseShelf) -> None:
     )
 
 
+def bump_version_in_docs(db: ReleaseShelf) -> None:
+    update_version_next.main([db["release"].doc_version, str(db["git_repo"])])
+    subprocess.check_call(
+        ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
+    )
+
+
 def create_tag(db: ReleaseShelf) -> None:
     with cd(db["git_repo"]):
         if not release_mod.make_tag(db["release"], sign_gpg=db["sign_gpg"]):
@@ -509,7 +517,7 @@ def create_tag(db: ReleaseShelf) -> None:
 def wait_for_source_and_docs_artifacts(db: ReleaseShelf) -> None:
     # Determine if we need to wait for docs or only source artifacts.
     release_tag = db["release"]
-    should_wait_for_docs = release_tag.is_final or release_tag.is_release_candidate
+    should_wait_for_docs = release_tag.includes_docs
 
     # Create the directory so it's easier to place the artifacts there.
     release_path = Path(db["git_repo"] / str(release_tag))
@@ -545,6 +553,31 @@ def wait_for_source_and_docs_artifacts(db: ReleaseShelf) -> None:
 
     while not all(path.exists() for path in wait_for_paths):
         time.sleep(1)
+
+
+def check_doc_unreleased_version(db: ReleaseShelf) -> None:
+    print("Checking built docs for '(unreleased)'")
+    # This string is generated when a `versionadded:: next` directive is
+    # left in the docs, which means the `bump_version_in_docs` step
+    # didn't do its job.
+    # But, there could also be a false positive.
+    release_tag = db["release"]
+    docs_path = Path(db["git_repo"]) / str(release_tag) / "docs"
+    archive_path = docs_path / f"python-{release_tag}-docs-html.tar.bz2"
+    if release_tag.includes_docs:
+        assert archive_path.exists()
+    if archive_path.exists():
+        proc = subprocess.run(
+            [
+                "tar",
+                "-xjf",
+                archive_path,
+                '--to-command=! grep -Hn --label="$TAR_FILENAME" "[(]unreleased[)]"',
+            ],
+        )
+        if proc.returncode != 0:
+            if not ask_question("Are these `(unreleased)` strings in built docs OK?"):
+                raise AssertionError("`(unreleased)` strings found in docs")
 
 
 def sign_source_artifacts(db: ReleaseShelf) -> None:
@@ -1249,6 +1282,7 @@ fix these things in this script so it also supports your platform.
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(bump_version, "Bump version"),
+        Task(bump_version_in_docs, "Bump version in docs"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(run_autoconf, "Running autoconf"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
@@ -1268,6 +1302,7 @@ fix these things in this script so it also supports your platform.
             wait_for_source_and_docs_artifacts,
             "Wait for source and docs artifacts to build",
         ),
+        Task(check_doc_unreleased_version, "Check docs for `(unreleased)`"),
         Task(build_sbom_artifacts, "Building SBOM artifacts"),
         *([] if no_gpg else [Task(sign_source_artifacts, "Sign source artifacts")]),
         Task(upload_files_to_server, "Upload files to the PSF server"),
