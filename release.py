@@ -438,6 +438,8 @@ def bump(tag: Tag) -> None:
             "Doc/license.rst",
             "PC/pyconfig.h.in",
             "PCbuild/rt.bat",
+            ".github/ISSUE_TEMPLATE/bug.yml",
+            ".github/ISSUE_TEMPLATE/crash.yml",
         ]
     print("\nManual editing time...")
     for fn in other_files:
@@ -449,7 +451,7 @@ def bump(tag: Tag) -> None:
 
     print("Bumped revision")
     if extra_work:
-        print("configure.ac has change; re-run autotools!")
+        print("configure.ac has changed; re-run autotools!")
     print("Please commit and use --tag")
 
 
