@@ -424,9 +424,7 @@ def bump(tag: Tag) -> None:
     tweak_patchlevel(tag)
 
     extra_work = False
-    # Older releases have a plain text README,
-    # newer releases have README.rst.
-    other_files = ["README.rst", "README", "Misc/NEWS"]
+    other_files = ["README.rst"]
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
         extra_work = True
         other_files += [
