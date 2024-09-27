@@ -424,9 +424,7 @@ def bump(tag: Tag) -> None:
     tweak_patchlevel(tag)
 
     extra_work = False
-    # Older releases have a plain text README,
-    # newer releases have README.rst.
-    other_files = ["README.rst", "README", "Misc/NEWS"]
+    other_files = ["README.rst"]
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
         extra_work = True
         other_files += [
@@ -438,6 +436,8 @@ def bump(tag: Tag) -> None:
             "Doc/license.rst",
             "PC/pyconfig.h.in",
             "PCbuild/rt.bat",
+            ".github/ISSUE_TEMPLATE/bug.yml",
+            ".github/ISSUE_TEMPLATE/crash.yml",
         ]
     print("\nManual editing time...")
     for fn in other_files:
@@ -449,7 +449,7 @@ def bump(tag: Tag) -> None:
 
     print("Bumped revision")
     if extra_work:
-        print("configure.ac has change; re-run autotools!")
+        print("configure.ac has changed; re-run autotools!")
     print("Please commit and use --tag")
 
 
