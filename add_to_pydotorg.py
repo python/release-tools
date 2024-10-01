@@ -155,7 +155,7 @@ def get_file_descriptions(
                 "macOS 64-bit universal2 installer",
                 2,
                 True,
-                f"for macOS {'10.13' if v >= (3, 13) else '10.9'} and later",
+                f"for macOS {'10.13' if v >= (3, 12, 6) else '10.9'} and later",
             ),
         ),
     ]
