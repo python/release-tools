@@ -57,22 +57,18 @@ steps:
       displayName: 'Add Include_freethreaded to response file'
 
   - ${{ if parameters.SigningCertificate }}:
-    - task: DotNetCoreCLI@2
-      inputs:
-        command: 'custom'
-        custom: 'tool'
-        arguments: 'install --global azuresigntool'
-      displayName: Install AzureSignTool
+    - template: sign-files.yml
+      parameters:
+        Include: ''
+        ExportCommand: SignCommand
+        SigningCertificate: ${{ parameters.SigningCertificate }}
 
     - powershell: |
-        $signcmd = 'AzureSignTool sign -kvu "$(KeyVaultUri)" ' + `
-                   '-kvi "$(KeyVaultApplication)" -kvt "$(KeyVaultDirectory)" -kvs "$(KeyVaultSecret)" ' + `
-                   '-tr http://timestamp.digicert.com/ -td sha256 ' + `
-                   '-kvc "$(KeyVaultCertificateName)" -d "$(SigningDescription)" -fd sha256'
-        $signcmd = $signcmd -replace '"', '\"'
-        "/p:_SignCommand=""$signcmd""" | Out-File $env:ResponseFile -Append -Encoding UTF8
-      displayName: 'Inject signing command into response file'
+        $cmd = $env:SignCommand -replace '"', '\"'
+        "/p:_SignCommand=""$cmd""" | Out-File $env:ResponseFile -Append -Encoding UTF8
+      displayName: 'Inject sign command into response file'
       env:
+        SignCommand: $(SignCommand)
         ResponseFile: $(ResponseFile)
 
   - script: |
@@ -80,6 +76,10 @@ steps:
     displayName: 'Build launcher installer'
     env:
       Platform: x86
+      ${{ if parameters.SigningCertificate }}:
+        AZURE_TENANT_ID: $(TrustedSigningTenantId)
+        AZURE_CLIENT_ID: $(TrustedSigningClientId)
+        AZURE_CLIENT_SECRET: $(TrustedSigningSecret)
 
   - ${{ each b in parameters.Bundles }}:
     - script: |
@@ -92,6 +92,10 @@ steps:
         PYTHONHOME: $(Build.SourcesDirectory)
         ${{ if b.TclTkArtifact }}:
           TclTkLibraryDir: $(Pipeline.Workspace)\${{ b.TclTkArtifact }}
+        ${{ if parameters.SigningCertificate }}:
+          AZURE_TENANT_ID: $(TrustedSigningTenantId)
+          AZURE_CLIENT_ID: $(TrustedSigningClientId)
+          AZURE_CLIENT_SECRET: $(TrustedSigningSecret)
 
   - powershell: |
       del $env:ResponseFile -ErrorAction Continue

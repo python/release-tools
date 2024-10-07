@@ -161,8 +161,9 @@ stages:
     jobs:
     - template: stage-pack-nuget.yml
       parameters:
-        ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
-          SigningCertificate: ${{ parameters.SigningCertificate }}
+        # Nuget signing is disabled because Azure Trusted Signing does not support it
+        #${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
+        #  SigningCertificate: ${{ parameters.SigningCertificate }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
   - stage: Test

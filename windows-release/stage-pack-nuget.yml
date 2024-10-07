@@ -66,7 +66,7 @@ jobs:
     condition: and(succeeded(), variables['OverrideNugetVersion'])
     displayName: 'Create nuget package'
 
-  - template: sign-nuget-files.yml
+  - template: sign-files.yml
     parameters:
       Include: '*.nupkg'
       WorkingDir: $(Build.ArtifactStagingDirectory)

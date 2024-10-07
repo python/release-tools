@@ -4,30 +4,66 @@ parameters:
   WorkingDir: '$(Build.BinariesDirectory)'
   ExtractDir: ''
   SigningCertificate: ''
+  ExportCommand: ''
 
 steps:
 - ${{ if parameters.SigningCertificate }}:
-  - task: DotNetCoreCLI@2
-    inputs:
-      command: 'custom'
-      custom: 'tool'
-      arguments: 'install --global azuresigntool'
-    displayName: Install AzureSignTool
-
   - powershell: |
-      if ("${{ parameters.Exclude }}") {
-        $files = (dir ${{ parameters.Include }} -Exclude ${{ parameters.Exclude }} -File)
-      } else {
-        $files = (dir ${{ parameters.Include }} -File)
+      cd (mkdir -Force _signing)
+      iwr https://aka.ms/nugetclidl -o nuget.exe
+      .\nuget.exe install Microsoft.Windows.SDK.BuildTools -x -o .
+      .\nuget.exe install Microsoft.Trusted.Signing.Client -x -o .
+      $md = @{
+        Endpoint='$(TrustedSigningUri)';
+        CodeSigningAccountName='$(TrustedSigningAccount)';
+        CertificateProfileName='$(TrustedSigningCertificateName)';
+        CorrelationId='$(SigningDescription)';
+        ExcludeEnvironmentCredential=$false;
+        ExcludeManagedIdentityCredential=$true;
+        ExcludeSharedTokenCacheCredential=$true;
+        ExcludeVisualStudioCredential=$true;
+        ExcludeVisualStudioCodeCredential=$true;
+        ExcludeAzureCliCredential=$true;
+        ExcludeAzurePowershellCredential=$true;
+        ExcludeInteractiveBrowserCredential=$true;
+      };
+      # ConvertTo-Json $md | Out-File -Encoding UTF8 .\metadata.json
+      # but without including the BOM...
+      [System.IO.File]::WriteAllText("$(Get-Location)\metadata.json", (ConvertTo-Json $md), [System.Text.UTF8Encoding]::new($false))
+
+      $signtool = dir .\Microsoft.Windows.SDK.BuildTools\*\*\x64\signtool.exe | select -First 1
+      $dlib = dir .\Microsoft.Trusted.Signing.Client\*\x64\Azure.CodeSigning.Dlib.dll | select -First 1
+      $signargs = "sign /v /fd sha256 /tr http://timestamp.acs.microsoft.com /td sha256 " + `
+        "/dlib ""$dlib"" /dmdf ""$(gi metadata.json)"""
+      Write-Host "##vso[task.setvariable variable=__TrustedSigningCmd]$signtool"
+      Write-Host "##vso[task.setvariable variable=__TrustedSigningArgs]$signargs"
+      if ($env:EXPORT_COMMAND) {
+        $signcmd = """$signtool"" $signargs"
+        Write-Host "##vso[task.setvariable variable=${env:EXPORT_COMMAND};issecret=true]$signcmd"
       }
-      AzureSignTool sign -kvu '$(KeyVaultUri)' `
-                    -kvi '$(KeyVaultApplication)' -kvt '$(KeyVaultDirectory)' -kvs '$(KeyVaultSecret)' `
-                    -tr http://timestamp.digicert.com/ -td sha256 `
-                    -kvc '$(KeyVaultCertificateName)' -d '$(SigningDescription)' -fd sha256 `
-                    $files
-    displayName: 'Sign binaries'
-    retryCountOnTaskFailure: 3
-    workingDirectory: ${{ parameters.WorkingDir }}
+    workingDirectory: $(Build.BinariesDirectory)
+    displayName: 'Install Trusted Signing tools'
+    env:
+      EXPORT_COMMAND: ${{ parameters.ExportCommand }}
+
+  - ${{ if parameters.Include }}:
+    - powershell: |
+        if ("${{ parameters.Exclude }}") {
+          $files = (dir ${{ parameters.Include }} -Exclude ${{ parameters.Exclude }} -File)
+        } else {
+          $files = (dir ${{ parameters.Include }} -File)
+        }
+        & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) $files
+      displayName: 'Sign binaries'
+      retryCountOnTaskFailure: 3
+      workingDirectory: ${{ parameters.WorkingDir }}
+      env:
+        TRUSTED_SIGNING_CMD: $(__TrustedSigningCmd)
+        TRUSTED_SIGNING_ARGS: $(__TrustedSigningArgs)
+        AZURE_TENANT_ID: $(TrustedSigningTenantId)
+        AZURE_CLIENT_ID: $(TrustedSigningClientId)
+        AZURE_CLIENT_SECRET: $(TrustedSigningSecret)
+
 
 - ${{ if parameters.ExtractDir }}:
   - powershell: |
