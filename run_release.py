@@ -44,7 +44,7 @@ DOCS_SERVER = "docs.nyc1.psf.io"
 
 WHATS_NEW_TEMPLATE = """
 ****************************
-  What's New In Python {version}
+  What's new in Python {version}
 ****************************
 
 :Editor: TBD
@@ -100,7 +100,7 @@ For full details, see the :ref:`changelog <changelog>`.
    so it's worth checking back even after reading earlier versions.
 
 
-Summary -- Release highlights
+Summary -- release highlights
 =============================
 
 .. This section singles out the most important changes in Python {version}.
@@ -111,40 +111,58 @@ Summary -- Release highlights
 
 
 
-New Features
+New features
 ============
 
 
 
-Other Language Changes
+Other language changes
 ======================
 
 
 
-New Modules
+New modules
 ===========
 
 * None yet.
 
 
-Improved Modules
+Improved modules
 ================
 
+module_name
+-----------
+
+* TODO
+
+.. Add improved modules above alphabetically, not here at the end.
 
 Optimizations
 =============
 
+module_name
+-----------
+
+* TODO
 
 
 
 Deprecated
 ==========
 
+* module_name:
+  TODO
 
 
+
+.. Add deprecations above alphabetically, not here at the end.
 Removed
 =======
 
+module_name
+-----------
+
+* TODO
 
 
 Porting to Python {version}
@@ -154,22 +172,28 @@ This section lists previously described changes and other bugfixes
 that may require changes to your code.
 
 
-Build Changes
+Build changes
 =============
 
 
-C API Changes
+C API changes
 =============
 
-New Features
+New features
 ------------
 
+* TODO
 Porting to Python {version}
 ----------------------
+
+* TODO
 
 Deprecated
 ----------
 
+* TODO
+
+.. Add C API deprecations above alphabetically, not here at the end.
 Removed
 -------
 
