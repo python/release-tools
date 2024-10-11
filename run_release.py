@@ -922,9 +922,9 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
             are_linux_files_there and are_windows_files_there and are_macos_files_there
         )
         if not are_all_files_there:
-            linux_tick = "✅" if are_linux_files_there else "❎"
-            windows_tick = "✅" if are_windows_files_there else "❎"
-            macos_tick = "✅" if are_macos_files_there else "❎"
+            linux_tick = "✅" if are_linux_files_there else "❌"
+            windows_tick = "✅" if are_windows_files_there else "❌"
+            macos_tick = "✅" if are_macos_files_there else "❌"
             print(
                 f"\rWaiting for files: Linux {linux_tick} Windows {windows_tick} Mac {macos_tick}",
                 flush=True,
