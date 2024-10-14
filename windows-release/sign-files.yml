@@ -39,7 +39,7 @@ steps:
       Write-Host "##vso[task.setvariable variable=__TrustedSigningArgs]$signargs"
       if ($env:EXPORT_COMMAND) {
         $signcmd = """$signtool"" $signargs"
-        Write-Host "##vso[task.setvariable variable=${env:EXPORT_COMMAND};issecret=true]$signcmd"
+        Write-Host "##vso[task.setvariable variable=${env:EXPORT_COMMAND}]$signcmd"
       }
     workingDirectory: $(Build.BinariesDirectory)
     displayName: 'Install Trusted Signing tools'
