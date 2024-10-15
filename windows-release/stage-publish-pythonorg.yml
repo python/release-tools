@@ -198,15 +198,16 @@ jobs:
       workingDirectory: $(Build.BinariesDirectory)
       displayName: 'Generate hashes (${{ alg }})'
 
-  - powershell: |
-      "Copying:"
-      $files = gci -File "msi\*\python*.asc", "embed\*.asc"
-      $files.FullName
-      $d = mkdir "$(Build.ArtifactStagingDirectory)\hashes" -Force
-      move $files $d -Force
-      gci msi -Directory | %{ move "msi\$_\*.asc" (mkdir "$d\$_" -Force) }
-    workingDirectory: $(Build.BinariesDirectory)
-    displayName: 'Copy GPG signatures for build'
+  - ${{ if eq(parameters.IncludeGPG, 'true') }}:
+    - powershell: |
+        "Copying:"
+        $files = gci -File "msi\*\python*.asc", "embed\*.asc"
+        $files.FullName
+        $d = mkdir "$(Build.ArtifactStagingDirectory)\hashes" -Force
+        move $files $d -Force
+        gci msi -Directory | %{ move "msi\$_\*.asc" (mkdir "$d\$_" -Force) }
+      workingDirectory: $(Build.BinariesDirectory)
+      displayName: 'Copy GPG signatures for build'
 
   - task: PublishPipelineArtifact@0
     displayName: 'Publish Artifact: hashes'
