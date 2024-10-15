@@ -37,36 +37,40 @@ Without this, the build records will be lost after 30 days.
 
 ## Finding/updating certificates
 
-The code signing certificate is stored in Azure Key Vault, and is authenticated using the
-variables in a Variable group called CPythonSign. The variable group is what triggers approvals.
+For code signing, we use [Azure Trusted Signing](https://learn.microsoft.com/en-us/azure/trusted-signing/overview).
+This service belongs to the PSF's Azure subscription and is paid for on a monthly basis.
+When we send files for signing, it uploads a manifest (hash) of the file rather than the file itself,
+and then receives a signature that can be embedded into the target file.
+
+Authentication to Azure currently uses an [Entra app registration](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app)
+rather than OIDC (which is available, and may be switched to in future).
+The authentication details are stored as private variables in a Variable group called CPythonSign.
+Referencing this variable group is what triggers approvals during the build.
 The group is at https://dev.azure.com/Python/cpython/_library?itemType=VariableGroups&view=VariableGroupView&variableGroupId=1&path=CPythonSign
-A second group called CPythonTestSign exists without approvals, but only has access to a test signing certificate.
 
 The five variables in the Variable Group identify the Entra ID
-[App registration](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app) with access,
+ with access,
 and the name of the certificate to use.
 
-* `KeyVaultApplication` - the "Application (client) ID" of the App registration
-* `KeyVaultDirectory` - the "Directory (tenant) ID" of the App registration
-* `KeyVaultSecret` - the current "Client secret" of the App registration
-* `KeyVaultUri` - the base `https://*.vault.azure.net/` URI of the Key Vault
-* `KeyVaultCertificateName` - the name of the certificate. This is not a secret
+* `TrustedSigningClientId` - the "Application (client) ID" of the App registration
+* `TrustedSigningTenantId` - the "Directory (tenant) ID" of the App registration
+* `TrustedSigningSecret` - the current "Client secret" of the App registration
+* `TrustedSigningUri` - the endpoint of the Trusted Signing service (provided by Azure)
+* `TrustedSigningAccount` - the name of our Trusted Signing account, "pythondev". This is not a secret
+* `TrustedSigningCertificateName` - the name of our certificate profile. This is not a secret
 
-The Key Vault should be configured to use Azure role-based access control (soon to be the only option),
-and the App registration should have the "Key Vault Certificate User" and "Key Vault Crypto User" roles.
-The trusted owner of the Key Vault should have the "Owner" role, but the App registration should not.
+Certificates are renewed daily,
+and as such it is no longer useful to reference the "thumbprint" (SHA1 hash) of the certificate.
+Instead, to trust all of our releases in restricted scenarios,
+you need to first trust one of the certificates in the certification path
+and then check for EKU `1.3.6.1.4.1.311.97.608394634.79987812.305991749.578777327`,
+which represents our signing account,
+or Subject `CN=Python Software Foundation,O=Python Software Foundation,L=Beaverton,S=Oregon,C=US`.
 
-To upload a new code signing certificate (which will be provided by the PSF),
-you need the certificate in encrypted .pfx format.
-This can then be uploaded directly through the Azure Portal into the Key Vault along with the passphrase.
-If reusing an existing Key Vault, upload it as a new version of the existing certificate.
-If it is uploaded as a new certificate, the Variable Group must be updated.
+TODO: Reference/link to documentation on verifying certificates with tools.
 
-GPG signature generation uses a GPG key stored in the Secure Files library.
-This can be found at https://dev.azure.com/Python/cpython/_library?itemType=SecureFiles
-Regardless of who triggers the build, the signatures will be attributed to whoever's key is used.
-The passphrase for the key is a secure build variable,
-and can be modified by editing the build definition and selecting **Variables**.
-(TODO: Move the passphrase and reference to the file into the CPythonSign variable group.)
+Note that regular signing checks (such as `signtool.exe verify /pa python.exe`)
+and malware scans will treat the files as correctly signed.
+It's only more complicated to verify that it was signed _specifically_ with our cert.
 
 (Further documentation to be added as we find out what ought to be documented.)
