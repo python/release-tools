@@ -40,6 +40,10 @@ parameters:
   displayName: "Signature description"
   type: string
   default: 'Built: $(Build.BuildNumber)'
+- name: DoGPG
+  displayName: "Include GPG signatures (3.13 and earlier)"
+  type: boolean
+  default: false
 - name: DoFreethreaded
   displayName: "Include free-threaded builds (3.13 and later)"
   type: boolean
@@ -220,6 +224,8 @@ stages:
         dependsOn: ['Test_MSI', 'Test']
         jobs:
         - template: stage-publish-pythonorg.yml
+          parameters:
+            IncludeGPG: ${{ parameters.DoGPG }}
 
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - stage: PublishNuget
@@ -250,6 +256,7 @@ stages:
       - template: stage-publish-pythonorg.yml
         parameters:
           BuildToPublish: ${{ parameters.BuildToPublish }}
+          IncludeGPG: ${{ parameters.DoGPG }}
 
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-publish-nugetorg.yml
