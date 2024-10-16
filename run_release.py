@@ -895,7 +895,7 @@ def create_release_object_in_db(db: ReleaseShelf) -> None:
     print(
         "Go to https://www.python.org/admin/downloads/release/add/ and create a new release"
     )
-    if not ask_question(f"Have you already created a new release for {db['release']}"):
+    if not ask_question(f"Have you already created a new release for {db['release']}?"):
         raise ReleaseException("The Django release object has not been created")
 
 
@@ -929,7 +929,7 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
             windows_tick = "✅" if are_windows_files_there else "❌"
             macos_tick = "✅" if are_macos_files_there else "❌"
             print(
-                f"\rWaiting for files: Linux {linux_tick} Windows {windows_tick} Mac {macos_tick}",
+                f"\rWaiting for files: Linux {linux_tick}  Windows {windows_tick}  Mac {macos_tick} ",
                 flush=True,
                 end="",
             )
@@ -1214,7 +1214,7 @@ def main() -> None:
     parser.add_argument(
         "--repository",
         dest="repo",
-        help="Location of the cpython repository",
+        help="Location of the CPython repository",
         required=True,
         type=str,
     )
