@@ -432,6 +432,7 @@ def remove_temporary_branch(db: ReleaseShelf) -> None:
 
 
 def prepare_pydoc_topics(db: ReleaseShelf) -> None:
+    subprocess.check_call(["make", "venv"], cwd=db["git_repo"] / "Doc")
     subprocess.check_call(["make", "pydoc-topics"], cwd=db["git_repo"] / "Doc")
     shutil.copy2(
         db["git_repo"] / "Doc" / "build" / "pydoc-topics" / "topics.py",
