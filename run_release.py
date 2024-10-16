@@ -521,15 +521,17 @@ def wait_for_source_and_docs_artifacts(db: ReleaseShelf) -> None:
 
     # Create the directory so it's easier to place the artifacts there.
     release_path = Path(db["git_repo"] / str(release_tag))
-    release_path.mkdir(parents=True, exist_ok=True)
+    src_path = release_path / "src"
+    src_path.mkdir(parents=True, exist_ok=True)
 
     # Build the list of filepaths we're expecting.
     wait_for_paths = [
-        release_path / "src" / f"Python-{release_tag}.tgz",
-        release_path / "src" / f"Python-{release_tag}.tar.xz",
+        src_path / f"Python-{release_tag}.tgz",
+        src_path / f"Python-{release_tag}.tar.xz",
     ]
     if should_wait_for_docs:
         docs_path = release_path / "docs"
+        docs_path.mkdir(parents=True, exist_ok=True)
         wait_for_paths.extend(
             [
                 docs_path / f"python-{release_tag}-docs.epub",
