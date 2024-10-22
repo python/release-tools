@@ -45,12 +45,18 @@ def error(*msgs: Any) -> NoReturn:
 
 # Copied from release.py
 def run_cmd(
-    cmd: list[str] | str, silent: bool = False, shell: bool = False, **kwargs: Any
+    cmd: list[str] | str,
+    silent: bool = False,
+    shell: bool = False,
+    suppress_stderr: bool = False,
+    **kwargs: Any,
 ) -> None:
     if shell:
         cmd = " ".join(cmd)
     if not silent:
         print(f"Executing {cmd}")
+    if suppress_stderr:
+        kwargs["stderr"] = subprocess.DEVNULL
     try:
         if silent:
             subprocess.check_call(cmd, shell=shell, stdout=subprocess.PIPE, **kwargs)
@@ -428,7 +434,17 @@ def sign_release_files_with_sigstore(
         if os.path.exists(filename_sig) or os.path.exists(filename_crt):
             run_cmd(
                 sigstore_verify_argv
-                + ["--certificate", filename_crt, "--signature", filename_sig, filename]
+                + [
+                    "--certificate",
+                    filename_crt,
+                    "--signature",
+                    filename_sig,
+                    filename,
+                ],
+                # Sigstore erroneously produces a warning if a bundle is named '.sigstore'.
+                # See: https://github.com/sigstore/sigstore-python/issues/1178
+                # This issue will be fixed in the next release of sigstore-python.
+                suppress_stderr=True,
             )
 
 
