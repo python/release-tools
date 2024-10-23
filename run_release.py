@@ -154,8 +154,8 @@ Deprecated
   TODO
 
 
-
 .. Add deprecations above alphabetically, not here at the end.
+
 Removed
 =======
 
@@ -188,14 +188,15 @@ Porting to Python {version}
 
 * TODO
 
-Deprecated
-----------
+Deprecated C APIs
+-----------------
 
 * TODO
 
 .. Add C API deprecations above alphabetically, not here at the end.
-Removed
--------
+
+Removed C APIs
+--------------
 
 """
 
