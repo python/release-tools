@@ -53,7 +53,6 @@ FILES = [
     "test_pdb.msi",
     "tools.msi",
     "ucrt.msi",
-    "Windows6.0-KB2999226-x64.msu",
 ]
 PATHS = [
     f"python-{m.group(0)}.exe",
