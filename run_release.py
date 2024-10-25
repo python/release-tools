@@ -671,7 +671,7 @@ class MySFTPClient(paramiko.SFTPClient):
                 raise
 
 
-def upload_files_to_server(db: ReleaseShelf) -> None:
+def upload_files_to_downloads_server(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
@@ -1308,7 +1308,9 @@ fix these things in this script so it also supports your platform.
         Task(check_doc_unreleased_version, "Check docs for `(unreleased)`"),
         Task(build_sbom_artifacts, "Building SBOM artifacts"),
         *([] if no_gpg else [Task(sign_source_artifacts, "Sign source artifacts")]),
-        Task(upload_files_to_server, "Upload files to the PSF server"),
+        Task(
+            upload_files_to_downloads_server, "Upload files to the PSF downloads server"
+        ),
         Task(place_files_in_download_folder, "Place files in the download folder"),
         Task(upload_docs_to_the_docs_server, "Upload docs to the PSF docs server"),
         Task(unpack_docs_in_the_docs_server, "Place docs files in the docs folder"),
