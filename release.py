@@ -391,8 +391,10 @@ def constant_replace(
     os.rename(fn + ".new", fn)
 
 
-def tweak_patchlevel(tag: Tag, done: bool = False) -> None:
-    print("Updating Include/patchlevel.h...", end=" ")
+def tweak_patchlevel(
+    tag: Tag, fn: str = "Include/patchlevel.h", done: bool = False
+) -> None:
+    print(f"Updating {fn}...", end=" ")
     template = '''
 #define PY_MAJOR_VERSION\t{tag.major}
 #define PY_MINOR_VERSION\t{tag.minor}
@@ -414,7 +416,7 @@ def tweak_patchlevel(tag: Tag, done: bool = False) -> None:
     )
     if tag.as_tuple() >= (3, 7, 0, "a", 3):
         new_constants = new_constants.expandtabs()
-    constant_replace("Include/patchlevel.h", new_constants)
+    constant_replace(fn, new_constants)
     print("done")
 
 
