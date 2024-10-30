@@ -59,6 +59,7 @@ jobs:
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
           ref: "v${{ env.CPYTHON_RELEASE }}"
           path: "cpython"
@@ -77,10 +78,13 @@ jobs:
     steps:
       - name: "Checkout python/release-tools"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
           ref: "v${{ env.CPYTHON_RELEASE }}"
           path: "cpython"
@@ -118,6 +122,7 @@ jobs:
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
           ref: "v${{ env.CPYTHON_RELEASE }}"
 
