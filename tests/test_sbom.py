@@ -4,6 +4,7 @@ import pathlib
 import random
 import re
 import unittest.mock
+from pathlib import Path
 
 import pytest
 
@@ -130,6 +131,20 @@ def test_fetch_project_metadata_from_pypi(mocker):
         checksum_sha256
         == "ea9bd1a847e8c5774a5777bb398c19e80bcd4e2aa16a4b301b718fe6f593aba2"
     )
+
+
+def test_remove_pip_from_sbom() -> None:
+    # Arrange
+    with (Path(__file__).parent / "sbom" / "sbom-with-pip.json").open() as f:
+        sbom_data = json.load(f)
+    with (Path(__file__).parent / "sbom" / "sbom-with-pip-removed.json").open() as f:
+        expected = json.load(f)
+
+    # Act
+    sbom.remove_pip_from_sbom(sbom_data)
+
+    # Assert
+    assert sbom_data == expected
 
 
 def test_create_cpython_sbom():
