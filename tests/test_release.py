@@ -55,7 +55,7 @@ def test_tweak_patchlevel(tmp_path: Path) -> None:
     patchlevel_file.write_text(original_patchlevel_file.read_text())
 
     # Act
-    release.tweak_patchlevel(tag, fn=str(patchlevel_file))
+    release.tweak_patchlevel(tag, filename=str(patchlevel_file))
 
     # Assert
     new_contents = patchlevel_file.read_text()
