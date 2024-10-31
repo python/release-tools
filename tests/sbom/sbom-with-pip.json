@@ -1,0 +1,56 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "CPython SBOM",
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://www.python.org/ftp/python/3.13.0/fake-artifact.txt.spdx.json",
+  "creationInfo": {
+    "created": "2024-10-15T20:11:52Z",
+    "creators": [],
+    "licenseListVersion": "3.22"
+  },
+  "files": [],
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-PACKAGE-pip",
+      "name": "pip",
+      "versionInfo": "24.0",
+      "licenseConcluded": "MIT",
+      "originator": "Organization: Python Software Foundation",
+      "supplier": "Organization: Python Software Foundation",
+      "packageFileName": "pip-24.0-py3-none-any.whl",
+      "externalRefs": [
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:pypa:pip:24.0:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        }
+      ],
+      "primaryPackagePurpose": "RUNTIME",
+      "downloadLocation": "https://files.pythonhosted.org/packages/.../pip-24.0-py3-none-any.whl",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ba0d021a166865d2265246961bec0152ff124de910c5cc39f1156ce3fa7c69dc"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "relatedSpdxElement": "SPDXRef-FILE-Modules-expat-COPYING",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-PACKAGE-expat"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-PACKAGE-urllib3",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-PACKAGE-pip"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-PACKAGE-pip",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-PACKAGE-cpython"
+    }
+  ]
+}

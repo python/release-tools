@@ -363,13 +363,16 @@ def get_arg_parser() -> optparse.OptionParser:
 
 
 def constant_replace(
-    fn: str, updated_constants: str, comment_start: str = "/*", comment_end: str = "*/"
+    filename: str,
+    updated_constants: str,
+    comment_start: str = "/*",
+    comment_end: str = "*/",
 ) -> None:
     """Inserts in between --start constant-- and --end constant-- in a file"""
     start_tag = comment_start + "--start constants--" + comment_end
     end_tag = comment_start + "--end constants--" + comment_end
-    with open(fn, encoding="ascii") as infile, open(
-        fn + ".new", "w", encoding="ascii"
+    with open(filename, encoding="ascii") as infile, open(
+        filename + ".new", "w", encoding="ascii"
     ) as outfile:
         found_constants = False
         waiting_for_end = False
@@ -387,12 +390,14 @@ def constant_replace(
             else:
                 outfile.write(line)
     if not found_constants:
-        error(f"Constant section delimiters not found: {fn}")
-    os.rename(fn + ".new", fn)
+        error(f"Constant section delimiters not found: {filename}")
+    os.rename(filename + ".new", filename)
 
 
-def tweak_patchlevel(tag: Tag, done: bool = False) -> None:
-    print("Updating Include/patchlevel.h...", end=" ")
+def tweak_patchlevel(
+    tag: Tag, filename: str = "Include/patchlevel.h", done: bool = False
+) -> None:
+    print(f"Updating {filename}...", end=" ")
     template = '''
 #define PY_MAJOR_VERSION\t{tag.major}
 #define PY_MINOR_VERSION\t{tag.minor}
@@ -414,7 +419,7 @@ def tweak_patchlevel(tag: Tag, done: bool = False) -> None:
     )
     if tag.as_tuple() >= (3, 7, 0, "a", 3):
         new_constants = new_constants.expandtabs()
-    constant_replace("Include/patchlevel.h", new_constants)
+    constant_replace(filename, new_constants)
     print("done")
 
 
@@ -440,12 +445,12 @@ def bump(tag: Tag) -> None:
             ".github/ISSUE_TEMPLATE/crash.yml",
         ]
     print("\nManual editing time...")
-    for fn in other_files:
-        if os.path.exists(fn):
-            print(f"Edit {fn}")
-            manual_edit(fn)
+    for filename in other_files:
+        if os.path.exists(filename):
+            print(f"Edit {filename}")
+            manual_edit(filename)
         else:
-            print(f"Skipping {fn}")
+            print(f"Skipping {filename}")
 
     print("Bumped revision")
     if extra_work:
@@ -453,9 +458,9 @@ def bump(tag: Tag) -> None:
     print("Please commit and use --tag")
 
 
-def manual_edit(fn: str) -> None:
+def manual_edit(filename: str) -> None:
     editor = os.environ["EDITOR"].split()
-    run_cmd([*editor, fn])
+    run_cmd([*editor, filename])
 
 
 @contextmanager

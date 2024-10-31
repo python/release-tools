@@ -6,3 +6,4 @@ exclude_also =
     # Don't complain if non-runnable code isn't run:
     if __name__ == .__main__.
     def main
+    def get_arg_parser

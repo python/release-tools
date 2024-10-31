@@ -1,0 +1,21 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "CPython SBOM",
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://www.python.org/ftp/python/3.13.0/fake-artifact.txt.spdx.json",
+  "creationInfo": {
+    "created": "2024-10-15T20:11:52Z",
+    "creators": [],
+    "licenseListVersion": "3.22"
+  },
+  "files": [],
+  "packages": [],
+  "relationships": [
+    {
+      "relatedSpdxElement": "SPDXRef-FILE-Modules-expat-COPYING",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-PACKAGE-expat"
+    }
+  ]
+}
