@@ -1264,7 +1264,8 @@ fix these things in this script so it also supports your platform.
                 "This release script is not compatible with the running platform"
             )
 
-    no_gpg = args.no_gpg
+    release_tag = release_mod.Tag(args.release)
+    no_gpg = args.no_gpg or release_tag.as_tuple() >= (3, 14)
     tasks = [
         Task(check_git, "Checking Git is available"),
         Task(check_make, "Checking make is available"),
@@ -1329,10 +1330,10 @@ fix these things in this script so it also supports your platform.
     ]
     automata = ReleaseDriver(
         git_repo=args.repo,
-        release_tag=release_mod.Tag(args.release),
+        release_tag=release_tag,
         api_key=auth_key,
         ssh_user=args.ssh_user,
-        sign_gpg=not args.no_gpg,
+        sign_gpg=not no_gpg,
         tasks=tasks,
     )
     automata.run()
