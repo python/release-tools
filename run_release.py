@@ -1260,7 +1260,7 @@ fix these things in this script so it also supports your platform.
             )
 
     release_tag = release_mod.Tag(args.release)
-    no_gpg = release_tag.as_tuple() >= (3, 14)
+    no_gpg = release_tag.as_tuple() >= (3, 14)  # see PEP 761
     tasks = [
         Task(check_git, "Checking Git is available"),
         Task(check_make, "Checking make is available"),
