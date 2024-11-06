@@ -1239,11 +1239,6 @@ def main() -> None:
         help="Username to be used when authenticating via ssh",
         type=str,
     )
-    parser.add_argument(
-        "--no-gpg",
-        action="store_true",
-        help="Skip GPG signing",
-    )
     args = parser.parse_args()
 
     auth_key = args.auth_key or os.getenv("AUTH_INFO")
@@ -1265,7 +1260,7 @@ fix these things in this script so it also supports your platform.
             )
 
     release_tag = release_mod.Tag(args.release)
-    no_gpg = args.no_gpg or release_tag.as_tuple() >= (3, 14)
+    no_gpg = release_tag.as_tuple() >= (3, 14)
     tasks = [
         Task(check_git, "Checking Git is available"),
         Task(check_make, "Checking make is available"),
