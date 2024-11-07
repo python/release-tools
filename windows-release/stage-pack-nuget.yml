@@ -69,6 +69,8 @@ jobs:
   - template: sign-files.yml
     parameters:
       Include: '*.nupkg'
+      # Additional filter to avoid recursively signing package contents
+      Filter: '*.nupkg'
       WorkingDir: $(Build.ArtifactStagingDirectory)
       SigningCertificate: ${{ parameters.SigningCertificate }}
 
