@@ -69,14 +69,14 @@ jobs:
     env:
       TCL_LIBRARY: $(TclLibrary)
 
-  # HACK: Disabled to test because new signing tool shouldn't need this
-  #- powershell: |
-  #    $info = (gc "$(Pipeline.Workspace)\cert\certinfo.json" | ConvertFrom-JSON)
-  #    Write-Host "Side-loadable APPX must be signed with '$($info.Subject)'"
-  #    Write-Host "##vso[task.setvariable variable=APPX_DATA_PUBLISHER]$($info.Subject)"
-  #    Write-Host "##vso[task.setvariable variable=APPX_DATA_SHA256]$($info.SHA256)"
-  #  displayName: 'Override signing parameters'
-  #  condition: and(succeeded(), variables['SigningCertificate'])
+  # The dotnet sign tool shouldn't need this, but we do because of the sccd file
+  - powershell: |
+      $info = (gc "$(Pipeline.Workspace)\cert\certinfo.json" | ConvertFrom-JSON)
+      Write-Host "Side-loadable APPX must be signed with '$($info.Subject)'"
+      Write-Host "##vso[task.setvariable variable=APPX_DATA_PUBLISHER]$($info.Subject)"
+      Write-Host "##vso[task.setvariable variable=APPX_DATA_SHA256]$($info.SHA256)"
+    displayName: 'Override signing parameters'
+    condition: and(succeeded(), variables['SigningCertificate'])
 
   - powershell: |
       Remove-Item "$(Build.ArtifactStagingDirectory)\appx" -Recurse -Force -EA 0
