@@ -37,13 +37,14 @@ steps:
         }
         if ($env:FILTER) {
           ($env:FILTER -split ';') -join "`n" | Out-File __filelist.txt -Encoding utf8
-          $ec = $files | %{ & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) -fl __filelist.txt $_; $LASTEXITCODE }
-          del __filelist.txt
         } else {
-          $ec = $files | %{ & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) $_; $LASTEXITCODE }
+          "*" | Out-File __filelist.txt -Encoding utf8
         }
-        # Ensure we correctly fail the task if any signature failed
-        $ec | ?{ $_ -ne 0 } | %{ exit $_ }
+        foreach ($f in $files) {
+          & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) -fl __filelist.txt $_
+          if (-not $?) { exit $LASTEXITCODE }
+        }
+        del __filelist.txt
       displayName: 'Sign binaries'
       retryCountOnTaskFailure: 3
       workingDirectory: ${{ parameters.WorkingDir }}
