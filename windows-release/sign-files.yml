@@ -37,10 +37,10 @@ steps:
         }
         if ($env:FILTER) {
           ($env:FILTER -split ';') -join "`n" | Out-File __filelist.txt -Encoding utf8
-          & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) -fl __filelist.txt $files
+          $files | %{ & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) -fl __filelist.txt $_ }
           del __filelist.txt
         } else {
-          & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) $files
+          $files | %{ & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) $_ }
         }
       displayName: 'Sign binaries'
       retryCountOnTaskFailure: 3
