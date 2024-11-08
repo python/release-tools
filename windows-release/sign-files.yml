@@ -6,6 +6,7 @@ parameters:
   ExtractDir: ''
   SigningCertificate: ''
   ExportCommand: ''
+  ContinueOnError: false
 
 steps:
 - ${{ if parameters.SigningCertificate }}:
@@ -46,7 +47,10 @@ steps:
         }
         del __filelist.txt
       displayName: 'Sign binaries'
-      retryCountOnTaskFailure: 3
+      ${{ if eq(parameters.ContinueOnError, 'false') }}:
+        retryCountOnTaskFailure: 3
+      ${{ else }}:
+        continueOnError: true
       workingDirectory: ${{ parameters.WorkingDir }}
       env:
         TRUSTED_SIGNING_CMD: $(__TrustedSigningCmd)

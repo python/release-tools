@@ -73,6 +73,9 @@ jobs:
       Filter: '*.nupkg'
       WorkingDir: $(Build.ArtifactStagingDirectory)
       SigningCertificate: ${{ parameters.SigningCertificate }}
+      # Nuget signing is not supported by our test certificate, so ignore errors
+      ${{ if eq(parameters.SigningCertificate, 'TestSign') }}:
+        ContinueOnError: true
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: nuget'
