@@ -41,7 +41,7 @@ steps:
           "*" | Out-File __filelist.txt -Encoding utf8
         }
         foreach ($f in $files) {
-          & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) -fl __filelist.txt $_
+          & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) -fl __filelist.txt $f
           if (-not $?) { exit $LASTEXITCODE }
         }
         del __filelist.txt
