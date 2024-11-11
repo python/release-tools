@@ -131,6 +131,8 @@ jobs:
     - template: sign-files.yml
       parameters:
         Include: '*.msix'
+        # Additional filter to avoid recursively signing package contents
+        Filter: '*.msix'
         WorkingDir: $(Build.BinariesDirectory)\unsigned_msix
         SigningCertificate: ${{ parameters.SigningCertificate }}
 

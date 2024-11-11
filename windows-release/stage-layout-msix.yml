@@ -69,6 +69,7 @@ jobs:
     env:
       TCL_LIBRARY: $(TclLibrary)
 
+  # The dotnet sign tool shouldn't need this, but we do because of the sccd file
   - powershell: |
       $info = (gc "$(Pipeline.Workspace)\cert\certinfo.json" | ConvertFrom-JSON)
       Write-Host "Side-loadable APPX must be signed with '$($info.Subject)'"

@@ -1,40 +1,23 @@
 parameters:
   Include: '*'
   Exclude: ''
+  Filter: ''
   WorkingDir: '$(Build.BinariesDirectory)'
   ExtractDir: ''
   SigningCertificate: ''
   ExportCommand: ''
+  ContinueOnError: false
 
 steps:
 - ${{ if parameters.SigningCertificate }}:
   - powershell: |
-      cd (mkdir -Force _signing)
-      iwr https://aka.ms/nugetclidl -o nuget.exe
-      .\nuget.exe install Microsoft.Windows.SDK.BuildTools -x -o .
-      .\nuget.exe install Microsoft.Trusted.Signing.Client -x -o .
-      $md = @{
-        Endpoint='$(TrustedSigningUri)';
-        CodeSigningAccountName='$(TrustedSigningAccount)';
-        CertificateProfileName='$(TrustedSigningCertificateName)';
-        CorrelationId='$(SigningDescription)';
-        ExcludeEnvironmentCredential=$false;
-        ExcludeManagedIdentityCredential=$true;
-        ExcludeSharedTokenCacheCredential=$true;
-        ExcludeVisualStudioCredential=$true;
-        ExcludeVisualStudioCodeCredential=$true;
-        ExcludeAzureCliCredential=$true;
-        ExcludeAzurePowershellCredential=$true;
-        ExcludeInteractiveBrowserCredential=$true;
-      };
-      # ConvertTo-Json $md | Out-File -Encoding UTF8 .\metadata.json
-      # but without including the BOM...
-      [System.IO.File]::WriteAllText("$(Get-Location)\metadata.json", (ConvertTo-Json $md), [System.Text.UTF8Encoding]::new($false))
+      dotnet tool install --global --prerelease sign
+      $signtool = (gcm sign).Source
+      $signargs = 'code trusted-signing -v Information ' + `
+        '-fd sha256 -t http://timestamp.acs.microsoft.com -td sha256 ' + `
+        '-tse "$(TrustedSigningUri)" -tsa "$(TrustedSigningAccount)" -tscp "$(TrustedSigningCertificateName)" ' + `
+        '-d "$(SigningDescription)" '
 
-      $signtool = dir .\Microsoft.Windows.SDK.BuildTools\*\*\x64\signtool.exe | select -First 1
-      $dlib = dir .\Microsoft.Trusted.Signing.Client\*\x64\Azure.CodeSigning.Dlib.dll | select -First 1
-      $signargs = "sign /v /fd sha256 /tr http://timestamp.acs.microsoft.com /td sha256 " + `
-        "/dlib ""$dlib"" /dmdf ""$(gi metadata.json)"""
       Write-Host "##vso[task.setvariable variable=__TrustedSigningCmd]$signtool"
       Write-Host "##vso[task.setvariable variable=__TrustedSigningArgs]$signargs"
       if ($env:EXPORT_COMMAND) {
@@ -53,9 +36,21 @@ steps:
         } else {
           $files = (dir ${{ parameters.Include }} -File)
         }
-        & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) $files
+        if ($env:FILTER) {
+          ($env:FILTER -split ';') -join "`n" | Out-File __filelist.txt -Encoding utf8
+        } else {
+          "*" | Out-File __filelist.txt -Encoding utf8
+        }
+        foreach ($f in $files) {
+          & $env:TRUSTED_SIGNING_CMD @(-split $env:TRUSTED_SIGNING_ARGS) -fl __filelist.txt $f
+          if (-not $?) { exit $LASTEXITCODE }
+        }
+        del __filelist.txt
       displayName: 'Sign binaries'
-      retryCountOnTaskFailure: 3
+      ${{ if eq(parameters.ContinueOnError, 'false') }}:
+        retryCountOnTaskFailure: 3
+      ${{ else }}:
+        continueOnError: true
       workingDirectory: ${{ parameters.WorkingDir }}
       env:
         TRUSTED_SIGNING_CMD: $(__TrustedSigningCmd)
@@ -63,6 +58,8 @@ steps:
         AZURE_TENANT_ID: $(TrustedSigningTenantId)
         AZURE_CLIENT_ID: $(TrustedSigningClientId)
         AZURE_CLIENT_SECRET: $(TrustedSigningSecret)
+        ${{ if parameters.Filter }}:
+          FILTER: ${{ parameters.Filter }}
 
 
 - ${{ if parameters.ExtractDir }}:
