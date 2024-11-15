@@ -18,6 +18,7 @@ import shelve
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 from pathlib import Path
@@ -570,17 +571,14 @@ def check_doc_unreleased_version(db: ReleaseShelf) -> None:
     if release_tag.includes_docs:
         assert archive_path.exists()
     if archive_path.exists():
-        proc = subprocess.run(
-            [
-                "tar",
-                "-xjf",
-                archive_path,
-                '--to-command=! grep -Hn --label="$TAR_FILENAME" "[(]unreleased[)]"',
-            ],
-        )
-        if proc.returncode != 0:
-            if not ask_question("Are these `(unreleased)` strings in built docs OK?"):
-                raise AssertionError("`(unreleased)` strings found in docs")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            subprocess.run(["tar", "-xjf", archive_path, "-C", temp_dir])
+            proc = subprocess.run(["grep", "-rHn", "[(]unreleased[)]", temp_dir])
+            if proc.returncode == 0:
+                if not ask_question(
+                    "Are these `(unreleased)` strings in built docs OK?"
+                ):
+                    raise AssertionError("`(unreleased)` strings found in docs")
 
 
 def sign_source_artifacts(db: ReleaseShelf) -> None:
