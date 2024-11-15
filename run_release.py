@@ -671,7 +671,7 @@ class MySFTPClient(paramiko.SFTPClient):
                 raise
 
 
-def upload_files_to_server(db: ReleaseShelf) -> None:
+def upload_files_to_server(db: ReleaseShelf, server: str) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
@@ -702,10 +702,18 @@ def upload_files_to_server(db: ReleaseShelf) -> None:
                 progress=progress,
             )
 
-    upload_subdir("src")
-    if (artifacts_path / "docs").exists():
+    if server == DOCS_SERVER:
         upload_subdir("docs")
+    elif server == DOWNLOADS_SERVER:
+        upload_subdir("src")
+        if (artifacts_path / "docs").exists():
+            upload_subdir("docs")
+
     ftp_client.close()
+
+
+def upload_files_to_downloads_server(db: ReleaseShelf) -> None:
+    upload_files_to_server(db, DOWNLOADS_SERVER)
 
 
 def place_files_in_download_folder(db: ReleaseShelf) -> None:
@@ -752,38 +760,7 @@ def upload_docs_to_the_docs_server(db: ReleaseShelf) -> None:
     if not (release_tag.is_final or release_tag.is_release_candidate):
         return
 
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(DOCS_SERVER, port=22, username=db["ssh_user"])
-    transport = client.get_transport()
-    assert transport is not None, f"SSH transport to {DOCS_SERVER} is None"
-
-    destination = Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
-    ftp_client = MySFTPClient.from_transport(transport)
-    assert ftp_client is not None, f"SFTP client to {DOCS_SERVER} is None"
-
-    client.exec_command(f"rm -rf {destination}")
-
-    with contextlib.suppress(OSError):
-        ftp_client.mkdir(str(destination))
-
-    artifacts_path = Path(db["git_repo"] / str(db["release"]))
-
-    shutil.rmtree(artifacts_path / f"Python-{db['release']}", ignore_errors=True)
-
-    def upload_subdir(subdir: str) -> None:
-        with contextlib.suppress(OSError):
-            ftp_client.mkdir(str(destination / subdir))
-        with alive_bar(len(tuple((artifacts_path / subdir).glob("**/*")))) as progress:
-            ftp_client.put_dir(
-                artifacts_path / subdir,
-                str(destination / subdir),
-                progress=progress,
-            )
-
-    upload_subdir("docs")
-    ftp_client.close()
+    upload_files_to_server(db, DOCS_SERVER)
 
 
 def unpack_docs_in_the_docs_server(db: ReleaseShelf) -> None:
@@ -1304,7 +1281,9 @@ fix these things in this script so it also supports your platform.
         Task(check_doc_unreleased_version, "Check docs for `(unreleased)`"),
         Task(build_sbom_artifacts, "Building SBOM artifacts"),
         *([] if no_gpg else [Task(sign_source_artifacts, "Sign source artifacts")]),
-        Task(upload_files_to_server, "Upload files to the PSF server"),
+        Task(
+            upload_files_to_downloads_server, "Upload files to the PSF downloads server"
+        ),
         Task(place_files_in_download_folder, "Place files in the download folder"),
         Task(upload_docs_to_the_docs_server, "Upload docs to the PSF docs server"),
         Task(unpack_docs_in_the_docs_server, "Place docs files in the docs folder"),
