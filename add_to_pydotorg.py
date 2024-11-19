@@ -423,8 +423,7 @@ def sign_release_files_with_sigstore(
 
         if os.path.exists(filename_sigstore):
             run_cmd(
-                sigstore_verify_argv
-                + ["--bundle", filename_sigstore, filename],
+                sigstore_verify_argv + ["--bundle", filename_sigstore, filename],
                 stderr=subprocess.STDOUT,  # Sigstore sends stderr on success.
             )
 
@@ -432,7 +431,13 @@ def sign_release_files_with_sigstore(
         if os.path.exists(filename_sig) or os.path.exists(filename_crt):
             run_cmd(
                 sigstore_verify_argv
-                + ["--certificate", filename_crt, "--signature", filename_sig, filename],
+                + [
+                    "--certificate",
+                    filename_crt,
+                    "--signature",
+                    filename_sig,
+                    filename,
+                ],
                 stderr=subprocess.STDOUT,  # Sigstore sends stderr on success.
             )
 
