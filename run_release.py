@@ -316,6 +316,20 @@ def check_ssh_connection(db: ReleaseShelf) -> None:
     client.exec_command("pwd")
 
 
+def check_sigstore_client(db: ReleaseShelf) -> None:
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
+    _, stdout, _ = client.exec_command("python3 -m sigstore --version")
+    sigstore_version = stdout.read(1000).decode()
+    if not sigstore_version.startswith("sigstore 3."):
+        raise ReleaseException(
+            f"Sigstore version not detected or not valid. "
+            f"Expecting 3.x: {sigstore_version}"
+        )
+
+
 def check_buildbots(db: ReleaseShelf) -> None:
     async def _check() -> set[Builder]:
         async def _get_builder_status(
@@ -1250,6 +1264,7 @@ fix these things in this script so it also supports your platform.
             check_ssh_connection,
             f"Validating ssh connection to {DOWNLOADS_SERVER} and {DOCS_SERVER}",
         ),
+        Task(check_sigstore_client, "Checking Sigstore CLI"),
         Task(check_buildbots, "Check buildbots are good"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(check_magic_number, "Checking the magic number is up-to-date"),
