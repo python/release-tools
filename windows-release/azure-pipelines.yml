@@ -92,6 +92,10 @@ parameters:
   displayName: "Build number to publish (0 to skip)"
   type: number
   default: '0'
+- name: SignNuget
+  displayName: "Enable Nuget signing (not recommended right now)"
+  type: boolean
+  default: false
 
 variables:
   ${{ if ne(parameters.GitRemote, '(Other)') }}:
@@ -166,7 +170,8 @@ stages:
     - template: stage-pack-nuget.yml
       parameters:
         ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
-          SigningCertificate: ${{ parameters.SigningCertificate }}
+          ${{ if eq(parameters.SignNuget, 'true') }}:
+            SigningCertificate: ${{ parameters.SigningCertificate }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
   - stage: Test
