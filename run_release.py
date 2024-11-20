@@ -323,10 +323,13 @@ def check_sigstore_client(db: ReleaseShelf) -> None:
     client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
     _, stdout, _ = client.exec_command("python3 -m sigstore --version")
     sigstore_version = stdout.read(1000).decode()
-    if not sigstore_version.startswith("sigstore 3."):
+    sigstore_vermatch = re.match("^sigstore ([0-9.]+)")
+    if not sigstore_vermatch or tuple(
+        int(part) for part in sigstore_vermatch.group(1).split(".")
+    ) < (3, 5):
         raise ReleaseException(
             f"Sigstore version not detected or not valid. "
-            f"Expecting 3.x: {sigstore_version}"
+            f"Expecting 3.5.x or later: {sigstore_version}"
         )
 
 
