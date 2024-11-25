@@ -248,7 +248,7 @@ def run_cmd(
         error(f"{cmd} failed")
 
 
-readme_re = re.compile(r"This is Python version [23]\.\d").match
+readme_re = re.compile(r"This is Python version 3\.\d").match
 
 
 def chdir_to_repo_root() -> str:
@@ -279,12 +279,8 @@ def chdir_to_repo_root() -> str:
                     return False
             return True
 
-        if not (
-            test_first_line("README", readme_re)
-            or test_first_line("README.rst", readme_re)
-        ):
+        if not test_first_line("README.rst", readme_re):
             continue
-
         if not test_first_line("LICENSE", "A. HISTORY OF THE SOFTWARE".__eq__):
             continue
         if not os.path.exists("Include/Python.h"):
