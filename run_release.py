@@ -100,8 +100,8 @@ For full details, see the :ref:`changelog <changelog>`.
    so it's worth checking back even after reading earlier versions.
 
 
-Summary -- release highlights
-=============================
+Summary --- release highlights
+==============================
 
 .. This section singles out the most important changes in Python {version}.
    Brevity is key.
