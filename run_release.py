@@ -1236,10 +1236,10 @@ def main() -> None:
     auth_key = args.auth_key or os.getenv("AUTH_INFO")
     assert isinstance(auth_key, str), "We need an AUTH_INFO env var or --auth-key"
 
-    if "linux" not in sys.platform:
+    if sys.platform not in ("darwin", "linux"):
         print(
             """\
-WARNING! This script has not been tested on a platform other than Linux.
+WARNING! This script has not been tested on a platform other than Linux and macOS.
 
 Although it should work correctly as long as you have all the dependencies,
 some things may not work as expected. As a release manager, you should try to
