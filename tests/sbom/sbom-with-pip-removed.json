@@ -13,9 +13,9 @@
   "packages": [],
   "relationships": [
     {
-      "relatedSpdxElement": "SPDXRef-FILE-Modules-expat-COPYING-497fb0c3",
+      "relatedSpdxElement": "SPDXRef-FILE-Modules-expat-COPYING",
       "relationshipType": "CONTAINS",
-      "spdxElementId": "SPDXRef-PACKAGE-expat-83b93528"
+      "spdxElementId": "SPDXRef-PACKAGE-expat"
     }
   ]
 }

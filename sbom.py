@@ -100,10 +100,15 @@ _SPDX_IDS_TO_VALUES: dict[str, Any] = {}
 def spdx_id(value: LiteralString) -> str:
     """Encode a value into characters that are valid in an SPDX ID"""
     value_as_spdx_id = re.sub(r"[^a-zA-Z0-9.\-]+", "-", value)
-    # To avoid collisions we append a hash suffix.
-    suffix = hashlib.sha256(value.encode()).hexdigest()[:8]
-    value_as_spdx_id = f"{value_as_spdx_id}-{suffix}"
-    assert _SPDX_IDS_TO_VALUES.setdefault(value_as_spdx_id, value) == value
+
+    # The happy path is there are no collisions.
+    # But collisions can happen, especially in file paths.
+    # We append a hash suffix in those cases.
+    if _SPDX_IDS_TO_VALUES.setdefault(value_as_spdx_id, value) != value:
+        suffix = hashlib.sha256(value.encode()).hexdigest()[:8]
+        value_as_spdx_id = f"{value_as_spdx_id}-{suffix}"
+        assert _SPDX_IDS_TO_VALUES.setdefault(value_as_spdx_id, value) == value
+
     return value_as_spdx_id
 
 
