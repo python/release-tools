@@ -92,9 +92,10 @@ class CreationInfo(TypedDict):
 
 # Cache of values that we've seen already. We use this
 # to de-duplicate values and their corresponding SPDX ID.
-_SPDX_IDS_TO_VALUES = {}
+_SPDX_IDS_TO_VALUES: dict[str, Any] = {}
 
 
+@cache
 def spdx_id(value: LiteralString) -> str:
     """Encode a value into characters that are valid in an SPDX ID"""
     spdx_id = re.sub(r"[^a-zA-Z0-9.\-]+", "-", value)
