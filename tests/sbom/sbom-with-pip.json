@@ -12,7 +12,7 @@
   "files": [],
   "packages": [
     {
-      "SPDXID": "SPDXRef-PACKAGE-pip-ced959c1",
+      "SPDXID": "SPDXRef-PACKAGE-pip",
       "name": "pip",
       "versionInfo": "24.0",
       "licenseConcluded": "MIT",
@@ -38,19 +38,19 @@
   ],
   "relationships": [
     {
-      "relatedSpdxElement": "SPDXRef-FILE-Modules-expat-COPYING-497fb0c3",
+      "relatedSpdxElement": "SPDXRef-FILE-Modules-expat-COPYING",
       "relationshipType": "CONTAINS",
-      "spdxElementId": "SPDXRef-PACKAGE-expat-83b93528"
+      "spdxElementId": "SPDXRef-PACKAGE-expat"
     },
     {
-      "relatedSpdxElement": "SPDXRef-PACKAGE-urllib3-b7a198af",
+      "relatedSpdxElement": "SPDXRef-PACKAGE-urllib3",
       "relationshipType": "DEPENDS_ON",
-      "spdxElementId": "SPDXRef-PACKAGE-pip-ced959c1"
+      "spdxElementId": "SPDXRef-PACKAGE-pip"
     },
     {
-      "relatedSpdxElement": "SPDXRef-PACKAGE-pip-ced959c1",
+      "relatedSpdxElement": "SPDXRef-PACKAGE-pip",
       "relationshipType": "DEPENDS_ON",
-      "spdxElementId": "SPDXRef-PACKAGE-cpython-608f998c"
+      "spdxElementId": "SPDXRef-PACKAGE-cpython"
     }
   ]
 }

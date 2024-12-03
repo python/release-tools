@@ -14,11 +14,11 @@ import sbom
 @pytest.mark.parametrize(
     ["value", "expected"],
     [
-        ("abc", "abc-ba7816bf"),
-        ("def", "def-cb8379ac"),
-        ("SPDXRef-PACKAGE-pip", "SPDXRef-PACKAGE-pip-ced959c1"),
-        ("SPDXRef-PACKAGE-cpython", "SPDXRef-PACKAGE-cpython-79ab18d2"),
-        ("SPDXRef-PACKAGE-urllib3", "SPDXRef-PACKAGE-urllib3-b8ab4751"),
+        ("abc", "abc"),
+        ("path/name", "path-name"),
+        ("SPDXRef-PACKAGE-pip", "SPDXRef-PACKAGE-pip"),
+        ("SPDXRef-PACKAGE-cpython", "SPDXRef-PACKAGE-cpython"),
+        ("SPDXRef-PACKAGE-urllib3", "SPDXRef-PACKAGE-urllib3"),
     ],
 )
 def test_spdx_id(value: str, expected: str) -> None:
