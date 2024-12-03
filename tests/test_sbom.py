@@ -12,6 +12,22 @@ import sbom
 
 
 @pytest.mark.parametrize(
+    ["value", "expected"],
+    [
+        ("abc", "abc-ba7816bf"),
+        ("def", "def-cb8379ac"),
+        ("SPDXRef-PACKAGE-pip", "SPDXRef-PACKAGE-pip-ced959c1"),
+        ("SPDXRef-PACKAGE-cpython", "SPDXRef-PACKAGE-cpython-79ab18d2"),
+        ("SPDXRef-PACKAGE-urllib3", "SPDXRef-PACKAGE-urllib3-b8ab4751"),
+    ],
+)
+def test_spdx_id(value: str, expected: str) -> None:
+    assert sbom.spdx_id(value) == expected
+    # Check we get the same value next time
+    assert sbom.spdx_id(value) == expected
+
+
+@pytest.mark.parametrize(
     ["package_sha1s", "package_verification_code"],
     [
         # No files -> empty SHA1
