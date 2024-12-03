@@ -24,8 +24,9 @@ import sys
 import tarfile
 import typing
 import zipfile
+from functools import cache
 from pathlib import Path
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, LiteralString, NotRequired, TypedDict, cast
 from urllib.request import urlopen
 
 
@@ -90,9 +91,20 @@ class CreationInfo(TypedDict):
     licenseListVersion: str
 
 
-def spdx_id(value: str) -> str:
+# Cache of values that we've seen already. We use this
+# to de-duplicate values and their corresponding SPDX ID.
+_SPDX_IDS_TO_VALUES: dict[str, Any] = {}
+
+
+@cache
+def spdx_id(value: LiteralString) -> str:
     """Encode a value into characters that are valid in an SPDX ID"""
-    return re.sub(r"[^a-zA-Z0-9.\-]+", "-", value)
+    value_as_spdx_id = re.sub(r"[^a-zA-Z0-9.\-]+", "-", value)
+    # To avoid collisions we append a hash suffix.
+    suffix = hashlib.sha256(value.encode()).hexdigest()[:8]
+    value_as_spdx_id = f"{value_as_spdx_id}-{suffix}"
+    assert _SPDX_IDS_TO_VALUES.setdefault(value_as_spdx_id, value) == value
+    return value_as_spdx_id
 
 
 def calculate_package_verification_codes(sbom: SBOM) -> None:
