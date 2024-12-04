@@ -13,6 +13,8 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
+    assignees:
+      - "ezio-melotti"
     groups:
       pip:
         patterns:
