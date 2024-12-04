@@ -27,7 +27,7 @@ from typing import Any, Iterator, cast
 import aiohttp
 import gnupg  # type: ignore[import-untyped]
 import paramiko
-import sigstore.oidc  # type: ignore[import-untyped]
+import sigstore.oidc
 from alive_progress import alive_bar  # type: ignore[import-untyped]
 
 import release as release_mod
