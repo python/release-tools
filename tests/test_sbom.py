@@ -27,6 +27,18 @@ def test_spdx_id(value: str, expected: str) -> None:
     assert sbom.spdx_id(value) == expected
 
 
+def test_spdx_id_collisions():
+    sbom._SPDX_IDS_TO_VALUES = {}  # Reset the cache.
+    assert (
+        sbom.spdx_id("SPDXRef-FILE-Lib/collections.py")
+        == "SPDXRef-FILE-Lib-collections.py"
+    )
+    assert (
+        sbom.spdx_id("SPDXRef-FILE-Lib/_collections.py")
+        == "SPDXRef-FILE-Lib-collections.py-fc43043d"
+    )
+
+
 @pytest.mark.parametrize(
     ["package_sha1s", "package_verification_code"],
     [
