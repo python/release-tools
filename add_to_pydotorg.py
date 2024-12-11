@@ -29,8 +29,9 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Generator
 from os import path
-from typing import Any, Generator, NoReturn
+from typing import Any, NoReturn
 
 import requests
 
