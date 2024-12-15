@@ -1,0 +1,22 @@
+{
+  "builds": [
+    {
+      "builderid": 3,
+      "buildid": 1732278,
+      "buildrequestid": 2341889,
+      "complete": true,
+      "complete_at": 1734198808,
+      "locks_duration_s": 0,
+      "masterid": 1,
+      "number": 228,
+      "properties": {},
+      "results": 2,
+      "started_at": 1734197714,
+      "state_string": "failed test (failure)",
+      "workerid": 28
+    }
+  ],
+  "meta": {
+    "total": 1
+  }
+}

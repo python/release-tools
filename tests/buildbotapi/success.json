@@ -1,0 +1,22 @@
+{
+  "builds": [
+    {
+      "builderid": 3,
+      "buildid": 1645411,
+      "buildrequestid": 2211085,
+      "complete": true,
+      "complete_at": 1728312495,
+      "locks_duration_s": 531,
+      "masterid": 1,
+      "number": 6844,
+      "properties": {},
+      "results": 0,
+      "started_at": 1728311538,
+      "state_string": "build successful",
+      "workerid": 27
+    }
+  ],
+  "meta": {
+    "total": 1
+  }
+}
