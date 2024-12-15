@@ -1,3 +1,4 @@
 pytest
+pytest-aiohttp
 pytest-cov
 pytest-mock
