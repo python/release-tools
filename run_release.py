@@ -21,8 +21,9 @@ import sys
 import tempfile
 import time
 import urllib.request
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator, cast
+from typing import Any, cast
 
 import aiohttp
 import gnupg  # type: ignore[import-untyped]

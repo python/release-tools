@@ -1,4 +1,3 @@
-import asyncio
 import json
 from dataclasses import dataclass
 from typing import Any, cast
@@ -12,7 +11,6 @@ JSON = dict[str, Any]
 class Builder:
     builderid: int
     description: str | None
-    masterids: list[int]
     name: str
     tags: list[str]
 
@@ -21,26 +19,6 @@ class Builder:
 
     def __hash__(self) -> int:
         return hash(self.builderid)
-
-
-@dataclass
-class Build:
-    id: int
-    is_currently_failing: bool
-    builderid: int
-    builder: Builder | None
-
-    def __init__(self, **kwargs: Any) -> None:
-        self.__dict__.update(**kwargs)
-        self.id = int(kwargs.get("number", -1))
-        self.is_currently_failing = kwargs.get("currently_failing", False)
-        self.builder = None
-
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, Build) and self.id == other.id
-
-    def __hash__(self) -> int:
-        return hash(self.id)
 
 
 class BuildBotAPI:
@@ -91,44 +69,3 @@ class BuildBotAPI:
         if build["results"] == 2:
             return True
         return False
-
-    async def get_build(self, builder_id: int, build_id: int) -> Build:
-        data = await self._fetch_json(
-            f"https://buildbot.python.org/all/api/v2/builders/{builder_id}"
-            f"/builds/{build_id}"
-        )
-        (build_data,) = data["builds"]
-        build: Build = Build(**build_data)
-        build.builder = (await self.all_builders())[build.builderid]
-        build.is_currently_failing = await self.is_builder_failing_currently(
-            build.builder
-        )
-        return build
-
-    async def get_recent_failures(self, limit: int = 100) -> set[Build]:
-        data = await self._fetch_json(
-            f"https://buildbot.python.org/all/api/v2/builds?"
-            f"complete__eq=true&&results__eq=2&&"
-            f"order=-complete_at&&limit={limit}"
-        )
-
-        stable_builders = await self.stable_builders()
-
-        all_failures = {
-            Build(**build)
-            for build in data["builds"]
-            if build["builderid"] in stable_builders
-        }
-
-        for failure in all_failures:
-            failure.builder = stable_builders[failure.builderid]
-
-        async def _get_missing_info(failure: Build) -> None:
-            assert failure.builder is not None
-            failure.is_currently_failing = await self.is_builder_failing_currently(
-                failure.builder
-            )
-
-        await asyncio.gather(*[_get_missing_info(failure) for failure in all_failures])
-
-        return all_failures

@@ -1,6 +1,6 @@
-aiohttp==3.11.9
+aiohttp==3.11.11
 alive_progress  # untyped :(
-mypy==1.13.0
+mypy==1.14.1
 pytest
 pytest-mock
 python-gnupg  # untyped :(

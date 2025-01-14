@@ -1,0 +1,45 @@
+{
+    "builders": [
+        {
+            "builderid": 3,
+            "description": null,
+            "description_format": null,
+            "description_html": null,
+            "masterids": [
+                1
+            ],
+            "name": "AMD64 RHEL8 LTO 3.13",
+            "projectid": null,
+            "tags": [
+                "3.13",
+                "stable",
+                "lto",
+                "nondebug",
+                "tier-1"
+            ]
+        },
+        {
+            "builderid": 1623,
+            "description": null,
+            "description_format": null,
+            "description_html": null,
+            "masterids": [
+                1
+            ],
+            "name": "AMD64 Windows PGO NoGIL PR",
+            "projectid": null,
+            "tags": [
+                "PullRequest",
+                "unstable",
+                "win64",
+                "nogil",
+                "nondebug",
+                "pgo",
+                "tier-1"
+            ]
+        }
+    ],
+    "meta": {
+        "total": 3
+    }
+}
