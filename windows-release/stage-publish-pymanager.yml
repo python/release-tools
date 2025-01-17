@@ -1,0 +1,107 @@
+parameters:
+  BuildToPublish: current
+  DoFreethreaded: false
+  DoEmbed: false
+  HashAlgorithms: ['SHA256']
+
+  Artifacts:
+  - name: win32
+  - name: amd64
+  - name: arm64
+  - name: win32_test
+  - name: amd64_test
+  - name: arm64_test
+  - name: win32_t
+    freethreaded: true
+  - name: amd64_t
+    freethreaded: true
+  - name: arm64_t
+    freethreaded: true
+  - name: win32_embed
+    embed: true
+  - name: amd64_embed
+    embed: true
+  - name: arm64_embed
+    embed: true
+
+jobs:
+- job: Publish_PyManager
+  displayName: Publish PyManager packages to python.org
+  condition: and(succeeded(), ne(variables['SkipPythonOrgPublish'], 'true'))
+
+  pool:
+    vmImage: windows-2022
+
+  variables:
+  - group: PythonOrgPublish
+
+  workspace:
+    clean: all
+
+  steps:
+  - task: UsePythonVersion@0
+    displayName: 'Use Python 3.10 or later'
+    inputs:
+      versionSpec: '>=3.10'
+
+  - ${{ each a in parameters.artifacts }}:
+    - ${{ if and(or(not(a.freethreaded), eq(parameters.DoFreethreaded, 'true')), or(not(a.embed), eq(parameters.DoEmbed, 'true'))) }}:
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download artifact: pymanager_${{ a.name }}'
+        inputs:
+          ${{ if eq(parameters.BuildToPublish, 'current') }}:
+            buildType: current
+          ${{ else }}:
+            buildType: specific
+            buildVersionToDownload: specific
+            project: $(resources.pipeline.build_to_publish.projectId)
+            pipeline: $(resources.pipeline.build_to_publish.pipelineId)
+            runId: $(resources.pipeline.build_to_publish.runID)
+          artifact: pymanager_${{ a.name }}
+          targetPath: $(Build.BinariesDirectory)\${{ a.name }}
+
+  - task: DownloadSecureFile@1
+    name: sshkey
+    inputs:
+      secureFile: pydotorg-ssh.ppk
+    displayName: 'Download PuTTY key'
+
+  - powershell: |
+      "Uploading following packages:"
+      (dir "__install__.*.json").FullName
+      (dir "*\__install__.json").FullName
+      python "$(Build.SourcesDirectory)\windows-release\merge-and-upload.py"
+    workingDirectory: $(Build.BinariesDirectory)
+    displayName: 'Upload ZIPs'
+    env:
+      INDEX_URL: '$(PyDotOrgUrlPrefix)python/index.windows.json'
+      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\index.json'
+      UPLOAD_URL_PREFIX: $(PyDotOrgUrlPrefix)
+      UPLOAD_PATH_PREFIX: $(PyDotOrgUploadPathPrefix)
+      UPLOAD_HOST: $(PyDotOrgServer)
+      UPLOAD_HOST_KEY: $(PyDotOrgHostKey)
+      UPLOAD_USER: $(PyDotOrgUsername)
+      UPLOAD_KEYFILE: $(sshkey.secureFilePath)
+
+  - ${{ each alg in parameters.HashAlgorithms }}:
+    - powershell: |
+        $files = (dir "*\__install__.json").Directory | %{ dir -File "$_\*.zip" }
+        $hashes = $files  | `
+            Sort-Object Name | `
+            Format-Table Name, @{
+              Label="${{ alg }}";
+              Expression={(Get-FileHash $_ -Algorithm ${{ alg }}).Hash}
+            }, Length -AutoSize | `
+            Out-String -Width 4096
+        $d = mkdir "$(Build.ArtifactStagingDirectory)\hashes" -Force
+        $hashes | Out-File "$d\hashes.txt" -Encoding ascii -Append
+        $hashes
+      workingDirectory: $(Build.BinariesDirectory)
+      displayName: 'Generate hashes (${{ alg }})'
+
+  - publish: '$(Build.ArtifactStagingDirectory)\index'
+    artifact: pymanager_index
+
+  - publish: '$(Build.ArtifactStagingDirectory)\hashes'
+    artifact: pymanager_hashes
+    displayName: 'Publish Artifact: hashes'

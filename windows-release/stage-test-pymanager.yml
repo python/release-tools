@@ -1,0 +1,65 @@
+parameters:
+  DoEmbed: false
+  DoFreethreaded: false
+
+jobs:
+- job: Test_PyManager
+  displayName: Test PyManager
+
+  pool:
+    vmImage: windows-2022
+
+  workspace:
+    clean: all
+
+  strategy:
+    matrix:
+      win32:
+        Name: win32
+      amd64:
+        Name: amd64
+      win32_test:
+        Name: win32_test
+      amd64_test:
+        Name: amd64_test
+      ${{ if eq(parameters.DoEmbed, 'true') }}:
+        win32_embed:
+          Name: win32_embed
+          SkipPipTest: 1
+        amd64_embed:
+          Name: amd64_embed
+          SkipPipTest: 1
+      ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+        win32_t:
+          Name: win32_t
+        amd64_t:
+          Name: amd64_t
+
+  steps:
+  - checkout: none
+
+  # TODO: Install PyManager and use that to install the package
+  - download: current
+    artifact: layout_pymanager_$(Name)
+    displayName: 'Download artifact: layout_pymanager_$(Name)'
+
+  - powershell: |
+      $p = gi "$(Pipeline.Workspace)\layout_pymanager_$(Name)\python*.exe" | select -First 1
+      Write-Host "##vso[task.setvariable variable=PYTHON]$p"
+    displayName: 'Add test Python to PATH'
+
+  - powershell: |
+      & $env:PYTHON -c "import sys; print(sys.version)"
+    displayName: 'Collect version number'
+    condition: and(succeeded(), not(variables['SkipTests']))
+
+  - powershell: |
+      & $env:PYTHON -m site
+    displayName: 'Collect site'
+    condition: and(succeeded(), not(variables['SkipTests']))
+
+  - powershell: |
+      & $env:PYTHON -m pip install "azure<0.10"
+      & $env:PYTHON -m pip uninstall -y azure python-dateutil six
+    displayName: 'Test (un)install package'
+    condition: and(succeeded(), not(variables['SkipTests']), not(variables['SkipPipTest']))

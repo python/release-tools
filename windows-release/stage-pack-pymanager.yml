@@ -1,0 +1,71 @@
+parameters:
+  DoFreethreaded: false
+  DoEmbed: false
+
+  Artifacts:
+  - name: win32
+  - name: amd64
+  - name: arm64
+  - name: win32_test
+  - name: amd64_test
+  - name: arm64_test
+  - name: win32_t
+    freethreaded: true
+  - name: amd64_t
+    freethreaded: true
+  - name: arm64_t
+    freethreaded: true
+  - name: win32_embed
+    embed: true
+  - name: amd64_embed
+    embed: true
+  - name: arm64_embed
+    embed: true
+
+jobs:
+- job: Pack_PyManager
+  displayName: Pack PyManager bundle
+
+  pool:
+    vmImage: windows-2022
+
+  workspace:
+    clean: all
+
+  steps:
+  - task: UsePythonVersion@0
+    displayName: 'Use Python 3.10 or later'
+    inputs:
+      versionSpec: '>=3.10'
+
+  - ${{ each a in parameters.artifacts }}:
+    - ${{ if and(or(not(a.freethreaded), eq(parameters.DoFreethreaded, 'true')), or(not(a.embed), eq(parameters.DoEmbed, 'true'))) }}:
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download artifact: pymanager_${{ a.name }}'
+        inputs:
+          buildType: current
+          artifact: pymanager_${{ a.name }}
+          targetPath: $(Build.BinariesDirectory)\${{ a.name }}
+
+      - powershell: |
+          cp *.zip (mkdir $env:TARGET -Force)
+          cp __install__.json "${env:TARGET}\__install__.${{ a.name }}.json"
+        displayName: 'Relocate ${{ a.name }}'
+        workingDirectory: $(Build.BinariesDirectory)\${{ a.name }}
+        env:
+          TARGET: $(Build.ArtifactStagingDirectory)
+
+  - powershell: |
+      "Bundling the following packages:"
+      (dir __install__.*.json).FullName
+      python "$(Build.SourcesDirectory)\windows-release\merge-and-upload.py"
+      del __install__.*.json
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    displayName: 'Generate local index'
+    env:
+      LOCAL_INDEX: 1
+      NO_UPLOAD: 1
+
+  - publish: '$(Build.ArtifactStagingDirectory)'
+    artifact: pymanager_bundle
+    displayName: 'Publish Artifact: pymanager_bundle'

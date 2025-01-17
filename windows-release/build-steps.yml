@@ -24,7 +24,7 @@ steps:
       IncludeUwp: true
       Py_OutDir: '$(Build.BinariesDirectory)\bin'
 
-- ${{ if eq(parameters.ShouldPGO, 'true') }}:
+- ${{ else }}:
   - powershell: |
       $env:SigningCertificate = $null
       .\PCbuild\build.bat -v -p $(Platform) --pgo $(ExtraOptions)
@@ -60,31 +60,11 @@ steps:
   displayName: 'Cleanup binaries'
   workingDirectory: '$(Build.BinariesDirectory)\bin\$(Arch)'
 
-- task: PublishPipelineArtifact@0
+- powershell: |
+    copy "$(Build.SourcesDirectory)\Lib\venv\scripts\common\Activate.ps1" .
+  displayName: 'Copy Powershell scripts from source'
+  workingDirectory: '$(Build.BinariesDirectory)\bin\$(Arch)'
+
+- publish: '$(Build.BinariesDirectory)\bin\$(Arch)'
+  artifact: $(Artifact)
   displayName: 'Publish binaries'
-  condition: and(succeeded(), or(ne(variables['Configuration'], 'Release'), not(variables['SigningCertificate'])))
-  inputs:
-    targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)'
-    artifactName: bin_$(Name)
-
-- task: PublishPipelineArtifact@0
-  displayName: 'Publish binaries for signing'
-  condition: and(succeeded(), and(eq(variables['Configuration'], 'Release'), variables['SigningCertificate']))
-  inputs:
-    targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)'
-    artifactName: unsigned_bin_$(Name)
-
-- task: CopyFiles@2
-  displayName: 'Layout Artifact: symbols'
-  inputs:
-    sourceFolder: $(Build.BinariesDirectory)\bin\$(Arch)
-    targetFolder: $(Build.ArtifactStagingDirectory)\symbols\$(Name)
-    flatten: true
-    contents: |
-      **\*.pdb
-
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifact: symbols'
-  inputs:
-    PathToPublish: '$(Build.ArtifactStagingDirectory)\symbols'
-    ArtifactName: symbols

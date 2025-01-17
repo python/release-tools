@@ -1,0 +1,225 @@
+parameters:
+  BuildToPackage: current
+  DoFreethreaded: false
+  DoEmbed: false
+  LayoutScriptBranch: pymanager
+
+jobs:
+- job: Make_PyManager_Layouts
+  displayName: Make PyManager layouts
+
+  pool:
+    vmImage: windows-2022
+
+  workspace:
+    clean: all
+
+  variables:
+    PYTHONHOME: $(Build.SourcesDirectory)\cpython
+
+  strategy:
+    matrix:
+      win32:
+        Name: win32
+        BinArtifact: bin_win32
+        Arch: win32
+        TclLibrary: tcltk_lib_win32
+        LayoutOptions: '--preset-pymanager'
+        IncludeDoc: true
+      amd64:
+        Name: amd64
+        BinArtifact: bin_amd64
+        Arch: amd64
+        TclLibrary: tcltk_lib_amd64
+        LayoutOptions: '--preset-pymanager'
+        IncludeDoc: true
+      arm64:
+        Name: arm64
+        BinArtifact: bin_arm64
+        Arch: arm64
+        HostArch: amd64
+        TclLibrary: tcltk_lib_arm64
+        LayoutOptions: '--preset-pymanager'
+        IncludeDoc: true
+      win32_test:
+        Name: win32_test
+        BinArtifact: bin_win32
+        Arch: win32
+        TclLibrary: tcltk_lib_win32
+        LayoutOptions: '--preset-pymanager-test'
+        IncludeDoc: true
+      amd64_test:
+        Name: amd64_test
+        BinArtifact: bin_amd64
+        Arch: amd64
+        TclLibrary: tcltk_lib_amd64
+        LayoutOptions: '--preset-pymanager-test'
+        IncludeDoc: true
+      arm64_test:
+        Name: arm64_test
+        BinArtifact: bin_arm64
+        Arch: arm64
+        HostArch: amd64
+        TclLibrary: tcltk_lib_arm64
+        LayoutOptions: '--preset-pymanager-test'
+        IncludeDoc: true
+      ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+        win32_t:
+          Name: win32_t
+          BinArtifact: bin_win32_t
+          Arch: win32
+          HostArch: win32
+          TclLibrary: tcltk_lib_win32
+          LayoutOptions: '--preset-pymanager --include-freethreaded'
+          IncludeDoc: true
+        amd64_t:
+          Name: amd64_t
+          BinArtifact: bin_amd64_t
+          Arch: amd64
+          HostArch: amd64
+          TclLibrary: tcltk_lib_amd64
+          LayoutOptions: '--preset-pymanager --include-freethreaded'
+          IncludeDoc: true
+        arm64_t:
+          Name: arm64_t
+          BinArtifact: bin_arm64_t
+          Arch: arm64
+          HostArch: amd64
+          TclLibrary: tcltk_lib_arm64
+          LayoutOptions: '--preset-pymanager --include-freethreaded'
+          IncludeDoc: true
+      ${{ if eq(parameters.DoEmbed, 'true') }}:
+        win32_embed:
+          Name: win32_embed
+          BinArtifact: bin_win32
+          Arch: win32
+          HostArch: win32
+          LayoutOptions: '--preset-embed --include-install-embed-json'
+        amd64_embed:
+          Name: amd64_embed
+          BinArtifact: bin_amd64
+          Arch: amd64
+          HostArch: amd64
+          LayoutOptions: '--preset-embed --include-install-embed-json'
+        arm64_embed:
+          Name: arm64_embed
+          BinArtifact: bin_arm64
+          Arch: arm64
+          HostArch: amd64
+          LayoutOptions: '--preset-embed --include-install-embed-json'
+
+  steps:
+  - template: ./checkout.yml
+    parameters:
+      IncludeSelf: true
+      Path: $(Build.SourcesDirectory)\cpython
+
+  - ${{ if ne(parameters.BuildToPackage, 'current') }}:
+    - powershell: >
+        git clone
+        --progress
+        -v
+        --depth 1
+        --branch ${{ parameters.LayoutScriptBranch }}
+        --single-branch
+        https://github.com/$(GitRemote)/cpython.git
+        "$(Build.SourcesDirectory)\layout-script"
+      displayName: 'Clone PC/layout script from main'
+
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download artifact: $(BinArtifact)'
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: $(BinArtifact)
+      targetPath: $(Pipeline.Workspace)\$(BinArtifact)
+
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download artifact: doc'
+    condition: and(succeeded(), variables['IncludeDoc'])
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: doc
+      targetPath: $(Pipeline.Workspace)\doc
+
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download artifact: $(TclLibrary)'
+    condition: and(succeeded(), variables['TclLibrary'])
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: $(TclLibrary)
+      targetPath: $(Pipeline.Workspace)\$(TclLibrary)
+
+  - powershell: |
+      Write-Host "##vso[task.setvariable variable=TCL_LIBRARY]$(Pipeline.Workspace)\$(TclLibrary)\tcl8"
+    displayName: 'Update TCL_LIBRARY'
+    condition: and(succeeded(), variables['TclLibrary'])
+
+  - powershell: |
+      copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
+    displayName: 'Copy signed files into sources'
+    workingDirectory: $(Build.SourcesDirectory)\cpython
+    condition: and(succeeded(), variables['SigningCertificate'])
+
+  - template: ./layout-command.yml
+    parameters:
+      Binaries: $(Pipeline.Workspace)\$(BinArtifact)
+      Sources: $(Build.SourcesDirectory)\cpython
+      BuildToPackage: ${{ parameters.BuildToPackage }}
+      ${{ if ne(parameters.BuildToPackage, 'current') }}:
+        LayoutSources: $(Build.SourcesDirectory)\layout-script
+
+  - powershell: >
+      $(LayoutCmd)
+      --copy "$(Build.ArtifactStagingDirectory)\layout"
+      --zip "$(Build.ArtifactStagingDirectory)\zip\package.zip"
+      $(LayoutOptions)
+    displayName: 'Generate PyManager layout'
+
+  - powershell: |
+      # ConvertFrom-Json can't handle empty keys, but we don't need them anyway.
+      # Replace with an underscore so it can load.
+      $install = (gc -raw "layout\__install__.json") -replace '"":', '"_":' | ConvertFrom-Json
+      # Bring a copy of the install data separate from the ZIP
+      copy "layout\__install__.json" "zip\__install__.json"
+      # Rename the ZIP to match the target filename
+      # (which we didn't know when we named it package.zip)
+      $filename = Split-Path -Leaf $install.url
+      move "zip\package.zip" "zip\$filename"
+    displayName: 'Prepare PyManager distribution files'
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+
+  - powershell: >
+      & $(Python) "$(Pipeline.Workspace)\release-tools\sbom.py"
+      "--cpython-source-dir=$(Build.SourcesDirectory)\cpython"
+      $(gci "zip\*.zip")
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    displayName: 'Create SBOMs for package'
+
+  - publish: '$(Build.ArtifactStagingDirectory)\layout'
+    artifact: layout_pymanager_$(Name)
+    displayName: 'Publish Artifact: layout_pymanager_$(Name)'
+
+  - publish: '$(Build.ArtifactStagingDirectory)\zip'
+    artifact: pymanager_$(Name)
+    displayName: 'Publish Artifact: pymanager_$(Name)'

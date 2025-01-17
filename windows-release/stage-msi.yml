@@ -1,5 +1,5 @@
 parameters:
-  ARM64TclTk: true
+  BuildToPackage: current
   DoARM64: true
   DoFreethreaded: false
   SigningCertificate: ''
@@ -29,6 +29,7 @@ jobs:
   steps:
   - template: msi-steps.yml
     parameters:
+      BuildToPackage: ${{ parameters.BuildToPackage }}
       DoFreethreaded: ${{ parameters.DoFreethreaded }}
       SigningCertificate: ${{ parameters.SigningCertificate }}
       Artifacts:
@@ -49,8 +50,7 @@ jobs:
           target: $(Build.BinariesDirectory)\arm64
         - artifact: bin_arm64_d
           target: $(Build.BinariesDirectory)\arm64
-        - ${{ if eq(parameters.ARM64TclTk, 'true') }}:
-          - artifact: tcltk_lib_arm64
+        - artifact: tcltk_lib_arm64
       # Freethreaded binaries copy into the same target directory, but files
       # are not overwritten.
       - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
@@ -70,15 +70,14 @@ jobs:
       Bundles:
       - bundle: win32
         Platform: x86
-        PythonForBuild: bin_win32
+        PythonForBuild: $(Build.BinariesDirectory)\win32
         TclTkArtifact: tcltk_lib_win32
       - bundle: amd64
         Platform: x64
-        PythonForBuild: bin_amd64
+        PythonForBuild: $(Build.BinariesDirectory)\amd64
         TclTkArtifact: tcltk_lib_amd64
       - ${{ if eq(parameters.DoARM64, 'true') }}:
         - bundle: arm64
           Platform: ARM64
-          PythonForBuild: bin_win32
-          ${{ if eq(parameters.ARM64TclTk, 'true') }}:
-            TclTkArtifact: tcltk_lib_arm64
+          PythonForBuild: $(Build.BinariesDirectory)\win32
+          TclTkArtifact: tcltk_lib_arm64
