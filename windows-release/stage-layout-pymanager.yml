@@ -1,0 +1,116 @@
+parameters:
+  ARM64TclTk: true
+  DoFreethreaded: false
+  DoEmbed: false
+
+jobs:
+- job: Make_PyManager_Layouts
+  displayName: Make PyManager layouts
+  condition: and(succeeded(), eq(variables['DoPyManager'], 'true'))
+
+  pool:
+    vmImage: windows-2022
+
+  workspace:
+    clean: all
+
+  variables:
+    PYTHONHOME: $(Build.SourcesDirectory)
+
+  strategy:
+    matrix:
+      win32:
+        Name: win32
+        Arch: win32
+        TclLibrary: tcltk_lib_win32\tcl8
+        LayoutOptions: '--preset-pymanager'
+        IncludeDoc: true
+      amd64:
+        Name: amd64
+        Arch: amd64
+        TclLibrary: tcltk_lib_amd64\tcl8
+        LayoutOptions: '--preset-pymanager'
+        IncludeDoc: true
+      arm64:
+        Name: arm64
+        Arch: arm64
+        HostArch: amd64
+        LayoutOptions: '--preset-pymanager'
+        IncludeDoc: true
+        ${{ if eq(parameters.ARM64TclTk, 'true') }}:
+          TclLibrary: tcltk_lib_arm64\tcl8
+      ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+        win32_t:
+          Name: win32_t
+          Arch: win32
+          HostArch: win32
+          TclLibrary: tcltk_lib_win32\tcl8
+          LayoutOptions: '--preset-pymanager --include-freethreaded'
+          IncludeDoc: true
+        amd64_t:
+          Name: amd64_t
+          Arch: amd64
+          HostArch: amd64
+          TclLibrary: tcltk_lib_amd64\tcl8
+          LayoutOptions: '--preset-pymanager --include-freethreaded'
+          IncludeDoc: true
+        arm64_t:
+          Name: arm64_t
+          Arch: arm64
+          HostArch: amd64
+          TclLibrary: tcltk_lib_arm64\tcl8
+          LayoutOptions: '--preset-pymanager --include-freethreaded'
+          IncludeDoc: true
+      ${{ if eq(parameters.DoEmbed, 'true') }}:
+        win32_embed:
+          Name: win32_embed
+          Arch: win32
+          HostArch: win32
+          LayoutOptions: '--preset-embed --include-install-embed-json'
+        amd64_embed:
+          Name: amd64_embed
+          Arch: amd64
+          HostArch: amd64
+          LayoutOptions: '--preset-embed --include-install-embed-json'
+        arm64_embed:
+          Name: arm64_embed
+          Arch: arm64
+          HostArch: arm64
+          LayoutOptions: '--preset-embed --include-install-embed-json'
+
+  steps:
+  - template: ./checkout.yml
+
+  - download: current
+    artifact: bin_$(Name)
+    displayName: 'Download artifact: bin_$(Name)'
+
+  - download: current
+    artifact: doc
+    displayName: 'Download artifact: doc'
+    condition: and(succeeded(), variables['IncludeDoc'])
+
+  - download: current
+    artifact: $(TclLibrary)
+    displayName: 'Download artifact: $(TclLibrary)'
+    condition: and(succeeded(), variables['TclLibrary'])
+
+  - powershell: |
+      Write-Host "##vso[task.setvariable variable=TCL_LIBRARY]$(Pipeline.Workspace)\$(TclLibrary)"
+    displayName: 'Update TCL_LIBRARY'
+    condition: and(succeeded(), variables['TclLibrary'])
+
+  - powershell: |
+      copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
+    displayName: 'Copy signed files into sources'
+    condition: and(succeeded(), variables['SigningCertificate'])
+
+  - template: ./layout-command.yml
+
+  - powershell: |
+      $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\layout" $(LayoutOptions)
+    displayName: 'Generate PyManager layout'
+
+  - publish: '$(Build.ArtifactStagingDirectory)\layout'
+    artifact: layout_pymanager_$(Name)
+    displayName: 'Publish Artifact: layout_pymanager_$(Name)'

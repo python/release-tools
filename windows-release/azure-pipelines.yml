@@ -88,6 +88,10 @@ parameters:
   displayName: "Produce EXE/MSI installer"
   type: boolean
   default: true
+- name: DoPyManager
+  displayName: "Produce PyManager package"
+  type: boolean
+  default: true
 - name: BuildToPublish
   displayName: "Build number to publish (0 to skip)"
   type: number
@@ -120,6 +124,7 @@ variables:
   DoNuget: ${{ parameters.DoNuget }}
   DoEmbed: ${{ parameters.DoEmbed }}
   DoMSI: ${{ parameters.DoMSI }}
+  DoPyManager: ${{ parameters.DoPyManager }}
   DoPublish: ${{ parameters.DoPublish }}
   PublishARM64: ${{ parameters.DoARM64 }}
 # QUEUE TIME VARIABLES
@@ -163,6 +168,11 @@ stages:
     - template: stage-layout-nuget.yml
       parameters:
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
+    - template: stage-layout-pymanager.yml
+      parameters:
+        ARM64TclTk: ${{ parameters.ARM64TclTk }}
+        DoFreethreaded: ${{ parameters.DoFreethreaded }}
+        DoEmbed: ${{ parameters.DoEmbed }}
 
   - stage: Pack
     dependsOn: Layout
@@ -173,6 +183,12 @@ stages:
           ${{ if eq(parameters.SignNuget, 'true') }}:
             SigningCertificate: ${{ parameters.SigningCertificate }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
+    - template: stage-pack-pymanager.yml
+      parameters:
+        ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
+          SigningCertificate: ${{ parameters.SigningCertificate }}
+        DoFreethreaded: ${{ parameters.DoFreethreaded }}
+        DoEmbed: ${{ parameters.DoEmbed }}
 
   - stage: Test
     dependsOn: Pack
@@ -222,6 +238,13 @@ stages:
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
   - ${{ if eq(parameters.DoPublish, 'true') }}:
+    - ${{ if eq(parameters.DoPyManager, 'true') }}:
+      - stage: PublishPyManager
+        displayName: Publish for PyManager
+        dependsOn: ['Test_MSI', 'Test']
+        jobs:
+        - template: stage-publish-pymanager.yml
+
     - ${{ if eq(parameters.DoMSI, 'true') }}:
       - stage: PublishPyDotOrg
         displayName: Publish to python.org
@@ -256,6 +279,9 @@ stages:
     displayName: Publish existing build
     dependsOn: []
     jobs:
+    - ${{ if eq(parameters.DoPyManager, 'true') }}:
+      - template: stage-publish-pymanager.yml
+
     - ${{ if eq(parameters.DoMSI, 'true') }}:
       - template: stage-publish-pythonorg.yml
         parameters:

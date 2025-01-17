@@ -1,0 +1,60 @@
+parameters:
+  DoFreethreaded: false
+  DoEmbed: false
+  SigningCertificate: ''
+
+jobs:
+- job: Pack_PyManager
+  displayName: Pack PyManager bundles
+  condition: and(succeeded(), eq(variables['DoPyManager'], 'true'))
+
+  pool:
+    vmImage: windows-2022
+
+  workspace:
+    clean: all
+
+  variables:
+
+  variables:
+  #- ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
+  #  - group: CPythonSign
+  #- ${{ if eq(parameters.SigningCertificate, 'TestSign') }}:
+  #  - group: CPythonTestSign
+  - name: artifacts
+    value:
+    - amd64
+    - win32
+    - arm64
+    - ${{ if eq(parameters.DoEmbed, 'true') }}:
+      - amd64_embed
+      - win32_embed
+      - arm64_embed
+    - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+      - amd64_t
+      - win32_t
+      - arm64_t
+
+  steps:
+  - checkout: none
+
+  - ${{ each Name in variables.artifacts }}:
+    - download: current
+      artifact: layout_pymanager_${{ Name }}
+      displayName: 'Download artifact: layout_pymanager_${{ Name }}'
+
+  - ${{ each Name in variables.artifacts }}:
+    - powershell: |
+        $install = (gc -raw "${env:LAYOUT}\__install__.json") -replace '"":', '"_":' | ConvertFrom-Json
+        $filename = Split-Path -Left $install.url
+        # Deliberately move the __install__.json out. We need it to publish, but
+        # it doesn't belong in the package.
+        mv $env:INSTALL_JSON $env:INSTALL_JSON
+        Compress-Archive -CompressionLevel Optimal $env:LAYOUT "$(Build.ArtifactStagingDirectory)\$filename"
+      env:
+        LAYOUT: $(Pipeline.Workspace)\layout_pymanager_${{ Name }}
+        INSTALL_JSON: $(Build.ArtifactStagingDirectory)\__install__.${{ Name }}.json
+
+  - publish: '$(Build.ArtifactStagingDirectory)'
+    artifact: pymanager
+    displayName: 'Publish Artifact: pymanager'
