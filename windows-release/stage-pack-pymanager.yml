@@ -36,7 +36,10 @@ jobs:
       - arm64_t
 
   steps:
-  - checkout: none
+  - template: ./checkout.yml
+    parameters:
+      IncludeSelf: true
+      Path: $(Build.SourcesDirectory)\cpython
 
   - ${{ each Name in variables.artifacts }}:
     - download: current
@@ -49,11 +52,18 @@ jobs:
         $filename = Split-Path -Left $install.url
         # Deliberately move the __install__.json out. We need it to publish, but
         # it doesn't belong in the package.
-        mv $env:INSTALL_JSON $env:INSTALL_JSON
-        Compress-Archive -CompressionLevel Optimal $env:LAYOUT "$(Build.ArtifactStagingDirectory)\$filename"
+        mv "${env:LAYOUT}\__install__.json" $env:INSTALL_JSON
+        Compress-Archive -CompressionLevel Optimal "${env:LAYOUT}\*" "$(Build.ArtifactStagingDirectory)\$filename"
       env:
         LAYOUT: $(Pipeline.Workspace)\layout_pymanager_${{ Name }}
         INSTALL_JSON: $(Build.ArtifactStagingDirectory)\__install__.${{ Name }}.json
+
+  - powershell: >
+      & $(Python) "$(Build.SourcesDirectory)\release-tools\sbom.py"
+      "--cpython-source-dir=$(Build.SourcesDirectory)\cpython"
+      $(gci "$(Build.ArtifactStagingDirectory)\*.zip")
+    workingDirectory: $(Build.BinariesDirectory)
+    displayName: 'Create SBOMs for binaries'
 
   - publish: '$(Build.ArtifactStagingDirectory)'
     artifact: pymanager

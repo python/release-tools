@@ -694,8 +694,8 @@ def create_sbom_for_windows_artifact(
     sbom_cpython_package_spdx_id = spdx_id("SPDXRef-PACKAGE-cpython")
 
     # The Windows embed artifacts don't contain pip/ensurepip,
-    # but the MSI artifacts do. Add pip for MSI installers.
-    if artifact_name.endswith(".exe"):
+    # but the others do.
+    if "-embed" not in artifact_name:
 
         # Find the pip wheel in ensurepip in the source code
         for pathname in os.listdir(cpython_source_dir / "Lib/ensurepip/_bundled"):
