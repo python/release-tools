@@ -62,32 +62,15 @@ jobs:
     workingDirectory: $(Build.BinariesDirectory)
     displayName: 'Upload ZIPs'
     env:
+      UPLOAD_URL_PREFIX: 'https://www.python.org/ftp/'
+      UPLOAD_PATH_PREFIX: '/srv/www.python.org/ftp/'
+      INDEX_URL: 'https://www.python.org/ftp/python/__index_windows__.json'
       INDEX_PATH: ${{ parameters.FeedPath }}
-
-  - powershell: |
-      "Merging following files:"
-      dir *.json
-      SSH GET ${{ parameters.FeedPath }} __index__.json
-      # TODO: Grab current __index__.json
-      python -c $env:MERGE_SCRIPT "__index__.json" "*.json"
-      # TODO: Upload file
-    env:
-      MERGE_SCRIPT: |
-        import json, glob, hashlib, sys
-        
-        with open(sys.argv[1], 'rb') as j1:
-          j1 = json.load(f1)
-        fs = [open(p, 'rb') for glob.glob(sys.argv[2])]
-        print("Loaded", len(fs), "files to merge")
-        js = [json.load(f) for f in fs]
-        [f.close() for f in fs]
-        # TODO: Sort?
-        for j in js:
-            fname = j["url"].rpartition("/")[2]
-        j1["versions"][:0] = js
-        with open('__index__.json', 'wb') as f1:
-          json.dump(f1, j1)
-        print("__index__.json now contains", len(j1["versions"]), "entries")
+      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\__index__.json'
+      UPLOAD_HOST: $(PyDotOrgServer)
+      UPLOAD_HOST_KEY: $(PyDotOrgHostKey)
+      UPLOAD_KEYFILE: $(sshkey.secureFilePath)
+      UPLOAD_USER: $(PyDotOrgUsername)
 
   - ${{ each alg in parameters.HashAlgorithms }}:
     - powershell: |
@@ -105,8 +88,9 @@ jobs:
       workingDirectory: $(Build.BinariesDirectory)
       displayName: 'Generate hashes (${{ alg }})'
 
-  - task: PublishPipelineArtifact@0
+  - publish: '$(Build.ArtifactStagingDirectory)\index'
+    artifact: pymanager_index
+
+  - publish: '$(Build.ArtifactStagingDirectory)\hashes'
+    artifact: hashes
     displayName: 'Publish Artifact: hashes'
-    inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)\hashes'
-      artifactName: hashes

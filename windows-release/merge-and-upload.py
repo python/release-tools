@@ -7,13 +7,14 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen, Request
 
-UPLOAD_URL_PREFIX = os.getenv("UPLOAD_URL_PREFIX") or "https://www.python.org/ftp/"
-UPLOAD_PATH_PREFIX = os.getenv("UPLOAD_PATH_PREFIX") or "/srv/www.python.org/ftp/"
-INDEX_URL = os.getenv("INDEX_URL") or f"https://www.python.org/ftp/python/__index_windows__.json"
-UPLOAD_HOST = os.getenv("PyDotOrgServer")
-UPLOAD_HOST_KEY = os.getenv("PyDotOrgHostKey")
+UPLOAD_URL_PREFIX = os.getenv("UPLOAD_URL_PREFIX")
+UPLOAD_PATH_PREFIX = os.getenv("UPLOAD_PATH_PREFIX")
+INDEX_URL = os.getenv("INDEX_URL")
+INDEX_FILE = os.getenv("INDEX_FILE", "__index__.json")
+UPLOAD_HOST = os.getenv("UPLOAD_HOST")
+UPLOAD_HOST_KEY = os.getenv("UPLOAD_HOST_KEY")
 UPLOAD_KEYFILE = os.getenv("UPLOAD_KEYFILE")
-UPLOAD_USER = os.getenv("PyDotOrgUsername")
+UPLOAD_USER = os.getenv("UPLOAD_USER")
 NO_UPLOAD = os.getenv("NO_UPLOAD")
 
 def find_cmd(env, exe):
@@ -55,17 +56,15 @@ def _run(*args):
     with subprocess.Popen(
         args,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         encoding="ascii",
         errors="replace",
     ) as p:
-        out, err = p.communicate(None)
+        out, _ = p.communicate(None)
         if out:
             print(out)
-        if err:
-            print(err)
         if p.returncode:
-            raise RunError(p.returncode, out, err)
+            raise RunError(p.returncode, out)
 
 
 def call_ssh(*args, allow_fail=True):
@@ -84,12 +83,14 @@ def upload_ssh(source, dest):
         print("Skipping upload of", source, "because UPLOAD_HOST is missing")
         return
     _run(*_std_args(PSCP), source, f"{UPLOAD_USER}@{UPLOAD_HOST}:{dest}")
+    call_ssh(f"chgrp downloads {dest} && chmod g-x,o+r {dest}")
 
 
 def download_ssh(source, dest):
     if not UPLOAD_HOST:
         print("Skipping download of", source, "because UPLOAD_HOST is missing")
         return
+    Path(dest).parent.mkdir(exist_ok=True, parents=True)
     _run(*_std_args(PSCP), f"{UPLOAD_USER}@{UPLOAD_HOST}:{source}", dest)
 
 
@@ -100,7 +101,7 @@ def ls_ssh(dest):
     try:
         _run(*_std_args(PSCP), "-ls", f"{UPLOAD_USER}@{UPLOAD_HOST}:{dest}")
     except RunError as ex:
-        if not ex.args[2].rstrip().endswith("No such file or directory"):
+        if not ex.args[1].rstrip().endswith("No such file or directory"):
             raise
         print(dest, "was not found")
 
@@ -121,6 +122,26 @@ def get_hashes(src):
     return {"sha256": h.hexdigest()}
 
 
+def trim_install(install):
+    return {k: v for k, v in install.items()
+            if k not in ("aliases", "run-for", "shortcuts")}
+
+
+def validate_new_installs(installs):
+    ids = [i["id"] for i in installs]
+    id_set = set(ids)
+    if len(id_set) < len(ids):
+        for i in id_set:
+            ids.remove(i)
+        print("WARNING: Duplicate id fields:", *ids)
+    install_fors = [n for i in installs for n in i["install-for"]]
+    install_set = set(install_fors)
+    if len(install_set) < len(install_fors):
+        for i in install_set:
+            install_fors.remove(i)
+        print("WARNING: Duplicate install-for tags:", *install_fors)
+
+
 def purge(url):
     if not UPLOAD_HOST or NO_UPLOAD:
         print("Skipping purge of", url, "because UPLOAD_HOST is missing")
@@ -130,7 +151,7 @@ def purge(url):
 
 
 def calculate_uploads():
-    for p in Path().absolute().glob("__install*.json"):
+    for p in sorted(Path().absolute().glob("__install__.*.json")):
         i = json.loads(p.read_bytes())
         u = urlparse(i["url"])
         src = Path(u.path.rpartition("/")[-1]).absolute()
@@ -160,22 +181,22 @@ hash_packages(UPLOADS)
 
 INDEX_PATH = url2path(INDEX_URL)
 try:
-    download_ssh(INDEX_PATH, "__index__.json")
+    download_ssh(INDEX_PATH, INDEX_FILE)
 except RunError as ex:
-    err = ex.args[2]
+    err = ex.args[1]
     if not err.rstrip().endswith("no such file or directory"):
         raise
     index = {"versions": []}
 else:
-    with open("__index__.json", "r", encoding="utf-8") as f:
+    with open(INDEX_FILE, "r", encoding="utf-8") as f:
         index = json.load(f)
 
 
-# TODO: Sort?
-index["versions"][:0] = [i for i, *_ in UPLOADS]
+new_installs = [trim_install(i) for i, *_ in UPLOADS]
+validate_new_installs(new_installs)
+index["versions"][:0] = new_installs
 
-
-with open("__index__.json", "w", encoding="utf-8") as f:
+with open(INDEX_FILE, "w", encoding="utf-8") as f:
     # Include an indent for sanity while testing.
     # We should probably remove it later for the size benefits.
     json.dump(index, f, indent=1)
@@ -187,16 +208,14 @@ print("Merged", len(UPLOADS), "entries")
 for i, src, dest, sbom, sbom_dest in UPLOADS:
     print("Uploading", src, "to", dest)
     destdir = dest.rpartition("/")[0]
-    call_ssh("mkdir", destdir, "&&", "chgrp", "downloads", destdir, "&&", "chmod", "a+rx", destdir)
+    call_ssh(f"mkdir {destdir} && chgrp downloads {destdir} && chmod a+rx {destdir}")
     upload_ssh(src, dest)
-    call_ssh("chgrp", "downloads", dest, "&&", "chmod", "g-x,o+r", dest)
     if sbom and sbom_dest:
         upload_ssh(sbom, sbom_dest)
-        call_ssh("chgrp", "downloads", sbom_dest, "&&", "chmod", "g-x,o+r", sbom_dest)
 
 
-print("Uploading __index__.json to", INDEX_URL)
-upload_ssh("__index__.json", INDEX_PATH)
+print("Uploading", INDEX_FILE, "to", INDEX_URL)
+upload_ssh(INDEX_FILE, INDEX_PATH)
 
 
 print("Purging", len(UPLOADS), "uploaded files")

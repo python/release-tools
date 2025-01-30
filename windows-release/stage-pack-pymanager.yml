@@ -50,9 +50,7 @@ jobs:
     - powershell: |
         $install = (gc -raw "${env:LAYOUT}\__install__.json") -replace '"":', '"_":' | ConvertFrom-Json
         $filename = Split-Path -Left $install.url
-        # Deliberately move the __install__.json out. We need it to publish, but
-        # it doesn't belong in the package.
-        mv "${env:LAYOUT}\__install__.json" $env:INSTALL_JSON
+        cp "${env:LAYOUT}\__install__.json" $env:INSTALL_JSON
         Compress-Archive -CompressionLevel Optimal "${env:LAYOUT}\*" "$(Build.ArtifactStagingDirectory)\$filename"
       env:
         LAYOUT: $(Pipeline.Workspace)\layout_pymanager_${{ Name }}
