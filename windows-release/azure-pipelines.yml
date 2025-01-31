@@ -183,12 +183,6 @@ stages:
           ${{ if eq(parameters.SignNuget, 'true') }}:
             SigningCertificate: ${{ parameters.SigningCertificate }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
-    - template: stage-pack-pymanager.yml
-      parameters:
-        ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
-          SigningCertificate: ${{ parameters.SigningCertificate }}
-        DoFreethreaded: ${{ parameters.DoFreethreaded }}
-        DoEmbed: ${{ parameters.DoEmbed }}
 
   - stage: Test
     dependsOn: Pack

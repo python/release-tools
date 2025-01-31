@@ -1,12 +1,11 @@
 parameters:
   BuildToPublish: ''
   HashAlgorithms: ['SHA256']
-  FeedPath: 'srv/ftp/download/__index_windows__.json'
 
 jobs:
-- job: Publish_Python
-  displayName: Publish python.org packages
-  condition: and(succeeded(), eq(variables['DoMSI'], 'true'), eq(variables['DoEmbed'], 'true'), ne(variables['SkipPythonOrgPublish'], 'true'))
+- job: Publish_PyManager
+  displayName: Publish PyManager packages to python.org
+  condition: and(succeeded(), ne(variables['SkipPythonOrgPublish'], 'true'))
 
   pool:
     vmImage: windows-2022
@@ -24,29 +23,23 @@ jobs:
       versionSpec: '>=3.10'
 
   - ${{ if parameters.BuildToPublish }}:
-    - task: DownloadPipelineArtifact@1
-      displayName: 'Download artifact from ${{ parameters.BuildToPublish }}: pymanager'
-      inputs:
-        artifactName: pymanager
-        targetPath: $(Build.BinariesDirectory)
-        buildType: specific
-        project: $(System.TeamProject)
-        pipeline: $(Build.DefinitionName)
-        buildVersionToDownload: specific
-        buildId: ${{ parameters.BuildToPublish }}
+    - ${{ each Name in variables.artifacts }}:
+      - task: DownloadPipelineArtifact@1
+        displayName: 'Download artifact from ${{ parameters.BuildToPublish}}: pymanager_${{ Name }}'
+        inputs:
+          artifactName: pymanager_${{ Name }}
+          targetPath: $(Pipeline.Workspace)
+          buildType: specific
+          project: $(System.TeamProject)
+          pipeline: $(Build.DefinitionName)
+          buildVersionToDownload: specific
+          buildId: ${{ parameters.BuildToPublish }}
 
   - ${{ else }}:
-    - task: DownloadPipelineArtifact@1
-      displayName: 'Download artifact: pymanager'
-      inputs:
-        artifactName: pymanager
-        targetPath: $(Build.BinariesDirectory)
-
-  # Note that ARM64 MSIs are skipped at build when this option is specified
-  - powershell: 'gci *embed-arm*.zip | %{ Write-Host "Not publishing: $($_.Name)"; gi $_ } | del'
-    displayName: 'Prevent publishing ARM64 packages'
-    workingDirectory: '$(Build.BinariesDirectory)\pymanager'
-    condition: and(succeeded(), ne(variables['PublishARM64'], 'true'))
+    - ${{ each Name in variables.artifacts }}:
+      - download: current
+        artifact: pymanager_${{ Name }}
+        displayName: 'Download artifact: pymanager_${{ Name }}'
 
 
   - task: DownloadSecureFile@1
@@ -56,25 +49,24 @@ jobs:
     displayName: 'Download PuTTY key'
 
   - powershell: |
-      "Uploading following files:"
-      dir *
+      "Uploading following packages:"
+      dir "*\__install__.json"
       python merge-and-upload.py 
-    workingDirectory: $(Build.BinariesDirectory)
+    workingDirectory: $(Pipeline.Workspace)
     displayName: 'Upload ZIPs'
     env:
-      UPLOAD_URL_PREFIX: 'https://www.python.org/ftp/'
-      UPLOAD_PATH_PREFIX: '/srv/www.python.org/ftp/'
-      INDEX_URL: 'https://www.python.org/ftp/python/__index_windows__.json'
-      INDEX_PATH: ${{ parameters.FeedPath }}
+      INDEX_URL: '$(PyDotOrgUrlPrefix)python/__index_windows__.json'
       INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\__index__.json'
+      UPLOAD_URL_PREFIX: $(PyDotOrgUrlPrefix)
+      UPLOAD_PATH_PREFIX: $(PyDotOrgUploadPathPrefix)
       UPLOAD_HOST: $(PyDotOrgServer)
       UPLOAD_HOST_KEY: $(PyDotOrgHostKey)
-      UPLOAD_KEYFILE: $(sshkey.secureFilePath)
       UPLOAD_USER: $(PyDotOrgUsername)
+      UPLOAD_KEYFILE: $(sshkey.secureFilePath)
 
   - ${{ each alg in parameters.HashAlgorithms }}:
     - powershell: |
-        $files = gci -File "*.zip"
+        $files = (dir "*\__install__.json").Directory | %{ dir -File "$_\*.zip" }
         $hashes = $files  | `
             Sort-Object Name | `
             Format-Table Name, @{
@@ -85,7 +77,7 @@ jobs:
         $d = mkdir "$(Build.ArtifactStagingDirectory)\hashes" -Force
         $hashes | Out-File "$d\hashes.txt" -Encoding ascii -Append
         $hashes
-      workingDirectory: $(Build.BinariesDirectory)
+      workingDirectory: $(Pipeline.Workspace)
       displayName: 'Generate hashes (${{ alg }})'
 
   - publish: '$(Build.ArtifactStagingDirectory)\index'

@@ -39,6 +39,26 @@ jobs:
         IncludeDoc: true
         ${{ if eq(parameters.ARM64TclTk, 'true') }}:
           TclLibrary: tcltk_lib_arm64\tcl8
+      win32_test:
+        Name: win32_test
+        Arch: win32
+        TclLibrary: tcltk_lib_win32\tcl8
+        LayoutOptions: '--preset-pymanager-test'
+        IncludeDoc: true
+      amd64_test:
+        Name: amd64_test
+        Arch: amd64
+        TclLibrary: tcltk_lib_amd64\tcl8
+        LayoutOptions: '--preset-pymanager-test'
+        IncludeDoc: true
+      arm64_test:
+        Name: arm64_test
+        Arch: arm64
+        HostArch: amd64
+        LayoutOptions: '--preset-pymanager-test'
+        IncludeDoc: true
+        ${{ if eq(parameters.ARM64TclTk, 'true') }}:
+          TclLibrary: tcltk_lib_arm64\tcl8
       ${{ if eq(parameters.DoFreethreaded, 'true') }}:
         win32_t:
           Name: win32_t
@@ -80,6 +100,9 @@ jobs:
 
   steps:
   - template: ./checkout.yml
+    parameters:
+      IncludeSelf: true
+      Path: $(Build.SourcesDirectory)\cpython
 
   - download: current
     artifact: bin_$(Name)
@@ -103,14 +126,44 @@ jobs:
   - powershell: |
       copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
     displayName: 'Copy signed files into sources'
+    workingDirectory: $(Build.SourcesDirectory)\cpython
     condition: and(succeeded(), variables['SigningCertificate'])
 
   - template: ./layout-command.yml
+    parameters:
+      Sources: $(Build.SourcesDirectory)\cpython
+
+  - powershell: >
+      $(LayoutCmd)
+      --copy "$(Build.ArtifactStagingDirectory)\layout"
+      --zip "$(Build.ArtifactStagingDirectory)\zip\package.zip"
+      $(LayoutOptions)
+    displayName: 'Generate PyManager layout'
 
   - powershell: |
-      $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\layout" $(LayoutOptions)
-    displayName: 'Generate PyManager layout'
+      # ConvertFrom-Json can't handle empty keys, but we don't need them anyway.
+      # Replace with an underscore so it can load.
+      $install = (gc -raw "layout\__install__.json") -replace '"":', '"_":' | ConvertFrom-Json
+      # Bring a copy of the install data separate from the ZIP
+      copy "layout\__install__.json" "zip\__install__.json"
+      # Rename the ZIP to match the target filename
+      # (which we didn't know when we named it package.zip)
+      $filename = Split-Path -Leaf $install.url
+      move "zip\package.zip" "zip\$filename"
+    displayName: 'Prepare PyManager distribution files'
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+
+  - powershell: >
+      & $(Python) "$(Build.SourcesDirectory)\release-tools\sbom.py"
+      "--cpython-source-dir=$(Build.SourcesDirectory)\cpython"
+      $(gci "zip\*.zip")
+    workingDirectory: $(Build.ArtifactStagingDirectory)
+    displayName: 'Create SBOMs for package'
 
   - publish: '$(Build.ArtifactStagingDirectory)\layout'
     artifact: layout_pymanager_$(Name)
     displayName: 'Publish Artifact: layout_pymanager_$(Name)'
+
+  - publish: '$(Build.ArtifactStagingDirectory)\zip'
+    artifact: pymanager_$(Name)
+    displayName: 'Publish Artifact: pymanager_$(Name)'

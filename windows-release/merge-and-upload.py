@@ -151,7 +151,11 @@ def purge(url):
 
 
 def calculate_uploads():
-    for p in sorted(Path().absolute().glob("__install__.*.json")):
+    for p in sorted(Path().absolute().iterdir()):
+        p /= "__install__.json"
+        if not p.is_file():
+            continue
+        print("Processing", p)
         i = json.loads(p.read_bytes())
         u = urlparse(i["url"])
         src = Path(u.path.rpartition("/")[-1]).absolute()
