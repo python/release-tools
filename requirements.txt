@@ -4,9 +4,9 @@
 #
 #    pip-compile --generate-hashes --output-file=requirements.txt requirements.in
 #
+--only-binary :all:
 --no-binary grapheme
 --no-binary grpclib
---only-binary :all:
 
 about-time==4.2.1 \
     --hash=sha256:8bbf4c75fe13cbd3d72f49a03b02c5c7dca32169b6d49117c257e7eb3eaee341
