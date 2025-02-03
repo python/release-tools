@@ -22,25 +22,10 @@ jobs:
     inputs:
       versionSpec: '>=3.10'
 
-  - ${{ if parameters.BuildToPublish }}:
-    - ${{ each Name in variables.artifacts }}:
-      - task: DownloadPipelineArtifact@1
-        displayName: 'Download artifact from ${{ parameters.BuildToPublish}}: pymanager_${{ Name }}'
-        inputs:
-          artifactName: pymanager_${{ Name }}
-          targetPath: $(Pipeline.Workspace)
-          buildType: specific
-          project: $(System.TeamProject)
-          pipeline: $(Build.DefinitionName)
-          buildVersionToDownload: specific
-          buildId: ${{ parameters.BuildToPublish }}
-
-  - ${{ else }}:
-    - ${{ each Name in variables.artifacts }}:
-      - download: current
-        artifact: pymanager_${{ Name }}
-        displayName: 'Download artifact: pymanager_${{ Name }}'
-
+  - ${{ each Name in variables.artifacts }}:
+    - download: $(BuildToPublish)
+      artifact: pymanager_${{ Name }}
+      displayName: 'Download artifact: pymanager_${{ Name }}'
 
   - task: DownloadSecureFile@1
     name: sshkey
@@ -84,5 +69,5 @@ jobs:
     artifact: pymanager_index
 
   - publish: '$(Build.ArtifactStagingDirectory)\hashes'
-    artifact: hashes
+    artifact: pymanager_hashes
     displayName: 'Publish Artifact: hashes'

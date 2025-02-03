@@ -3,9 +3,10 @@ parameters:
   Sources: $(Build.SourcesDirectory)
   Temp: $(Build.BinariesDirectory)\layout-temp
   Docs: $(Build.BinariesDirectory)\doc
+  LayoutSources:
 
 steps:
-- download: current
+- download: $(BuildToPackage)
   artifact: bin_$(HostArch)
   displayName: 'Download artifact: bin_$(HostArch)'
   condition: and(succeeded(), variables['HostArch'])
@@ -23,7 +24,7 @@ steps:
 - powershell: >
     $layout_cmd = '&
     "$(Python)"
-    "{1}\PC\layout"
+    "{4}\PC\layout"
     -vv
     --source "{1}"
     --build "{0}"
@@ -31,7 +32,12 @@ steps:
     --temp "{2}"
     --include-cat "{0}\python.cat"
     --doc-build "{3}"'
-    -f ("${{ parameters.Binaries }}", "${{ parameters.Sources }}", "${{ parameters.Temp }}", "${{ parameters.Docs}}");
+    -f (
+    "${{ parameters.Binaries }}",
+    "${{ parameters.Sources }}",
+    "${{ parameters.Temp }}",
+    "${{ parameters.Docs}}",
+    "${{ coalesce(parameters.LayoutSources, parameters.Sources) }}");
     Write-Host "##vso[task.setvariable variable=LayoutCmd]$layout_cmd";
     Write-Host "Setting LayoutCmd=$layout_cmd"
   displayName: 'Set LayoutCmd'

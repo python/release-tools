@@ -1,12 +1,11 @@
 parameters:
-  ARM64TclTk: true
   DoFreethreaded: false
   DoEmbed: false
+  UseLayoutScriptFromBranch:
 
 jobs:
 - job: Make_PyManager_Layouts
   displayName: Make PyManager layouts
-  condition: and(succeeded(), eq(variables['DoPyManager'], 'true'))
 
   pool:
     vmImage: windows-2022
@@ -35,10 +34,9 @@ jobs:
         Name: arm64
         Arch: arm64
         HostArch: amd64
+        TclLibrary: tcltk_lib_arm64\tcl8
         LayoutOptions: '--preset-pymanager'
         IncludeDoc: true
-        ${{ if eq(parameters.ARM64TclTk, 'true') }}:
-          TclLibrary: tcltk_lib_arm64\tcl8
       win32_test:
         Name: win32_test
         Arch: win32
@@ -55,10 +53,9 @@ jobs:
         Name: arm64_test
         Arch: arm64
         HostArch: amd64
+        TclLibrary: tcltk_lib_arm64\tcl8
         LayoutOptions: '--preset-pymanager-test'
         IncludeDoc: true
-        ${{ if eq(parameters.ARM64TclTk, 'true') }}:
-          TclLibrary: tcltk_lib_arm64\tcl8
       ${{ if eq(parameters.DoFreethreaded, 'true') }}:
         win32_t:
           Name: win32_t
@@ -104,16 +101,28 @@ jobs:
       IncludeSelf: true
       Path: $(Build.SourcesDirectory)\cpython
 
-  - download: current
+  - ${{ if parameters.UseLayoutScriptFromBranch }}:
+    - powershell: >
+        git clone
+        --progress
+        -v
+        --depth 1
+        --branch ${{ parameters.UseLayoutScriptFromBranch }}
+        --single-branch
+        https://github.com/python/cpython.git
+        "$(Build.SourcesDirectory)\layout-script"
+      displayName: 'Clone PC/layout script from ${{ parameters.UseLayoutScriptFromBranch }}'
+
+  - download: $(BuildToPackage)
     artifact: bin_$(Name)
     displayName: 'Download artifact: bin_$(Name)'
 
-  - download: current
+  - download: $(BuildToPackage)
     artifact: doc
     displayName: 'Download artifact: doc'
     condition: and(succeeded(), variables['IncludeDoc'])
 
-  - download: current
+  - download: $(BuildToPackage)
     artifact: $(TclLibrary)
     displayName: 'Download artifact: $(TclLibrary)'
     condition: and(succeeded(), variables['TclLibrary'])
@@ -132,6 +141,8 @@ jobs:
   - template: ./layout-command.yml
     parameters:
       Sources: $(Build.SourcesDirectory)\cpython
+      ${{ if parameters.UseLayoutScriptFromBranch }}:
+        LayoutSources: $(Build.SourcesDirectory)\layout-script
 
   - powershell: >
       $(LayoutCmd)

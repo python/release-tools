@@ -72,10 +72,10 @@ $d = "$target/$($p[0])/"
 & $plink -batch -hostkey $hostkey -noagent -i $keyfile "$user@$server" chmod "a+rx" $d
 
 $dirs = gci "$build" -Directory
-if ($embed) {
+if ($embed -and (Test-Path $embed)) {
     $dirs = ($dirs, (gi $embed)) | %{ $_ }
 }
-if ($sbom) {
+if ($sbom -and (Test-Path $sbom)) {
     $dirs = ($dirs, $sbom) | %{ $_ }
 }
 

@@ -28,7 +28,7 @@ jobs:
   steps:
   - template: ./checkout.yml
 
-  - download: current
+  - download: $(BuildToPackage)
     artifact: bin_$(Name)
     displayName: 'Download artifact: bin_$(Name)'
 
@@ -72,14 +72,10 @@ jobs:
     artifact: layout_embed_$(Name)
     displayName: 'Publish Artifact: layout_embed_$(Name)'
 
-  - task: PublishBuildArtifacts@1
+  - publishBuild: $(Build.ArtifactStagingDirectory)\embed
+    artifact: embed
     displayName: 'Publish Artifact: embed'
-    inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)\embed'
-      ArtifactName: embed
 
-  - task: PublishBuildArtifacts@1
+  - publishBuild: $(Build.ArtifactStagingDirectory)\sbom
+    artifact: sbom
     displayName: 'Publish Artifact: sbom'
-    inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)\sbom'
-      ArtifactName: sbom

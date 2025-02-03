@@ -1,6 +1,3 @@
-parameters:
-  ARM64TclTk: true
-
 jobs:
 - job: Make_MSIX_Layout
   displayName: Make MSIX layout
@@ -29,18 +26,17 @@ jobs:
         Name: arm64
         Arch: arm64
         HostArch: amd64
+        TclLibrary: tcltk_lib_arm64
         ExtraOptions: --precompile
-        ${{ if eq(parameters.ARM64TclTk, 'true') }}:
-          TclLibrary: tcltk_lib_arm64
 
   steps:
   - template: ./checkout.yml
 
-  - download: current
+  - download: $(BuildToPackage)
     artifact: bin_$(Name)
     displayName: 'Download artifact: bin_$(Name)'
 
-  - download: current
+  - download: $(BuildToPackage)
     artifact: $(TclLibrary)
     displayName: 'Download artifact: $(TclLibrary)'
     condition: and(succeeded(), variables['TclLibrary'])
@@ -50,7 +46,7 @@ jobs:
     displayName: 'Update TCL_LIBRARY'
     condition: and(succeeded(), variables['TclLibrary'])
 
-  - download: current
+  - download: $(BuildToPackage)
     artifact: cert
     displayName: 'Download artifact: cert'
     condition: and(succeeded(), variables['SigningCertificate'])
