@@ -223,10 +223,10 @@ def normalize_sbom_data(sbom_data: SBOM) -> None:
     recursive_sort_in_place(cast(dict[str, Any], sbom_data))
 
 
-def check_sbom_data(sbom_data):
+def check_sbom_data(sbom_data: SBOM) -> None:
     """Check SBOM data for common issues"""
 
-    def check_id_duplicates(sbom_components: list[dict[str, typing.Any]]) -> set[str]:
+    def check_id_duplicates(sbom_components: list[Package] | list[File]) -> set[str]:
         all_ids = set()
         for sbom_component in sbom_components:
             sbom_component_id = sbom_component["SPDXID"]
