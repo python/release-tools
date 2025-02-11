@@ -37,6 +37,8 @@ on:
 
 name: "Build Python source and docs artifacts"
 
+permissions: {}
+
 # Set from inputs for workflow_dispatch, or set defaults to test push/PR events
 env:
   GIT_REMOTE: ${{ github.event.inputs.git_remote || 'python' }}
