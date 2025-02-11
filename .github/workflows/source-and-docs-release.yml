@@ -40,8 +40,8 @@ name: "Build Python source and docs artifacts"
 # Set from inputs for workflow_dispatch, or set defaults to test push/PR events
 env:
   GIT_REMOTE: ${{ github.event.inputs.git_remote || 'python' }}
-  GIT_COMMIT: ${{ github.event.inputs.git_commit || 'f6650f9ad73359051f3e558c2431a109bc016664' }}
-  CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.12.3' }}
+  GIT_COMMIT: ${{ github.event.inputs.git_commit || '4f8bb3947cfbc20f970ff9d9531e1132a9e95396' }}
+  CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.13.2' }}
 
 jobs:
   verify-input:
@@ -105,7 +105,7 @@ jobs:
           python ../release.py --export "$CPYTHON_RELEASE" --skip-docs
 
       - name: "Upload the source artifacts"
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: source
           path: |
@@ -148,7 +148,7 @@ jobs:
           SPHINXOPTS="-j10" make dist
 
       - name: "Upload the docs artifacts"
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: docs
           path: |
