@@ -4,6 +4,6 @@ mypy==1.14.1
 pytest
 pytest-mock
 python-gnupg  # untyped :(
-sigstore==3.6.0
+sigstore==3.6.1
 types-paramiko
 types-requests
