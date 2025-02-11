@@ -223,6 +223,38 @@ def normalize_sbom_data(sbom_data: SBOM) -> None:
     recursive_sort_in_place(cast(dict[str, Any], sbom_data))
 
 
+def check_sbom_data(sbom_data: SBOM) -> None:
+    """Check SBOM data for common issues"""
+
+    def check_id_duplicates(sbom_components: list[Package] | list[File]) -> set[str]:
+        all_ids = set()
+        for sbom_component in sbom_components:
+            sbom_component_id = sbom_component["SPDXID"]
+            assert sbom_component_id not in all_ids
+            all_ids.add(sbom_component_id)
+        return all_ids
+
+    all_package_ids = check_id_duplicates(sbom_data["packages"])
+    all_file_ids = check_id_duplicates(sbom_data["files"])
+
+    # Check that no files and packages have the same ID.
+    assert not all_package_ids.intersection(all_file_ids)
+    all_sbom_ids = all_package_ids | all_file_ids
+
+    # Check that all relationships use existing IDs.
+    for sbom_relationship in sbom_data["relationships"]:
+
+        # The exception being 'DESCRIBES' with the meta 'document' ID
+        if (
+            sbom_relationship["spdxElementId"] == "SPDXRef-DOCUMENT"
+            and sbom_relationship["relationshipType"] == "DESCRIBES"
+        ):
+            continue
+
+        assert sbom_relationship["spdxElementId"] in all_sbom_ids
+        assert sbom_relationship["relatedSpdxElement"] in all_sbom_ids
+
+
 def fetch_package_metadata_from_pypi(
     project: str, version: str, filename: str | None = None
 ) -> tuple[str, str]:
@@ -686,6 +718,11 @@ def create_sbom_for_windows_artifact(
     with (cpython_source_dir / "Misc/sbom.spdx.json").open() as f:
         source_sbom_data = json.loads(f.read())
         for sbom_package in source_sbom_data["packages"]:
+            # Update the SPDX ID to avoid collisions with
+            # the 'externals' SBOM.
+            sbom_package["SPDXID"] = spdx_id(
+                f"SPDXRef-PACKAGE-{sbom_package['name']}-{sbom_package['versionInfo']}"
+            )
             sbom_data["packages"].append(sbom_package)
 
     create_cpython_sbom(
@@ -755,6 +792,10 @@ def main() -> None:
 
         # Normalize SBOM data for reproducibility.
         normalize_sbom_data(sbom_data)
+
+        # Check SBOM for validity.
+        check_sbom_data(sbom_data)
+
         with open(artifact_path + ".spdx.json", mode="w") as f:
             f.truncate()
             f.write(json.dumps(sbom_data, indent=2, sort_keys=True))
