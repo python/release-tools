@@ -21,13 +21,14 @@ import sys
 import tempfile
 import time
 import urllib.request
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator, cast
+from typing import Any, cast
 
 import aiohttp
 import gnupg  # type: ignore[import-untyped]
 import paramiko
-import sigstore.oidc  # type: ignore[import-untyped]
+import sigstore.oidc
 from alive_progress import alive_bar  # type: ignore[import-untyped]
 
 import release as release_mod

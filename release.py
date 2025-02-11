@@ -19,13 +19,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Any,
     Callable,
-    Generator,
     Literal,
     Protocol,
     Self,
@@ -524,8 +524,8 @@ def tarball(source: str, clamp_mtime: str) -> None:
     checksum_xz = hashlib.md5()
     with open(xz, "rb") as data:
         checksum_xz.update(data.read())
-    print("  %s  %8s  %s" % (checksum_tgz.hexdigest(), int(os.path.getsize(tgz)), tgz))
-    print("  %s  %8s  %s" % (checksum_xz.hexdigest(), int(os.path.getsize(xz)), xz))
+    print(f"  {checksum_tgz.hexdigest()}  {os.path.getsize(tgz):8}  {tgz}")
+    print(f"  {checksum_xz.hexdigest()}  {os.path.getsize(xz):8}  {xz}")
 
 
 def export(tag: Tag, silent: bool = False, skip_docs: bool = False) -> None:
