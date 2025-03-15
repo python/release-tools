@@ -953,6 +953,7 @@ def run_add_to_python_dot_org(db: ReleaseShelf) -> None:
     issuer = sigstore.oidc.Issuer(sigstore.oidc.DEFAULT_OAUTH_ISSUER_URL)
     identity_token = issuer.identity_token()
 
+    print("Adding files to python.org...")
     stdin, stdout, stderr = client.exec_command(
         f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add_to_pydotorg.py {db['release']}"
     )
