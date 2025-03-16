@@ -1180,10 +1180,13 @@ def push_to_upstream(db: ReleaseShelf) -> None:
 
     _push_to_upstream(dry_run=True)
     if not ask_question(
-        "Does these operations look reasonable? ⚠️⚠️⚠️ Answering 'yes' will push to the upstream repository ⚠️⚠️⚠️"
+        "Do these operations look reasonable? ⚠️⚠️⚠️ Answering 'yes' will push to the upstream repository ⚠️⚠️⚠️"
     ):
         raise ReleaseException("Something is wrong - Push to upstream aborted")
-    if not ask_question("Is the target branch unprotected for your user?"):
+    if not ask_question(
+        "Is the target branch unprotected for your user? "
+        "Check at https://github.com/python/cpython/settings/branches"
+    ):
         raise ReleaseException("The target branch is not unprotected for your user")
     _push_to_upstream(dry_run=False)
 
