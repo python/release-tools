@@ -874,7 +874,7 @@ def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
     print()
     print("Or using the GitHub CLI run:")
     print(
-        f"  gh workflow run source-and-docs-release.yml --repo python/release-tools"
+        "  gh workflow run source-and-docs-release.yml --repo python/release-tools"
         f" -f git_remote={origin_remote_github_owner}"
         f" -f git_commit={commit_sha}"
         f" -f cpython_release={db['release']}"
