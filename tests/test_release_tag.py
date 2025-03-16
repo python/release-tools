@@ -19,6 +19,7 @@ def test_tag() -> None:
     assert tag.as_tuple() == (3, 12, 2, "f", 0)
     assert tag.branch == "3.12"
     assert tag.gitname == "v3.12.2"
+    assert tag.long_name == "3.12.2"
     assert tag.is_alpha_release is False
     assert tag.is_feature_freeze_release is False
     assert tag.is_release_candidate is False
@@ -123,3 +124,19 @@ def test_tag_docs_attributes() -> None:
     assert rc.doc_version == "3.13"
     assert final_zero.doc_version == "3.13"
     assert final_3.doc_version == "3.13.3"
+
+
+def test_tag_long_name() -> None:
+    # Arrange
+    alpha = release.Tag("3.13.0a7")
+    beta = release.Tag("3.13.0b1")
+    rc = release.Tag("3.13.0rc3")
+    final_zero = release.Tag("3.13.0")
+    final_3 = release.Tag("3.13.3")
+
+    # Act / Assert
+    assert alpha.long_name == "3.13.0 alpha 7"
+    assert beta.long_name == "3.13.0 beta 1"
+    assert rc.long_name == "3.13.0 release candidate 3"
+    assert final_zero.long_name == "3.13.0"
+    assert final_3.long_name == "3.13.3"

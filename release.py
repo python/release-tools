@@ -190,6 +190,18 @@ class Tag:
     def gitname(self) -> str:
         return "v" + self.text
 
+    @property
+    def long_name(self) -> str:
+        if self.is_final:
+            return self.text
+
+        level = {
+            "a": "alpha",
+            "b": "beta",
+            "rc": "release candidate",
+        }[self.level]
+        return f"{self.normalized()} {level} {self.serial}"
+
     def next_minor_release(self) -> Self:
         return self.__class__(f"{self.major}.{int(self.minor)+1}.0a0")
 
