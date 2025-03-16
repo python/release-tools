@@ -439,7 +439,7 @@ def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
     # and update length of underline in second line to match.
     lines = readme.read_text().splitlines()
     this_is = f"This is Python version {tag.long_name}"
-    underline = f"{'=' * len(this_is)}"
+    underline = "=" * len(this_is)
     lines[0] = this_is
     lines[1] = underline
 
