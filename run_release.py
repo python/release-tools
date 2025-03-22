@@ -1014,21 +1014,21 @@ def purge_the_cdn(db: ReleaseShelf) -> None:
             raise RuntimeError("Failed to purge the python.org/downloads CDN")
 
 
-def modify_the_release_to_the_prerelease_pages(db: ReleaseShelf) -> None:
+def modify_the_prereleases_page(db: ReleaseShelf) -> None:
     pre_release_tags = {"rc", "b", "a"}
     if any(tag in str(db["release"]) for tag in pre_release_tags):
         if not ask_question(
-            "Have you already added the release to https://www.python.org/download/pre-releases/"
+            "Have you already added the release to https://www.python.org/download/pre-releases/ ?"
         ):
             raise ReleaseException(
-                "The release has not been added to the pre-release page"
+                "The release has not been added to the pre-releases page"
             )
     else:
         if not ask_question(
-            "Have you already removed the release from https://www.python.org/download/pre-releases/"
+            "Have you already removed the release from https://www.python.org/download/pre-releases/ ?"
         ):
             raise ReleaseException(
-                "The release has not been removed from the pre-release page"
+                "The release has not been removed from the pre-releases page"
             )
 
 
@@ -1345,7 +1345,7 @@ fix these things in this script so it also supports your platform.
         Task(remove_temporary_branch, "Removing temporary release branch"),
         Task(run_add_to_python_dot_org, "Add files to python.org download page"),
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
-        Task(modify_the_release_to_the_prerelease_pages, "Modify the pre-release page"),
+        Task(modify_the_prereleases_page, "Modify the pre-release page"),
         Task(modify_the_docs_by_version_page, "Update docs by version page"),
     ]
     automata = ReleaseDriver(
