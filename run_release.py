@@ -1015,20 +1015,19 @@ def purge_the_cdn(db: ReleaseShelf) -> None:
 
 
 def modify_the_prereleases_page(db: ReleaseShelf) -> None:
-    pre_release_tags = {"rc", "b", "a"}
-    if any(tag in str(db["release"]) for tag in pre_release_tags):
-        if not ask_question(
-            "Have you already added the release to https://www.python.org/download/pre-releases/ ?"
-        ):
-            raise ReleaseException(
-                "The release has not been added to the pre-releases page"
-            )
-    else:
+    if db["release"].is_final:
         if not ask_question(
             "Have you already removed the release from https://www.python.org/download/pre-releases/ ?"
         ):
             raise ReleaseException(
                 "The release has not been removed from the pre-releases page"
+            )
+    else:
+        if not ask_question(
+            "Have you already added the release to https://www.python.org/download/pre-releases/ ?"
+        ):
+            raise ReleaseException(
+                "The release has not been added to the pre-releases page"
             )
 
 
