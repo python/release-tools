@@ -435,6 +435,7 @@ def bump(tag: Tag) -> None:
             "Doc/tutorial/stdlib2.rst",
             "PC/pyconfig.h.in",
             "PCbuild/rt.bat",
+            ".azure-pipelines/ci.yml",
             ".github/ISSUE_TEMPLATE/bug.yml",
             ".github/ISSUE_TEMPLATE/crash.yml",
         ]
