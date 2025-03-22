@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import datetime as dt
 import functools
 import getpass
 import json
@@ -1031,6 +1032,21 @@ def modify_the_release_to_the_prerelease_pages(db: ReleaseShelf) -> None:
             )
 
 
+def modify_the_docs_by_version_page(db: ReleaseShelf) -> None:
+    if db["release"].is_final:
+        version = db["release"]
+        date = dt.datetime.now().strftime("%d %B %Y")
+        if not ask_question(
+            "Have you already added the docs to https://www.python.org/doc/versions/ ?\n"
+            "For example:\n"
+            f"* `Python {version} <https://docs.python.org/release/{version}/>`_, "
+            f"documentation released on {date}."
+        ):
+            raise ReleaseException(
+                "The docs have not been added to the docs by version page"
+            )
+
+
 def post_release_merge(db: ReleaseShelf) -> None:
     subprocess.check_call(
         ["git", "fetch", "--all"],
@@ -1330,6 +1346,7 @@ fix these things in this script so it also supports your platform.
         Task(run_add_to_python_dot_org, "Add files to python.org download page"),
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
         Task(modify_the_release_to_the_prerelease_pages, "Modify the pre-release page"),
+        Task(modify_the_docs_by_version_page, "Update docs by version page"),
     ]
     automata = ReleaseDriver(
         git_repo=args.repo,
