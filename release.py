@@ -190,6 +190,18 @@ class Tag:
     def gitname(self) -> str:
         return "v" + self.text
 
+    @property
+    def long_name(self) -> str:
+        if self.is_final:
+            return self.text
+
+        level = {
+            "a": "alpha",
+            "b": "beta",
+            "rc": "release candidate",
+        }[self.level]
+        return f"{self.normalized()} {level} {self.serial}"
+
     def next_minor_release(self) -> Self:
         return self.__class__(f"{self.major}.{int(self.minor)+1}.0a0")
 
@@ -419,13 +431,30 @@ def tweak_patchlevel(
     print("done")
 
 
+def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
+    print(f"Updating {filename}...", end=" ")
+    readme = Path(filename)
+
+    # Update first line: "This is Python version 3.14.0 alpha 7"
+    # and update length of underline in second line to match.
+    lines = readme.read_text().splitlines()
+    this_is = f"This is Python version {tag.long_name}"
+    underline = "=" * len(this_is)
+    lines[0] = this_is
+    lines[1] = underline
+
+    readme.write_text("\n".join(lines))
+    print("done")
+
+
 def bump(tag: Tag) -> None:
     print(f"Bumping version to {tag}")
 
     tweak_patchlevel(tag)
+    tweak_readme(tag)
 
     extra_work = False
-    other_files = ["README.rst"]
+    other_files = []
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
         extra_work = True
         other_files += [
