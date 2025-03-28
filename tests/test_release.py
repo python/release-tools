@@ -68,3 +68,50 @@ def test_tweak_patchlevel(tmp_path: Path) -> None:
         '#define PY_VERSION              "3.14.0b2"',
     ):
         assert expected in new_contents
+
+
+@pytest.mark.parametrize(
+    ["test_tag", "expected_version", "expected_underline"],
+    [
+        (
+            "3.14.0a6",
+            "This is Python version 3.14.0 alpha 6",
+            "=====================================",
+        ),
+        (
+            "3.14.0b2",
+            "This is Python version 3.14.0 beta 2",
+            "====================================",
+        ),
+        (
+            "3.14.0rc2",
+            "This is Python version 3.14.0 release candidate 2",
+            "=================================================",
+        ),
+        (
+            "3.14.1",
+            "This is Python version 3.14.1",
+            "=============================",
+        ),
+    ],
+)
+def test_tweak_readme(
+    tmp_path: Path, test_tag: str, expected_version: str, expected_underline: str
+) -> None:
+    # Arrange
+    tag = release.Tag(test_tag)
+
+    original_readme_file = Path(__file__).parent / "README.rst"
+    original_contents = original_readme_file.read_text()
+    readme_file = tmp_path / "README.rst"
+    readme_file.write_text(original_contents)
+
+    # Act
+    release.tweak_readme(tag, filename=str(readme_file))
+
+    # Assert
+    original_lines = original_contents.splitlines()
+    new_lines = readme_file.read_text().splitlines()
+    assert new_lines[0] == expected_version
+    assert new_lines[1] == expected_underline
+    assert new_lines[2:] == original_lines[2:]

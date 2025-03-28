@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import datetime as dt
 import functools
 import getpass
 import json
@@ -872,6 +873,14 @@ def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
     print(f"- Git commit to target for the release: {commit_sha}")
     print(f"- CPython release number: {db['release']}")
     print()
+    print("Or using the GitHub CLI run:")
+    print(
+        "  gh workflow run source-and-docs-release.yml --repo python/release-tools"
+        f" -f git_remote={origin_remote_github_owner}"
+        f" -f git_commit={commit_sha}"
+        f" -f cpython_release={db['release']}"
+    )
+    print()
 
     if not ask_question("Have you started the source and docs build?"):
         raise ReleaseException("Source and docs build must be started")
@@ -953,6 +962,7 @@ def run_add_to_python_dot_org(db: ReleaseShelf) -> None:
     issuer = sigstore.oidc.Issuer(sigstore.oidc.DEFAULT_OAUTH_ISSUER_URL)
     identity_token = issuer.identity_token()
 
+    print("Adding files to python.org...")
     stdin, stdout, stderr = client.exec_command(
         f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add_to_pydotorg.py {db['release']}"
     )
@@ -1004,21 +1014,35 @@ def purge_the_cdn(db: ReleaseShelf) -> None:
             raise RuntimeError("Failed to purge the python.org/downloads CDN")
 
 
-def modify_the_release_to_the_prerelease_pages(db: ReleaseShelf) -> None:
-    pre_release_tags = {"rc", "b", "a"}
-    if any(tag in str(db["release"]) for tag in pre_release_tags):
+def modify_the_prereleases_page(db: ReleaseShelf) -> None:
+    if db["release"].is_final:
         if not ask_question(
-            "Have you already added the release to https://www.python.org/download/pre-releases/"
+            "Have you already removed the release from https://www.python.org/download/pre-releases/ ?"
         ):
             raise ReleaseException(
-                "The release has not been added to the pre-release page"
+                "The release has not been removed from the pre-releases page"
             )
     else:
         if not ask_question(
-            "Have you already removed the release from https://www.python.org/download/pre-releases/"
+            "Have you already added the release to https://www.python.org/download/pre-releases/ ?"
         ):
             raise ReleaseException(
-                "The release has not been removed from the pre-release page"
+                "The release has not been added to the pre-releases page"
+            )
+
+
+def modify_the_docs_by_version_page(db: ReleaseShelf) -> None:
+    if db["release"].is_final:
+        version = db["release"]
+        date = dt.datetime.now().strftime("%d %B %Y")
+        if not ask_question(
+            "Have you already added the docs to https://www.python.org/doc/versions/ ?\n"
+            "For example:\n"
+            f"* `Python {version} <https://docs.python.org/release/{version}/>`_, "
+            f"documentation released on {date}."
+        ):
+            raise ReleaseException(
+                "The docs have not been added to the docs by version page"
             )
 
 
@@ -1180,10 +1204,13 @@ def push_to_upstream(db: ReleaseShelf) -> None:
 
     _push_to_upstream(dry_run=True)
     if not ask_question(
-        "Does these operations look reasonable? ⚠️⚠️⚠️ Answering 'yes' will push to the upstream repository ⚠️⚠️⚠️"
+        "Do these operations look reasonable? ⚠️⚠️⚠️ Answering 'yes' will push to the upstream repository ⚠️⚠️⚠️"
     ):
         raise ReleaseException("Something is wrong - Push to upstream aborted")
-    if not ask_question("Is the target branch unprotected for your user?"):
+    if not ask_question(
+        "Is the target branch unprotected for your user? "
+        "Check at https://github.com/python/cpython/settings/branches"
+    ):
         raise ReleaseException("The target branch is not unprotected for your user")
     _push_to_upstream(dry_run=False)
 
@@ -1317,7 +1344,8 @@ fix these things in this script so it also supports your platform.
         Task(remove_temporary_branch, "Removing temporary release branch"),
         Task(run_add_to_python_dot_org, "Add files to python.org download page"),
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
-        Task(modify_the_release_to_the_prerelease_pages, "Modify the pre-release page"),
+        Task(modify_the_prereleases_page, "Modify the pre-release page"),
+        Task(modify_the_docs_by_version_page, "Update docs by version page"),
     ]
     automata = ReleaseDriver(
         git_repo=args.repo,
