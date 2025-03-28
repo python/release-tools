@@ -65,20 +65,9 @@ jobs:
         git clone ${{ parameters.SourcesRepo }} -b ${{ parameters.SourceTag }} --depth 1 .
       displayName: 'Check out OpenSSL sources'
 
-    - powershell: |
-        $f = gi ms\uplink.c
-        $c1 = gc $f
-        $c2 = $c1 -replace '\(\(h = GetModuleHandle\(NULL\)\) == NULL\)', '((h = GetModuleHandleA("_ssl.pyd")) == NULL) if ((h = GetModuleHandleA("_ssl_d.pyd")) == NULL) if ((h = GetModuleHandle(NULL)) == NULL /*patched*/)'
-        if ($c2 -ne $c1) {
-            $c2 | Out-File $f -Encoding ASCII
-        } else {
-            Write-Host '##warning Failed to patch uplink.c'
-        }
-      displayName: 'Apply uplink.c patch'
-
     - script: |
         call "$(vcvarsall)" $(VCPlatform)
-        perl "$(Build.SourcesDirectory)\Configure" $(OpenSSLPlatform)
+        perl "$(Build.SourcesDirectory)\Configure" $(OpenSSLPlatform) no-uplink
         nmake
       workingDirectory: '$(IntDir)'
       displayName: 'Build OpenSSL'
