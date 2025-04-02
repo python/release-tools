@@ -14,6 +14,26 @@ parameters:
   displayName: 'Sources Repository'
   type: string
   default: 'https://github.com/python/cpython-source-deps'
+- name: CustomBuildVM
+  displayName: 'Custom build VM'
+  type: boolean
+  default: false
+- name: VCVarsOptions
+  displayName: 'vcvarsall.bat options'
+  type: string
+  default: '(none)'
+- name: IncludeX86
+  displayName: 'Include x86'
+  type: boolean
+  default: true
+- name: IncludeX64
+  displayName: 'Include x64'
+  type: boolean
+  default: true
+- name: IncludeARM64
+  displayName: 'Include ARM64'
+  type: boolean
+  default: true
 
 
 name: ${{ parameters.SourceTag }}_$(Date:yyyyMMdd)$(Rev:.rr)
@@ -36,22 +56,28 @@ jobs:
 - job: Build_SSL
   displayName: OpenSSL
   pool:
-    vmImage: windows-latest
+    ${{ if eq(parameters.CustomBuildVM, 'true') }}:
+      name: 'Windows Release'
+    ${{ else }}:
+      vmImage: windows-latest
 
   strategy:
     matrix:
-      win32:
-        Platform: 'win32'
-        VCPlatform: 'amd64_x86'
-        OpenSSLPlatform: 'VC-WIN32 no-asm'
-      amd64:
-        Platform: 'amd64'
-        VCPlatform: 'amd64'
-        OpenSSLPlatform: 'VC-WIN64A-masm'
-      arm64:
-        Platform: 'arm64'
-        VCPlatform: 'amd64_arm64'
-        OpenSSLPlatform: 'VC-WIN64-ARM'
+      ${{ if eq(parameters.IncludeX86, 'true') }}:
+        win32:
+          Platform: 'win32'
+          VCPlatform: 'amd64_x86'
+          OpenSSLPlatform: 'VC-WIN32 no-asm'
+      ${{ if eq(parameters.IncludeX64, 'true') }}:
+        amd64:
+          Platform: 'amd64'
+          VCPlatform: 'amd64'
+          OpenSSLPlatform: 'VC-WIN64A-masm'
+      ${{ if eq(parameters.IncludeARM64, 'true') }}:
+        arm64:
+          Platform: 'arm64'
+          VCPlatform: 'amd64_arm64'
+          OpenSSLPlatform: 'VC-WIN64-ARM'
 
   workspace:
     clean: all
@@ -66,11 +92,14 @@ jobs:
       displayName: 'Check out OpenSSL sources'
 
     - script: |
-        call "$(vcvarsall)" $(VCPlatform)
+        call "$(vcvarsall)" $(VCPlatform) %EXTRA_OPTS%
         perl "$(Build.SourcesDirectory)\Configure" $(OpenSSLPlatform) no-uplink
         nmake
       workingDirectory: '$(IntDir)'
       displayName: 'Build OpenSSL'
+      env:
+        ${{ if ne(parameters.VCVarsOptions, '(none)') }}:
+          EXTRA_OPTS: ${{ parameters.VCVarsOptions }}
 
     - ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
       - template: sign-files.yml
