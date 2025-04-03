@@ -12,7 +12,10 @@ steps:
 - ${{ if parameters.SigningCertificate }}:
   - powershell: |
       dotnet tool install --global --prerelease sign
-      $signtool = (gcm sign).Source
+      $signtool = (gcm sign -EA SilentlyContinue).Source
+      if (-not $signtool) {
+        $signtool = (gi "${env:USERPROFILE}\.dotnet\tools\sign.exe").FullName
+      }
       $signargs = 'code trusted-signing -v Information ' + `
         '-fd sha256 -t http://timestamp.acs.microsoft.com -td sha256 ' + `
         '-tse "$(TrustedSigningUri)" -tsa "$(TrustedSigningAccount)" -tscp "$(TrustedSigningCertificateName)" ' + `
