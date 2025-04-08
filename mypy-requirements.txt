@@ -1,4 +1,4 @@
-aiohttp==3.11.13
+aiohttp==3.11.15
 alive_progress  # untyped :(
 mypy==1.15.0
 pytest
