@@ -61,6 +61,9 @@ class ReleaseShelf(Protocol):
     def get(self, key: Literal["ssh_user"], default: str | None = None) -> str: ...
 
     @overload
+    def get(self, key: Literal["ssh_key"], default: str | None = None) -> str | None: ...
+
+    @overload
     def get(self, key: Literal["sign_gpg"], default: bool | None = None) -> bool: ...
 
     @overload
@@ -83,6 +86,9 @@ class ReleaseShelf(Protocol):
 
     @overload
     def __getitem__(self, key: Literal["ssh_user"]) -> str: ...
+
+    @overload
+    def __getitem__(self, key: Literal["ssh_key"]) -> str | None: ...
 
     @overload
     def __getitem__(self, key: Literal["sign_gpg"]) -> bool: ...
@@ -109,6 +115,9 @@ class ReleaseShelf(Protocol):
 
     @overload
     def __setitem__(self, key: Literal["ssh_user"], value: str) -> None: ...
+
+    @overload
+    def __setitem__(self, key: Literal["ssh_key"], value: str | None) -> None: ...
 
     @overload
     def __setitem__(self, key: Literal["sign_gpg"], value: bool) -> None: ...
