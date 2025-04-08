@@ -67,6 +67,9 @@ class ReleaseShelf(Protocol):
     def get(self, key: Literal["sign_gpg"], default: bool | None = None) -> bool: ...
 
     @overload
+    def get(self, key: Literal["security_release"], default: bool | None = None) -> bool: ...
+
+    @overload
     def get(self, key: Literal["release"], default: Tag | None = None) -> Tag: ...
 
     @overload
@@ -92,6 +95,9 @@ class ReleaseShelf(Protocol):
 
     @overload
     def __getitem__(self, key: Literal["sign_gpg"]) -> bool: ...
+
+    @overload
+    def __getitem__(self, key: Literal["security_release"]) -> bool: ...
 
     @overload
     def __getitem__(self, key: Literal["release"]) -> Tag: ...
@@ -121,6 +127,9 @@ class ReleaseShelf(Protocol):
 
     @overload
     def __setitem__(self, key: Literal["sign_gpg"], value: bool) -> None: ...
+
+    @overload
+    def __setitem__(self, key: Literal["security_release"], value: bool) -> None: ...
 
     @overload
     def __setitem__(self, key: Literal["release"], value: Tag) -> None: ...
