@@ -321,9 +321,13 @@ def check_ssh_connection(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"])
+    client.connect(
+        DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
+    )
     client.exec_command("pwd")
-    client.connect(DOCS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"])
+    client.connect(
+        DOCS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
+    )
     client.exec_command("pwd")
 
 
@@ -331,7 +335,9 @@ def check_sigstore_client(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"])
+    client.connect(
+        DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
+    )
     _, stdout, _ = client.exec_command("python3 -m sigstore --version")
     sigstore_version = stdout.read(1000).decode()
     sigstore_vermatch = re.match("^sigstore ([0-9.]+)", sigstore_version)
@@ -748,7 +754,9 @@ def place_files_in_download_folder(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"])
+    client.connect(
+        DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
+    )
     transport = client.get_transport()
     assert transport is not None, f"SSH transport to {DOWNLOADS_SERVER} is None"
 
@@ -799,7 +807,9 @@ def unpack_docs_in_the_docs_server(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(DOCS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"])
+    client.connect(
+        DOCS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
+    )
     transport = client.get_transport()
     assert transport is not None, f"SSH transport to {DOCS_SERVER} is None"
 
@@ -916,7 +926,9 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"])
+    client.connect(
+        DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
+    )
     ftp_client = client.open_sftp()
 
     destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
@@ -934,16 +946,18 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
         are_windows_files_there = f"python-{release}.exe" in all_files
         are_macos_files_there = f"python-{release}-macos11.pkg" in all_files
         are_linux_files_there = f"Python-{release}.tgz" in all_files
-        
+
         if db["security_release"]:
             # For security releases, only check Linux files
             are_all_files_there = are_linux_files_there
         else:
             # For regular releases, check all platforms
             are_all_files_there = (
-                are_linux_files_there and are_windows_files_there and are_macos_files_there
+                are_linux_files_there
+                and are_windows_files_there
+                and are_macos_files_there
             )
-            
+
         if not are_all_files_there:
             linux_tick = "✅" if are_linux_files_there else "❌"
             windows_tick = "✅" if are_windows_files_there else "❌"
@@ -968,7 +982,9 @@ def run_add_to_python_dot_org(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"])
+    client.connect(
+        DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
+    )
     transport = client.get_transport()
     assert transport is not None, f"SSH transport to {DOWNLOADS_SERVER} is None"
 
