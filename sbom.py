@@ -608,7 +608,7 @@ def create_sbom_for_source_tarball(tarball_path: str) -> SBOM:
     # Now we walk the tarball and compare known files to our expected checksums in the SBOM.
     # All files that aren't already in the SBOM can be added as "CPython" files.
     for member in tarball.getmembers():
-        if member.isdir() or not member.isfile():  # Skip directories and symlinks!
+        if not member.isfile():  # Only keep files (no symlinks)
             continue
 
         # Get the member from the tarball. CPython prefixes all of its
