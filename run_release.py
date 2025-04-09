@@ -222,7 +222,6 @@ class ReleaseDriver:
         ssh_user: str,
         sign_gpg: bool,
         ssh_key: str | None = None,
-        security_release: bool = False,
         first_state: Task | None = None,
     ) -> None:
         self.tasks = tasks
@@ -249,11 +248,10 @@ class ReleaseDriver:
             self.db["ssh_key"] = ssh_key
         if not self.db.get("sign_gpg"):
             self.db["sign_gpg"] = sign_gpg
-        if not self.db.get("security_release"):
-            self.db["security_release"] = security_release
-
         if not self.db.get("release"):
             self.db["release"] = release_tag
+        if not self.db.get("security_release"):
+            self.db["security_release"] = self.db["release"].is_security_release
 
         print("Release data: ")
         print(f"- Branch: {release_tag.branch}")
@@ -1399,13 +1397,6 @@ def main() -> None:
         help="Path to the SSH key file to use for authentication",
         type=str,
     )
-    parser.add_argument(
-        "--security-release",
-        dest="security_release",
-        action="store_true",
-        default=False,
-        help="Indicate this is a security release (only checks for Linux files)",
-    )
     args = parser.parse_args()
 
     auth_key = args.auth_key or os.getenv("AUTH_INFO")
@@ -1496,7 +1487,6 @@ fix these things in this script so it also supports your platform.
         ssh_user=args.ssh_user,
         sign_gpg=not no_gpg,
         ssh_key=args.ssh_key,
-        security_release=args.security_release,
         tasks=tasks,
     )
     automata.run()

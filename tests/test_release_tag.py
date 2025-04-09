@@ -1,3 +1,4 @@
+import io
 from subprocess import CompletedProcess
 
 import pytest
@@ -140,3 +141,33 @@ def test_tag_long_name() -> None:
     assert rc.long_name == "3.13.0 release candidate 3"
     assert final_zero.long_name == "3.13.0"
     assert final_3.long_name == "3.13.3"
+
+
+@pytest.mark.parametrize(
+    ["version", "expected"],
+    [
+        ("3.12.10", True),
+        ("3.13.3", False),
+    ],
+)
+def test_tag_is_security_release(
+    version: str, expected: str, mocker: MockerFixture
+) -> None:
+    # Arrange
+    mock_response = b"""
+    {
+        "3.13": {
+            "status": "bugfix"
+        },
+        "3.12": {
+            "status": "security"
+        }
+    }
+    """
+    mocker.patch("urllib.request.urlopen", return_value=io.BytesIO(mock_response))
+
+    # Act
+    tag = release.Tag(version)
+
+    # Assert
+    assert tag.is_security_release is expected

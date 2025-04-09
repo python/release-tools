@@ -11,6 +11,7 @@ from __future__ import annotations
 import datetime
 import glob
 import hashlib
+import json
 import optparse
 import os
 import re
@@ -31,6 +32,7 @@ from typing import (
     Self,
     overload,
 )
+from urllib.request import urlopen
 
 COMMASPACE = ", "
 SPACE = " "
@@ -203,6 +205,13 @@ class Tag:
     @property
     def is_feature_freeze_release(self) -> bool:
         return self.level == "b" and self.serial == 1
+
+    @property
+    def is_security_release(self) -> bool:
+        url = "https://raw.githubusercontent.com/python/devguide/refs/heads/main/include/release-cycle.json"
+        with urlopen(url) as response:
+            data = json.loads(response.read())
+        return str(data[self.basic_version]["status"]) == "security"
 
     @property
     def nickname(self) -> str:
