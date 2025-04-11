@@ -906,7 +906,6 @@ def send_email_to_platform_release_managers(db: ReleaseShelf) -> None:
 
     print()
     print(f"{github_prefix}/{db['release'].gitname}")
-    print(f"{github_prefix}/branch-{db['release']}")
     print(f"Git commit SHA: {commit_sha}")
     print(
         "Source/docs build: https://github.com/python/release-tools/actions/runs/[ENTER-RUN-ID-HERE]"
