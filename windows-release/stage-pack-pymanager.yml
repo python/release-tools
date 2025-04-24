@@ -66,8 +66,6 @@ jobs:
       LOCAL_INDEX: 1
       NO_UPLOAD: 1
       INDEX_FILE: 'index.json'
-      # The version will be inserted into this name
-      MANIFEST_FILE: 'windows.json'
 
   - publish: '$(Build.ArtifactStagingDirectory)'
     artifact: pymanager_bundle
