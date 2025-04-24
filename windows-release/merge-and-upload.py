@@ -3,6 +3,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 
 from pathlib import Path
 from urllib.parse import urlparse
@@ -11,7 +12,7 @@ from urllib.request import urlopen, Request
 UPLOAD_URL_PREFIX = os.getenv("UPLOAD_URL_PREFIX", "https://www.python.org/ftp/")
 UPLOAD_PATH_PREFIX = os.getenv("UPLOAD_PATH_PREFIX", "/srv/www.python.org/ftp/")
 INDEX_URL = os.getenv("INDEX_URL", UPLOAD_URL_PREFIX + "python/index.windows.json")
-INDEX_FILE = os.getenv("INDEX_FILE", "index.json")
+INDEX_FILE = Path(os.getenv("INDEX_FILE", "index.windows.json"))
 UPLOAD_HOST = os.getenv("UPLOAD_HOST", "")
 UPLOAD_HOST_KEY = os.getenv("UPLOAD_HOST_KEY", "")
 UPLOAD_KEYFILE = os.getenv("UPLOAD_KEYFILE", "")
@@ -203,6 +204,12 @@ def install_sortkey(install):
 
 
 UPLOADS = list(calculate_uploads())
+
+if not UPLOADS:
+    print("No files to upload!")
+    sys.exit(1)
+
+
 hash_packages(UPLOADS)
 
 
@@ -225,12 +232,23 @@ else:
 
 new_installs = [trim_install(i) for i, *_ in UPLOADS]
 validate_new_installs(new_installs)
-index["versions"][:0] = sorted(new_installs, key=install_sortkey)
+new_installs = sorted(new_installs, key=install_sortkey)
+index["versions"][:0] = new_installs
 
 with open(INDEX_FILE, "w", encoding="utf-8") as f:
     # Include an indent for sanity while testing.
     # We should probably remove it later for the size benefits.
     json.dump(index, f, indent=1)
+
+# Include the sort-version so that the manifest name includes prerelease marks
+MANIFEST_FILE = Path(INDEX_FILE).absolute().with_suffix(f".{new_installs[0]['sort-version']}.json")
+MANIFEST_URL = new_installs[0]["url"].rpartition("/")[0] + f"/{MANIFEST_FILE.name}"
+MANIFEST_PATH = url2path(MANIFEST_URL)
+
+with open(MANIFEST_FILE, "w", encoding="utf-8") as f:
+    # Include an indent for readability. The release manifest is
+    # far more likely to be read by humans than the index.
+    json.dump({"versions": new_installs}, f, indent=2)
 
 print("Merged", len(UPLOADS), "entries")
 
@@ -248,6 +266,9 @@ for i, src, dest, sbom, sbom_dest in UPLOADS:
 if not NO_UPLOAD:
     print("Uploading", INDEX_FILE, "to", INDEX_URL)
     upload_ssh(INDEX_FILE, INDEX_PATH)
+
+    print("Uploading", MANIFEST_FILE, "to", MANIFEST_URL)
+    upload_ssh(MANIFEST_FILE, MANIFEST_PATH)
 
     print("Purging", len(UPLOADS), "uploaded files")
     for i, *_ in UPLOADS:
