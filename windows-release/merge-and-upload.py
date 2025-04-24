@@ -12,7 +12,9 @@ from urllib.request import urlopen, Request
 UPLOAD_URL_PREFIX = os.getenv("UPLOAD_URL_PREFIX", "https://www.python.org/ftp/")
 UPLOAD_PATH_PREFIX = os.getenv("UPLOAD_PATH_PREFIX", "/srv/www.python.org/ftp/")
 INDEX_URL = os.getenv("INDEX_URL", UPLOAD_URL_PREFIX + "python/index.windows.json")
-INDEX_FILE = Path(os.getenv("INDEX_FILE", "index.windows.json"))
+INDEX_FILE = os.getenv("INDEX_FILE")
+# A version will be inserted before the extension later on
+MANIFEST_FILE = os.getenv("MANIFEST_FILE")
 UPLOAD_HOST = os.getenv("UPLOAD_HOST", "")
 UPLOAD_HOST_KEY = os.getenv("UPLOAD_HOST_KEY", "")
 UPLOAD_KEYFILE = os.getenv("UPLOAD_KEYFILE", "")
@@ -213,21 +215,23 @@ if not UPLOADS:
 hash_packages(UPLOADS)
 
 
-INDEX_PATH = url2path(INDEX_URL)
 index = {"versions": []}
-try:
-    if not LOCAL_INDEX:
-        download_ssh(INDEX_PATH, INDEX_FILE)
-except RunError as ex:
-    err = ex.args[1]
-    if not err.rstrip().endswith("no such file or directory"):
-        raise
-else:
+
+if INDEX_FILE:
+    INDEX_PATH = url2path(INDEX_URL)
     try:
-        with open(INDEX_FILE, "r", encoding="utf-8") as f:
-            index = json.load(f)
-    except FileNotFoundError:
-        pass
+        if not LOCAL_INDEX:
+            download_ssh(INDEX_PATH, INDEX_FILE)
+    except RunError as ex:
+        err = ex.args[1]
+        if not err.rstrip().endswith("no such file or directory"):
+            raise
+    else:
+        try:
+            with open(INDEX_FILE, "r", encoding="utf-8") as f:
+                index = json.load(f)
+        except FileNotFoundError:
+            pass
 
 
 new_installs = [trim_install(i) for i, *_ in UPLOADS]
@@ -235,20 +239,23 @@ validate_new_installs(new_installs)
 new_installs = sorted(new_installs, key=install_sortkey)
 index["versions"][:0] = new_installs
 
-with open(INDEX_FILE, "w", encoding="utf-8") as f:
-    # Include an indent for sanity while testing.
-    # We should probably remove it later for the size benefits.
-    json.dump(index, f, indent=1)
+if INDEX_FILE:
+    with open(INDEX_FILE, "w", encoding="utf-8") as f:
+        # Include an indent for sanity while testing.
+        # We should probably remove it later for the size benefits.
+        json.dump(index, f, indent=1)
 
-# Include the sort-version so that the manifest name includes prerelease marks
-MANIFEST_FILE = Path(INDEX_FILE).absolute().with_suffix(f".{new_installs[0]['sort-version']}.json")
-MANIFEST_URL = new_installs[0]["url"].rpartition("/")[0] + f"/{MANIFEST_FILE.name}"
-MANIFEST_PATH = url2path(MANIFEST_URL)
+if MANIFEST_FILE:
+    # Use the sort-version so that the manifest name includes prerelease marks
+    MANIFEST_FILE = Path(MANIFEST_FILE).absolute()
+    MANIFEST_FILE = MANIFEST_FILE.with_name(f"{MANIFEST_FILE.stem}-{new_installs[0]['sort-version']}.json")
+    MANIFEST_URL = new_installs[0]["url"].rpartition("/")[0] + f"/{MANIFEST_FILE.name}"
+    MANIFEST_PATH = url2path(MANIFEST_URL)
 
-with open(MANIFEST_FILE, "w", encoding="utf-8") as f:
-    # Include an indent for readability. The release manifest is
-    # far more likely to be read by humans than the index.
-    json.dump({"versions": new_installs}, f, indent=2)
+    with open(MANIFEST_FILE, "w", encoding="utf-8") as f:
+        # Include an indent for readability. The release manifest is
+        # far more likely to be read by humans than the index.
+        json.dump({"versions": new_installs}, f, indent=2)
 
 print("Merged", len(UPLOADS), "entries")
 
@@ -264,11 +271,13 @@ for i, src, dest, sbom, sbom_dest in UPLOADS:
 
 
 if not NO_UPLOAD:
-    print("Uploading", INDEX_FILE, "to", INDEX_URL)
-    upload_ssh(INDEX_FILE, INDEX_PATH)
+    if INDEX_FILE:
+        print("Uploading", INDEX_FILE, "to", INDEX_URL)
+        upload_ssh(INDEX_FILE, INDEX_PATH)
 
-    print("Uploading", MANIFEST_FILE, "to", MANIFEST_URL)
-    upload_ssh(MANIFEST_FILE, MANIFEST_PATH)
+    if MANIFEST_FILE:
+        print("Uploading", MANIFEST_FILE, "to", MANIFEST_URL)
+        upload_ssh(MANIFEST_FILE, MANIFEST_PATH)
 
     print("Purging", len(UPLOADS), "uploaded files")
     for i, *_ in UPLOADS:

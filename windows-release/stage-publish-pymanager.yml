@@ -75,7 +75,8 @@ jobs:
     displayName: 'Upload ZIPs'
     env:
       INDEX_URL: '$(PyDotOrgUrlPrefix)python/index.windows.json'
-      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\index.json'
+      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\index.windows.json'
+      MANIFEST_FILE: '$(Build.ArtifactStagingDirectory)\index\windows.json'
       UPLOAD_URL_PREFIX: $(PyDotOrgUrlPrefix)
       UPLOAD_PATH_PREFIX: $(PyDotOrgUploadPathPrefix)
       UPLOAD_HOST: $(PyDotOrgServer)
@@ -86,6 +87,7 @@ jobs:
   - ${{ each alg in parameters.HashAlgorithms }}:
     - powershell: |
         $files = (dir "*\__install__.json").Directory | %{ dir -File "$_\*.zip" }
+        $files = $files, (dir -File "${env:INDEX_DIR}\*.json")
         $hashes = $files  | `
             Sort-Object Name | `
             Format-Table Name, @{
@@ -98,6 +100,8 @@ jobs:
         $hashes
       workingDirectory: $(Build.BinariesDirectory)
       displayName: 'Generate hashes (${{ alg }})'
+      env:
+        INDEX_DIR: '$(Build.ArtifactStagingDirectory)\index'
 
   - publish: '$(Build.ArtifactStagingDirectory)\index'
     artifact: pymanager_index
