@@ -240,6 +240,8 @@ new_installs = sorted(new_installs, key=install_sortkey)
 index["versions"][:0] = new_installs
 
 if INDEX_FILE:
+    INDEX_FILE = Path(INDEX_FILE).absolute()
+    INDEX_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(INDEX_FILE, "w", encoding="utf-8") as f:
         # Include an indent for sanity while testing.
         # We should probably remove it later for the size benefits.

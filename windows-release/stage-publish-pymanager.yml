@@ -74,8 +74,8 @@ jobs:
     workingDirectory: $(Build.BinariesDirectory)
     displayName: 'Upload ZIPs'
     env:
-      INDEX_URL: '$(PyDotOrgUrlPrefix)python/index.windows.json'
-      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\index.windows.json'
+      INDEX_URL: '$(PyDotOrgUrlPrefix)python/index-windows.json'
+      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\index-windows.json'
       MANIFEST_FILE: '$(Build.ArtifactStagingDirectory)\index\windows.json'
       UPLOAD_URL_PREFIX: $(PyDotOrgUrlPrefix)
       UPLOAD_PATH_PREFIX: $(PyDotOrgUploadPathPrefix)
