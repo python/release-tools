@@ -7,7 +7,7 @@ import sys
 
 from pathlib import Path
 from urllib.parse import urlparse
-from urllib.request import urlopen, Request
+from urllib.request import Request, urlopen
 
 UPLOAD_URL_PREFIX = os.getenv("UPLOAD_URL_PREFIX", "https://www.python.org/ftp/")
 UPLOAD_PATH_PREFIX = os.getenv("UPLOAD_PATH_PREFIX", "/srv/www.python.org/ftp/")
@@ -22,6 +22,7 @@ UPLOAD_USER = os.getenv("UPLOAD_USER", "")
 NO_UPLOAD = os.getenv("NO_UPLOAD", "no")[:1].lower() in "yt1"
 LOCAL_INDEX = os.getenv("LOCAL_INDEX", "no")[:1].lower() in "yt1"
 
+
 def find_cmd(env, exe):
     cmd = os.getenv(env)
     if cmd:
@@ -32,7 +33,9 @@ def find_cmd(env, exe):
             if cmd.is_file():
                 return cmd
     if UPLOAD_HOST:
-        raise RuntimeError(f"Could not find {exe} to perform upload. Try setting %{env}% or %PATH%")
+        raise RuntimeError(
+            f"Could not find {exe} to perform upload. Try setting %{env}% or %PATH%"
+        )
     print(f"Did not find {exe}, but not uploading anyway.")
 
 PLINK = find_cmd("PLINK", "plink.exe")
@@ -120,7 +123,7 @@ def url2path(url):
         if LOCAL_INDEX:
             return url
         raise ValueError(f"Unexpected URL: {url}")
-    return UPLOAD_PATH_PREFIX + url[len(UPLOAD_URL_PREFIX):]
+    return UPLOAD_PATH_PREFIX + url[len(UPLOAD_URL_PREFIX) :]
 
 
 def get_hashes(src):
@@ -134,8 +137,9 @@ def get_hashes(src):
 
 
 def trim_install(install):
-    return {k: v for k, v in install.items()
-            if k not in ("aliases", "run-for", "shortcuts")}
+    return {
+        k: v for k, v in install.items() if k not in ("aliases", "run-for", "shortcuts")
+    }
 
 
 def validate_new_installs(installs):
@@ -157,10 +161,12 @@ def purge(url):
 
 def calculate_uploads():
     cwd = Path.cwd()
-    for p in sorted([
-        *cwd.glob("__install__.*.json"),
-        *[p / "__install__.json" for p in cwd.iterdir()],
-    ]):
+    for p in sorted(
+        [
+            *cwd.glob("__install__.*.json"),
+            *[p / "__install__.json" for p in cwd.iterdir()],
+        ]
+    ):
         if not p.is_file():
             continue
         print("Processing", p)
@@ -228,7 +234,7 @@ if INDEX_FILE:
             raise
     else:
         try:
-            with open(INDEX_FILE, "r", encoding="utf-8") as f:
+            with open(INDEX_FILE, encoding="utf-8") as f:
                 index = json.load(f)
         except FileNotFoundError:
             pass
@@ -250,8 +256,9 @@ if INDEX_FILE:
 if MANIFEST_FILE:
     # Use the sort-version so that the manifest name includes prerelease marks
     MANIFEST_FILE = Path(MANIFEST_FILE).absolute()
-    MANIFEST_FILE = MANIFEST_FILE.with_name(f"{MANIFEST_FILE.stem}-{new_installs[0]['sort-version']}.json")
-    MANIFEST_URL = new_installs[0]["url"].rpartition("/")[0] + f"/{MANIFEST_FILE.name}"
+    name = f"{MANIFEST_FILE.stem}-{new_installs[0]['sort-version']}.json"
+    MANIFEST_FILE = MANIFEST_FILE.with_name(name)
+    MANIFEST_URL = new_installs[0]["url"].rpartition("/")[0] + "/" + name
     MANIFEST_PATH = url2path(MANIFEST_URL)
 
     with open(MANIFEST_FILE, "w", encoding="utf-8") as f:
