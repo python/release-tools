@@ -18,7 +18,9 @@ repos:
       - id: check-merge-conflict
       - id: check-toml
       - id: check-yaml
-        exclude: windows-release/azure-pipelines.yml
+        exclude:
+        - windows-release/azure-pipelines.yml
+        - windows-release/msi-steps.yml
       - id: debug-statements
       - id: end-of-file-fixer
       - id: forbid-submodules

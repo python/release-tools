@@ -4,7 +4,6 @@ import os
 import re
 import subprocess
 import sys
-
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
@@ -37,6 +36,7 @@ def find_cmd(env, exe):
             f"Could not find {exe} to perform upload. Try setting %{env}% or %PATH%"
         )
     print(f"Did not find {exe}, but not uploading anyway.")
+
 
 PLINK = find_cmd("PLINK", "plink.exe")
 PSCP = find_cmd("PSCP", "pscp.exe")
