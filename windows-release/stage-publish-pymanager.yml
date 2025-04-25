@@ -67,6 +67,12 @@ jobs:
     displayName: 'Download PuTTY key'
 
   - powershell: |
+      git clone https://github.com/python/cpython-bin-deps --branch putty --single-branch --depth 1 --progress -v "putty"
+      "##vso[task.prependpath]$(gi putty)"
+    workingDirectory: $(Pipeline.Workspace)
+    displayName: 'Download PuTTY binaries'
+
+  - powershell: |
       "Uploading following packages:"
       (dir "__install__.*.json").FullName
       (dir "*\__install__.json").FullName
