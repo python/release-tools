@@ -72,6 +72,21 @@ jobs:
       (dir "*\__install__.json").FullName
       python "$(Build.SourcesDirectory)\windows-release\merge-and-upload.py"
     workingDirectory: $(Build.BinariesDirectory)
+    condition: and(succeeded(), ne(variables['IsRealSigned'], 'true'))
+    displayName: 'Produce uploadable ZIPs'
+    env:
+      NO_UPLOAD: 1
+      INDEX_URL: '$(PyDotOrgUrlPrefix)python/index-windows.json'
+      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\index-windows.json'
+      MANIFEST_FILE: '$(Build.ArtifactStagingDirectory)\index\windows.json'
+
+  - powershell: |
+      "Uploading following packages:"
+      (dir "__install__.*.json").FullName
+      (dir "*\__install__.json").FullName
+      python "$(Build.SourcesDirectory)\windows-release\merge-and-upload.py"
+    workingDirectory: $(Build.BinariesDirectory)
+    condition: and(succeeded(), eq(variables['IsRealSigned'], 'true'))
     displayName: 'Upload ZIPs'
     env:
       INDEX_URL: '$(PyDotOrgUrlPrefix)python/index-windows.json'
