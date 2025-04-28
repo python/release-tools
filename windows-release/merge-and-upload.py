@@ -191,11 +191,12 @@ def calculate_uploads():
 
 
 def remove_and_insert(index, new_installs):
-    new = {
-        (i["id"].casefold(), i["sort-version"].casefold()) for i in new_installs
-    }
-    to_remove = [x for x, i in enumerate(index)
-                 if (i["id"].casefold(), i["sort-version"].casefold()) in new]
+    new = {(i["id"].casefold(), i["sort-version"].casefold()) for i in new_installs}
+    to_remove = [
+        x
+        for x, i in enumerate(index)
+        if (i["id"].casefold(), i["sort-version"].casefold()) in new
+    ]
     for i in reversed(to_remove):
         del index[i]
     index[:0] = new_installs
