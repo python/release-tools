@@ -1,0 +1,68 @@
+parameters:
+  BuildToPackage: current
+  DoFreethreaded: false
+  Packages:
+  - win32
+  - amd64
+  - arm64
+  - win32_d
+  - amd64_d
+  - arm64_d
+  PackagesFreethreaded:
+  - win32_t
+  - amd64_t
+  - arm64_t
+  - win32_td
+  - amd64_td
+  - arm64_td
+
+
+jobs:
+- job: Layout_Symbols
+  displayName: Make symbols layout
+
+  pool:
+    vmImage: windows-2022
+
+  workspace:
+    clean: all
+
+  steps:
+  - checkout: none
+
+  - ${{ each p in parameters.Packages }}:
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download artifact: bin_${{ p }}'
+      inputs:
+        ${{ if eq(parameters.BuildToPackage, 'current') }}:
+          buildType: current
+        ${{ else }}:
+          buildType: specific
+          buildVersionToDownload: specific
+          project: $(resources.pipeline.build_to_package.projectId)
+          pipeline: $(resources.pipeline.build_to_package.pipelineId)
+          runId: $(resources.pipeline.build_to_package.runID)
+        artifact: bin_${{ p }}
+        itemPattern: '**\*.pdb'
+        targetPath: $(Build.ArtifactStagingDirectory)\${{ p }}
+
+  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+    - ${{ each p in parameters.PackagesFreethreaded }}:
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download artifact: bin_${{ p }}'
+        inputs:
+          ${{ if eq(parameters.BuildToPackage, 'current') }}:
+            buildType: current
+          ${{ else }}:
+            buildType: specific
+            buildVersionToDownload: specific
+            project: $(resources.pipeline.build_to_package.projectId)
+            pipeline: $(resources.pipeline.build_to_package.pipelineId)
+            runId: $(resources.pipeline.build_to_package.runID)
+          artifact: bin_${{ p }}
+          itemPattern: '**\*.pdb'
+          targetPath: $(Build.ArtifactStagingDirectory)\${{ p }}
+
+  - publish: $(Build.ArtifactStagingDirectory)
+    artifact: symbols
+    displayName: 'Publish Artifact: symbols'

@@ -3,12 +3,24 @@ parameters:
   Sources: $(Build.SourcesDirectory)
   Temp: $(Build.BinariesDirectory)\layout-temp
   Docs: $(Build.BinariesDirectory)\doc
+  LayoutSources:
+  BuildToPackage: current
 
 steps:
-- download: current
-  artifact: bin_$(HostArch)
+- task: DownloadPipelineArtifact@2
   displayName: 'Download artifact: bin_$(HostArch)'
   condition: and(succeeded(), variables['HostArch'])
+  inputs:
+    ${{ if eq(parameters.BuildToPackage, 'current') }}:
+      buildType: current
+    ${{ else }}:
+      buildType: specific
+      buildVersionToDownload: specific
+      project: $(resources.pipeline.build_to_package.projectId)
+      pipeline: $(resources.pipeline.build_to_package.pipelineId)
+      runId: $(resources.pipeline.build_to_package.runID)
+    artifact: bin_$(HostArch)
+    targetPath: $(Pipeline.Workspace)\bin_$(HostArch)
 
 - powershell: |
     Write-Host "##vso[task.setvariable variable=Python]${{ parameters.Binaries }}\python.exe"
@@ -23,7 +35,7 @@ steps:
 - powershell: >
     $layout_cmd = '&
     "$(Python)"
-    "{1}\PC\layout"
+    "{4}\PC\layout"
     -vv
     --source "{1}"
     --build "{0}"
@@ -31,7 +43,12 @@ steps:
     --temp "{2}"
     --include-cat "{0}\python.cat"
     --doc-build "{3}"'
-    -f ("${{ parameters.Binaries }}", "${{ parameters.Sources }}", "${{ parameters.Temp }}", "${{ parameters.Docs}}");
+    -f (
+    "${{ parameters.Binaries }}",
+    "${{ parameters.Sources }}",
+    "${{ parameters.Temp }}",
+    "${{ parameters.Docs}}",
+    "${{ coalesce(parameters.LayoutSources, parameters.Sources) }}");
     Write-Host "##vso[task.setvariable variable=LayoutCmd]$layout_cmd";
     Write-Host "Setting LayoutCmd=$layout_cmd"
   displayName: 'Set LayoutCmd'

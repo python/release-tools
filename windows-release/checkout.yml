@@ -1,22 +1,28 @@
 parameters:
   depth: 3
+  IncludeSelf: false
+  Path: .
 
 steps:
-- checkout: none
+- ${{ if eq(parameters.IncludeSelf, 'true') }}:
+  - checkout: self
+    path: release-tools
+- ${{ else }}:
+  - checkout: none
 
-- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(SourceTag) --single-branch https://github.com/$(GitRemote)/cpython.git .
+- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(SourceTag) --single-branch https://github.com/$(GitRemote)/cpython.git ${{ parameters.Path }}
   displayName: 'git clone ($(GitRemote)/$(SourceTag))'
   condition: and(succeeded(), and(variables['GitRemote'], variables['SourceTag']))
 
-- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(SourceTag) --single-branch $(Build.Repository.Uri) .
+- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(SourceTag) --single-branch $(Build.Repository.Uri) ${{ parameters.Path }}
   displayName: 'git clone (<default>/$(SourceTag))'
   condition: and(succeeded(), and(not(variables['GitRemote']), variables['SourceTag']))
 
-- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(Build.SourceBranchName) --single-branch https://github.com/$(GitRemote)/cpython.git .
+- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(Build.SourceBranchName) --single-branch https://github.com/$(GitRemote)/cpython.git ${{ parameters.Path }}
   displayName: 'git clone ($(GitRemote)/<default>)'
   condition: and(succeeded(), and(variables['GitRemote'], not(variables['SourceTag'])))
 
-- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(Build.SourceBranchName) --single-branch $(Build.Repository.Uri) .
+- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(Build.SourceBranchName) --single-branch $(Build.Repository.Uri) ${{ parameters.Path }}
   displayName: 'git clone'
   condition: and(succeeded(), and(not(variables['GitRemote']), not(variables['SourceTag'])))
 

@@ -1,5 +1,5 @@
 parameters:
-  ARM64TclTk: true
+  BuildToPackage: current
 
 jobs:
 - job: Make_MSIX_Layout
@@ -29,31 +29,60 @@ jobs:
         Name: arm64
         Arch: arm64
         HostArch: amd64
+        TclLibrary: tcltk_lib_arm64
         ExtraOptions: --precompile
-        ${{ if eq(parameters.ARM64TclTk, 'true') }}:
-          TclLibrary: tcltk_lib_arm64
 
   steps:
   - template: ./checkout.yml
 
-  - download: current
-    artifact: bin_$(Name)
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: bin_$(Name)'
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: bin_$(Name)
+      targetPath: $(Pipeline.Workspace)\bin_$(Name)
 
-  - download: current
-    artifact: $(TclLibrary)
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: $(TclLibrary)'
     condition: and(succeeded(), variables['TclLibrary'])
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: $(TclLibrary)
+      targetPath: $(Pipeline.Workspace)\$(TclLibrary)
 
   - powershell: |
       Write-Host "##vso[task.setvariable variable=TCL_LIBRARY]$(Pipeline.Workspace)\$(TclLibrary)\tcl8"
     displayName: 'Update TCL_LIBRARY'
     condition: and(succeeded(), variables['TclLibrary'])
 
-  - download: current
-    artifact: cert
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: cert'
     condition: and(succeeded(), variables['SigningCertificate'])
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: cert
+      targetPath: $(Pipeline.Workspace)\cert
 
   - powershell: |
       copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
@@ -61,6 +90,8 @@ jobs:
     condition: and(succeeded(), variables['SigningCertificate'])
 
   - template: ./layout-command.yml
+    parameters:
+      BuildToPackage: ${{ parameters.BuildToPackage }}
 
   - powershell: |
      Remove-Item "$(Build.ArtifactStagingDirectory)\appx-store" -Recurse -Force -EA 0

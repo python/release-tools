@@ -5,7 +5,7 @@ parameters:
   DoFreethreaded: 'false'
 
 jobs:
-- ${{ if parameters.SigningCertificate }}:
+- ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
   - job: Sign_Files
     displayName: Sign Python binaries
 
@@ -42,7 +42,10 @@ jobs:
 
     - powershell: |
         $d = (.\PCbuild\build.bat -V) | %{ if($_ -match '\s+(\w+):\s*(.+)\s*$') { @{$Matches[1] = $Matches[2];} }};
-        Write-Host "##vso[task.setvariable variable=SigningDescription]Python $($d.PythonVersion)"
+        $tag = git rev-parse --short HEAD
+        $desc = "Python $($d.PythonVersion) ($tag)"
+        Write-Host "##vso[task.setvariable variable=SigningDescription]$desc"
+        Write-Host "Updated signing description to: $desc"
       displayName: 'Update signing description'
       condition: and(succeeded(), not(variables['SigningDescription']))
 
@@ -50,16 +53,11 @@ jobs:
         Write-Host "##vso[build.addbuildtag]signed"
       displayName: 'Add build tags'
 
-    - task: DownloadPipelineArtifact@1
-      displayName: 'Download artifact: unsigned_bin_$(Name)'
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download artifact: unsigned_$(Name)'
       inputs:
-        artifactName: unsigned_bin_$(Name)
+        artifactName: unsigned_$(Name)
         targetPath: $(Build.BinariesDirectory)\bin
-
-    - powershell: |
-        copy "$(Build.SourcesDirectory)\Lib\venv\scripts\common\Activate.ps1" .
-      displayName: 'Copy files from source'
-      workingDirectory: $(Build.BinariesDirectory)\bin
 
     - template: sign-files.yml
       parameters:
@@ -69,17 +67,13 @@ jobs:
         ExtractDir: $(Build.BinariesDirectory)\cert
         SigningCertificate: ${{ parameters.SigningCertificate }}
 
-    - task: PublishPipelineArtifact@0
+    - publish: '$(Build.BinariesDirectory)\bin'
+      artifact: bin_$(Name)
       displayName: 'Publish artifact: bin_$(Name)'
-      inputs:
-        targetPath: '$(Build.BinariesDirectory)\bin'
-        artifactName: bin_$(Name)
 
-    - task: PublishPipelineArtifact@0
+    - publish: '$(Build.BinariesDirectory)\cert'
+      artifact: cert
       displayName: 'Publish artifact: cert'
-      inputs:
-        targetPath: '$(Build.BinariesDirectory)\cert'
-        artifactName: cert
 
 
 - ${{ else }}:

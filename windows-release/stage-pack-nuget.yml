@@ -5,7 +5,6 @@ parameters:
 jobs:
 - job: Pack_Nuget
   displayName: Pack Nuget bundles
-  condition: and(succeeded(), eq(variables['DoNuget'], 'true'))
 
   pool:
     vmImage: windows-2022
