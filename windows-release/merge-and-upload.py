@@ -70,7 +70,7 @@ def _run(*args):
     ) as p:
         out, _ = p.communicate(None)
         if out:
-            print(out)
+            print(out.encode("ascii", "replace").decode("ascii"))
         if p.returncode:
             raise RunError(p.returncode, out)
 
