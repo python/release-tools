@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 
 UPLOAD_URL_PREFIX = os.getenv("UPLOAD_URL_PREFIX", "https://www.python.org/ftp/")
 UPLOAD_PATH_PREFIX = os.getenv("UPLOAD_PATH_PREFIX", "/srv/www.python.org/ftp/")
-INDEX_URL = os.getenv("INDEX_URL", UPLOAD_URL_PREFIX + "python/index.windows.json")
+INDEX_URL = os.getenv("INDEX_URL", UPLOAD_URL_PREFIX + "python/index-windows.json")
 INDEX_FILE = os.getenv("INDEX_FILE")
 # A version will be inserted before the extension later on
 MANIFEST_FILE = os.getenv("MANIFEST_FILE")
@@ -190,6 +190,22 @@ def calculate_uploads():
         )
 
 
+def remove_and_insert(index, new_installs):
+    new = {
+        (i["id"].casefold(), i["sort-version"].casefold()) for i in new_installs
+    }
+    to_remove = [x for x, i in enumerate(index)
+                 if (i["id"].casefold(), i["sort-version"].casefold()) in new]
+    for i in reversed(to_remove):
+        del index[i]
+    index[:0] = new_installs
+    print("Added", len(new_installs), "entries:")
+    for i in new_installs:
+        print("-", i["id"], i["sort-version"])
+    print("Replaced", len(to_remove), "existing entries")
+    print()
+
+
 def hash_packages(uploads):
     for i, src, *_ in uploads:
         i["hash"] = get_hashes(src)
@@ -243,15 +259,13 @@ if INDEX_FILE:
 new_installs = [trim_install(i) for i, *_ in UPLOADS]
 validate_new_installs(new_installs)
 new_installs = sorted(new_installs, key=install_sortkey)
-index["versions"][:0] = new_installs
+remove_and_insert(index["versions"], new_installs)
 
 if INDEX_FILE:
     INDEX_FILE = Path(INDEX_FILE).absolute()
     INDEX_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(INDEX_FILE, "w", encoding="utf-8") as f:
-        # Include an indent for sanity while testing.
-        # We should probably remove it later for the size benefits.
-        json.dump(index, f, indent=1)
+        json.dump(index, f)
 
 if MANIFEST_FILE:
     # Use the sort-version so that the manifest name includes prerelease marks
@@ -265,8 +279,6 @@ if MANIFEST_FILE:
         # Include an indent for readability. The release manifest is
         # far more likely to be read by humans than the index.
         json.dump({"versions": new_installs}, f, indent=2)
-
-print("Merged", len(UPLOADS), "entries")
 
 
 # Upload last to ensure we've got a valid index first
