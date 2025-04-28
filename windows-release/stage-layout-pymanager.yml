@@ -185,6 +185,7 @@ jobs:
     parameters:
       Binaries: $(Pipeline.Workspace)\$(BinArtifact)
       Sources: $(Build.SourcesDirectory)\cpython
+      Docs: $(Pipeline.Workspace)\doc
       BuildToPackage: ${{ parameters.BuildToPackage }}
       ${{ if ne(parameters.BuildToPackage, 'current') }}:
         LayoutSources: $(Build.SourcesDirectory)\layout-script
