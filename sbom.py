@@ -26,18 +26,9 @@ import typing
 import zipfile
 from functools import cache
 from pathlib import Path
-from typing import Any, TypedDict, cast
+from typing import Any, LiteralString, NotRequired, TypedDict, cast
 from urllib.request import urlopen
 
-try:
-    from typing import LiteralString
-except ImportError:
-    LiteralString = str
-
-try:
-    from typing import NotRequired
-except ImportError:
-    NotRequired = typing.Optional
 
 class SBOM(TypedDict):
     SPDXID: str

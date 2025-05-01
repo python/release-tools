@@ -131,6 +131,7 @@ steps:
       "--cpython-source-dir=$(Build.SourcesDirectory)"
       $(gci -r "$(Build.ArtifactStagingDirectory)\msi\**\python-*.exe")
     workingDirectory: $(Build.BinariesDirectory)
+    condition: and(succeeded(), not(variables['SkipSBOM']))
     displayName: 'Create SBOMs for binaries'
     env:
       PYTHON: $(Build.BinariesDirectory)\win32\python.exe
@@ -138,6 +139,7 @@ steps:
 
   - task: CopyFiles@2
     displayName: 'Layout Artifact: sbom'
+    condition: and(succeeded(), not(variables['SkipSBOM']))
     inputs:
       sourceFolder: $(Build.ArtifactStagingDirectory)\msi
       targetFolder: $(Build.ArtifactStagingDirectory)\sbom
@@ -152,6 +154,7 @@ steps:
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: sbom'
+    condition: and(succeeded(), not(variables['SkipSBOM']))
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\sbom'
       ArtifactName: sbom
