@@ -154,17 +154,17 @@ stages:
         ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
           ToBeSigned: true
         ${{ if ne(parameters.DoJIT, 'true') }}:
-          JITOption: ''
+          ExtraOptions: ''
         ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-          JITOption: '--experimental-jit-off'
+          ExtraOptions: '--experimental-jit-off'
         ${{ else }}:
-          JITOption: '--experimental-jit'
+          ExtraOptions: '--experimental-jit'
         ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
-          JITOptionFreethreaded: ''
+          ExtraOptionsFreethreaded: '--disable-gil'
         ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-          JITOptionFreethreaded: '--experimental-jit-off'
+          ExtraOptionsFreethreaded: '--disable-gil --experimental-jit-off'
         ${{ else }}:
-          JITOptionFreethreaded: '--experimental-jit'
+          ExtraOptionsFreethreaded: '--disable-gil --experimental-jit'
 
   - stage: Sign
     displayName: Sign binaries

@@ -4,8 +4,8 @@ parameters:
   DoPGOARM64: true
   DoFreethreaded: false
   ToBeSigned: false
-  JITOption: ''
-  JITOptionFreethreaded: ''
+  ExtraOptions: ''
+  ExtraOptionsFreethreaded: ''
 
 jobs:
 - job: Build_Docs
@@ -54,7 +54,7 @@ jobs:
         Platform: x86
         Configuration: Release
         _HostPython: .\python
-        ExtraOptions: ${{ parameters.JITOption }}
+        ExtraOptions: ${{ parameters.ExtraOptions }}
         ${{ if eq(parameters.ToBeSigned, 'true') }}:
           Artifact: unsigned_win32
         ${{ else }}:
@@ -65,7 +65,7 @@ jobs:
         Platform: x86
         Configuration: Debug
         _HostPython: .\python
-        ExtraOptions: ${{ parameters.JITOption }}
+        ExtraOptions: ${{ parameters.ExtraOptions }}
         Artifact: bin_win32_d
       ${{ if ne(parameters.DoPGO, 'true') }}:
         amd64:
@@ -74,7 +74,7 @@ jobs:
           Platform: x64
           Configuration: Release
           _HostPython: .\python
-          ExtraOptions: ${{ parameters.JITOption }}
+          ExtraOptions: ${{ parameters.ExtraOptions }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_amd64
           ${{ else }}:
@@ -85,7 +85,7 @@ jobs:
         Platform: x64
         Configuration: Debug
         _HostPython: .\python
-        ExtraOptions: ${{ parameters.JITOption }}
+        ExtraOptions: ${{ parameters.ExtraOptions }}
         Artifact: bin_amd64_d
       ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
         arm64:
@@ -94,7 +94,7 @@ jobs:
           Platform: ARM64
           Configuration: Release
           _HostPython: python
-          ExtraOptions: ${{ parameters.JITOption }}
+          ExtraOptions: ${{ parameters.ExtraOptions }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_arm64
           ${{ else }}:
@@ -105,7 +105,7 @@ jobs:
         Platform: ARM64
         Configuration: Debug
         _HostPython: python
-        ExtraOptions: ${{ parameters.JITOption }}
+        ExtraOptions: ${{ parameters.ExtraOptions }}
         Artifact: bin_arm64_d
       ${{ if eq(parameters.DoFreethreaded, 'true') }}:
         win32_t:
@@ -114,7 +114,7 @@ jobs:
           Platform: x86
           Configuration: Release
           _HostPython: .\python
-          ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
+          ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_win32_t
           ${{ else }}:
@@ -125,7 +125,7 @@ jobs:
           Platform: x86
           Configuration: Debug
           _HostPython: .\python
-          ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
+          ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
           Artifact: bin_win32_td
         ${{ if ne(parameters.DoPGO, 'true') }}:
           amd64_t:
@@ -134,7 +134,7 @@ jobs:
             Platform: x64
             Configuration: Release
             _HostPython: .\python
-            ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
+            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_amd64_t
             ${{ else }}:
@@ -145,7 +145,7 @@ jobs:
           Platform: x64
           Configuration: Debug
           _HostPython: .\python
-          ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
+          ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
           Artifact: bin_amd64_td
         ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
           arm64_t:
@@ -154,7 +154,7 @@ jobs:
             Platform: ARM64
             Configuration: Release
             _HostPython: python
-            ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
+            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_arm64_t
             ${{ else }}:
@@ -165,7 +165,7 @@ jobs:
           Platform: ARM64
           Configuration: Debug
           _HostPython: python
-          ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
+          ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
           Artifact: bin_arm64_td
 
   steps:
@@ -190,7 +190,7 @@ jobs:
           Platform: x64
           _HostPython: .\python
           PythonExePattern: python.exe
-          ExtraOptions: ${{ parameters.JITOption }}
+          ExtraOptions: ${{ parameters.ExtraOptions }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_amd64
           ${{ else }}:
@@ -202,7 +202,7 @@ jobs:
             Platform: x64
             _HostPython: .\python
             PythonExePattern: python3*t.exe
-            ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
+            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_amd64_t
             ${{ else }}:
@@ -235,7 +235,7 @@ jobs:
           arm64:
             Name: arm64
             PythonExePattern: python.exe
-            ExtraOptions: ${{ parameters.JITOption }}
+            ExtraOptions: ${{ parameters.ExtraOptions }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_arm64
             ${{ else }}:
@@ -244,7 +244,7 @@ jobs:
             arm64_t:
               Name: arm64_t
               PythonExePattern: python3*t.exe
-              ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
+              ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
               ${{ if eq(parameters.ToBeSigned, 'true') }}:
                 Artifact: unsigned_arm64_t
               ${{ else }}:
@@ -315,7 +315,7 @@ jobs:
           arm64:
             Name: arm64
             PythonExePattern: python.exe
-            ExtraOptions: ${{ parameters.JITOption }}
+            ExtraOptions: ${{ parameters.ExtraOptions }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_arm64
             ${{ else }}:
@@ -324,7 +324,7 @@ jobs:
             arm64_t:
               Name: arm64_t
               PythonExePattern: python3*t.exe
-              ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
+              ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
               ${{ if eq(parameters.ToBeSigned, 'true') }}:
                 Artifact: unsigned_arm64_t
               ${{ else }}:
