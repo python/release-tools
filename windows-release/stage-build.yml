@@ -4,9 +4,8 @@ parameters:
   DoPGOARM64: true
   DoFreethreaded: false
   ToBeSigned: false
-  DoJIT: false
-  DoJITEnabled: false
-  DoJITFreethreaded: false
+  JITOption: ''
+  JITOptionFreethreaded: ''
 
 jobs:
 - job: Build_Docs
@@ -55,12 +54,7 @@ jobs:
         Platform: x86
         Configuration: Release
         _HostPython: .\python
-        ${{ if ne(parameters.DoJIT, 'true') }}:
-          ExtraOptions: ''
-        ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-          ExtraOptions: '--experimental-jit-off'
-        ${{ else }}:
-          ExtraOptions: '--experimental-jit'
+        ExtraOptions: ${{ parameters.JITOption }}
         ${{ if eq(parameters.ToBeSigned, 'true') }}:
           Artifact: unsigned_win32
         ${{ else }}:
@@ -71,12 +65,7 @@ jobs:
         Platform: x86
         Configuration: Debug
         _HostPython: .\python
-        ${{ if ne(parameters.DoJIT, 'true') }}:
-          ExtraOptions: ''
-        ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-          ExtraOptions: '--experimental-jit-off'
-        ${{ else }}:
-          ExtraOptions: '--experimental-jit'
+        ExtraOptions: ${{ parameters.JITOption }}
         Artifact: bin_win32_d
       ${{ if ne(parameters.DoPGO, 'true') }}:
         amd64:
@@ -85,12 +74,7 @@ jobs:
           Platform: x64
           Configuration: Release
           _HostPython: .\python
-          ${{ if ne(parameters.DoJIT, 'true') }}:
-            ExtraOptions: ''
-          ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-            ExtraOptions: '--experimental-jit-off'
-          ${{ else }}:
-            ExtraOptions: '--experimental-jit'
+          ExtraOptions: ${{ parameters.JITOption }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_amd64
           ${{ else }}:
@@ -101,12 +85,7 @@ jobs:
         Platform: x64
         Configuration: Debug
         _HostPython: .\python
-        ${{ if ne(parameters.DoJIT, 'true') }}:
-          ExtraOptions: ''
-        ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-          ExtraOptions: '--experimental-jit-off'
-        ${{ else }}:
-          ExtraOptions: '--experimental-jit'
+        ExtraOptions: ${{ parameters.JITOption }}
         Artifact: bin_amd64_d
       ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
         arm64:
@@ -115,12 +94,7 @@ jobs:
           Platform: ARM64
           Configuration: Release
           _HostPython: python
-          ${{ if ne(parameters.DoJIT, 'true') }}:
-            ExtraOptions: ''
-          ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-            ExtraOptions: '--experimental-jit-off'
-          ${{ else }}:
-            ExtraOptions: '--experimental-jit'
+          ExtraOptions: ${{ parameters.JITOption }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_arm64
           ${{ else }}:
@@ -131,12 +105,7 @@ jobs:
         Platform: ARM64
         Configuration: Debug
         _HostPython: python
-        ${{ if ne(parameters.DoJIT, 'true') }}:
-          ExtraOptions: ''
-        ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-          ExtraOptions: '--experimental-jit-off'
-        ${{ else }}:
-          ExtraOptions: '--experimental-jit'
+        ExtraOptions: ${{ parameters.JITOption }}
         Artifact: bin_arm64_d
       ${{ if eq(parameters.DoFreethreaded, 'true') }}:
         win32_t:
@@ -145,12 +114,7 @@ jobs:
           Platform: x86
           Configuration: Release
           _HostPython: .\python
-          ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
-            ExtraOptions: '--disable-gil'
-          ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-            ExtraOptions: '--disable-gil --experimental-jit-off'
-          ${{ else }}:
-            ExtraOptions: '--disable-gil --experimental-jit'
+          ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_win32_t
           ${{ else }}:
@@ -161,12 +125,7 @@ jobs:
           Platform: x86
           Configuration: Debug
           _HostPython: .\python
-          ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
-            ExtraOptions: '--disable-gil'
-          ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-            ExtraOptions: '--disable-gil --experimental-jit-off'
-          ${{ else }}:
-            ExtraOptions: '--disable-gil --experimental-jit'
+          ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
           Artifact: bin_win32_td
         ${{ if ne(parameters.DoPGO, 'true') }}:
           amd64_t:
@@ -175,12 +134,7 @@ jobs:
             Platform: x64
             Configuration: Release
             _HostPython: .\python
-            ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
-              ExtraOptions: '--disable-gil'
-            ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-              ExtraOptions: '--disable-gil --experimental-jit-off'
-            ${{ else }}:
-              ExtraOptions: '--disable-gil --experimental-jit'
+            ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_amd64_t
             ${{ else }}:
@@ -191,12 +145,7 @@ jobs:
           Platform: x64
           Configuration: Debug
           _HostPython: .\python
-          ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
-            ExtraOptions: '--disable-gil'
-          ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-            ExtraOptions: '--disable-gil --experimental-jit-off'
-          ${{ else }}:
-            ExtraOptions: '--disable-gil --experimental-jit'
+          ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
           Artifact: bin_amd64_td
         ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
           arm64_t:
@@ -205,12 +154,7 @@ jobs:
             Platform: ARM64
             Configuration: Release
             _HostPython: python
-            ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
-              ExtraOptions: '--disable-gil'
-            ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-              ExtraOptions: '--disable-gil --experimental-jit-off'
-            ${{ else }}:
-              ExtraOptions: '--disable-gil --experimental-jit'
+            ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_arm64_t
             ${{ else }}:
@@ -221,12 +165,7 @@ jobs:
           Platform: ARM64
           Configuration: Debug
           _HostPython: python
-          ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
-            ExtraOptions: '--disable-gil'
-          ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-            ExtraOptions: '--disable-gil --experimental-jit-off'
-          ${{ else }}:
-            ExtraOptions: '--disable-gil --experimental-jit'
+          ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
           Artifact: bin_arm64_td
 
   steps:
@@ -251,12 +190,7 @@ jobs:
           Platform: x64
           _HostPython: .\python
           PythonExePattern: python.exe
-          ${{ if ne(parameters.DoJIT, 'true') }}:
-            ExtraOptions: ''
-          ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-            ExtraOptions: '--experimental-jit-off'
-          ${{ else }}:
-            ExtraOptions: '--experimental-jit'
+          ExtraOptions: ${{ parameters.JITOption }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_amd64
           ${{ else }}:
@@ -268,12 +202,7 @@ jobs:
             Platform: x64
             _HostPython: .\python
             PythonExePattern: python3*t.exe
-            ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
-              ExtraOptions: '--disable-gil'
-            ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-              ExtraOptions: '--disable-gil --experimental-jit-off'
-            ${{ else }}:
-              ExtraOptions: '--disable-gil --experimental-jit'
+            ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_amd64_t
             ${{ else }}:
@@ -306,12 +235,7 @@ jobs:
           arm64:
             Name: arm64
             PythonExePattern: python.exe
-            ${{ if ne(parameters.DoJIT, 'true') }}:
-              ExtraOptions: ''
-            ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-              ExtraOptions: '--experimental-jit-off'
-            ${{ else }}:
-              ExtraOptions: '--experimental-jit'
+            ExtraOptions: ${{ parameters.JITOption }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_arm64
             ${{ else }}:
@@ -320,12 +244,7 @@ jobs:
             arm64_t:
               Name: arm64_t
               PythonExePattern: python3*t.exe
-              ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
-                ExtraOptions: '--disable-gil'
-              ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-                ExtraOptions: '--disable-gil --experimental-jit-off'
-              ${{ else }}:
-                ExtraOptions: '--disable-gil --experimental-jit'
+              ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
               ${{ if eq(parameters.ToBeSigned, 'true') }}:
                 Artifact: unsigned_arm64_t
               ${{ else }}:
@@ -396,12 +315,7 @@ jobs:
           arm64:
             Name: arm64
             PythonExePattern: python.exe
-            ${{ if ne(parameters.DoJIT, 'true') }}:
-              ExtraOptions: ''
-            ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-              ExtraOptions: '--experimental-jit-off'
-            ${{ else }}:
-              ExtraOptions: '--experimental-jit'
+            ExtraOptions: ${{ parameters.JITOption }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_arm64
             ${{ else }}:
@@ -410,12 +324,7 @@ jobs:
             arm64_t:
               Name: arm64_t
               PythonExePattern: python3*t.exe
-              ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
-                ExtraOptions: '--disable-gil'
-              ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
-                ExtraOptions: '--disable-gil --experimental-jit-off'
-              ${{ else }}:
-                ExtraOptions: '--disable-gil --experimental-jit'
+              ExtraOptions: '--disable-gil ${{ parameters.JITOptionFreethreaded }}'
               ${{ if eq(parameters.ToBeSigned, 'true') }}:
                 Artifact: unsigned_arm64_t
               ${{ else }}:

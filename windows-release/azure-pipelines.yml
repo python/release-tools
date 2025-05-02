@@ -41,6 +41,10 @@ parameters:
   displayName: "Signature description"
   type: string
   default: '(default)'
+- name: DoJIT
+  displayName: "Build the JIT compiler (3.14 and later)"
+  type: boolean
+  default: false
 - name: DoGPG
   displayName: "Include GPG signatures (3.13 and earlier)"
   type: boolean
@@ -49,18 +53,6 @@ parameters:
   displayName: "Include free-threaded builds (3.13 and later)"
   type: boolean
   default: true
-- name: DoJIT
-  displayName: "Build the JIT compiler (3.14 and later)"
-  type: boolean
-  default: false
-- name: DoJITEnabled
-  displayName: "Enable the JIT compiler by default (not used yet)"
-  type: boolean
-  default: false
-- name: DoJITFreethreaded
-  displayName: "Build the JIT compiler for free-threaded builds (not used yet)"
-  type: boolean
-  default: false
 - name: DoARM64
   displayName: "Publish ARM64 build (3.11 and later)"
   type: boolean
@@ -111,6 +103,14 @@ parameters:
   displayName: "Enable Nuget signing (not recommended right now)"
   type: boolean
   default: false
+- name: DoJITEnabled
+  displayName: "Enable the JIT compiler by default (not used yet)"
+  type: boolean
+  default: false
+- name: DoJITFreethreaded
+  displayName: "Build the JIT compiler for free-threaded builds (not used yet)"
+  type: boolean
+  default: false
 
 resources:
   pipelines:
@@ -149,13 +149,22 @@ stages:
     - template: stage-build.yml
       parameters:
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
-        DoJIT: ${{ parameters.DoJIT }}
-        DoJITEnabled: ${{ parameters.DoJITEnabled }}
-        DoJITFreethreaded: ${{ parameters.DoJITFreethreaded }}
         DoPGO: ${{ parameters.DoPGO }}
         DoPGOARM64: ${{ parameters.DoPGOARM64 }}
         ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
           ToBeSigned: true
+        ${{ if ne(parameters.DoJIT, 'true') }}:
+          JITOption: ''
+        ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
+          JITOption: '--experimental-jit-off'
+        ${{ else }}:
+          JITOption: '--experimental-jit'
+        ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
+          JITOptionFreethreaded: ''
+        ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
+          JITOptionFreethreaded: '--experimental-jit-off'
+        ${{ else }}:
+          JITOptionFreethreaded: '--experimental-jit'
 
   - stage: Sign
     displayName: Sign binaries
