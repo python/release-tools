@@ -72,6 +72,7 @@ jobs:
       "--cpython-source-dir=$(Build.SourcesDirectory)"
       "$(Build.ArtifactStagingDirectory)\embed\python-$(VersionText)-embed-$(Name).zip"
     workingDirectory: $(Build.BinariesDirectory)
+    condition: and(succeeded(), not(variables['SkipSBOM']))
     displayName: 'Create SBOMs for binaries'
 
   - task: CopyFiles@2

@@ -215,6 +215,7 @@ jobs:
       "--cpython-source-dir=$(Build.SourcesDirectory)\cpython"
       $(gci "zip\*.zip")
     workingDirectory: $(Build.ArtifactStagingDirectory)
+    condition: and(succeeded(), not(variables['SkipSBOM']))
     displayName: 'Create SBOMs for package'
 
   - publish: '$(Build.ArtifactStagingDirectory)\layout'

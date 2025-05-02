@@ -155,6 +155,7 @@ def purge(url):
     if not UPLOAD_HOST or NO_UPLOAD:
         print("Skipping purge of", url, "because UPLOAD_HOST is missing")
         return
+    print("Purging", url)
     with urlopen(Request(url, method="PURGE", headers={"Fastly-Soft-Purge": 1})) as r:
         r.read()
 
@@ -302,7 +303,15 @@ if not NO_UPLOAD:
         upload_ssh(MANIFEST_FILE, MANIFEST_PATH)
 
     print("Purging", len(UPLOADS), "uploaded files")
+    parents = set()
     for i, *_ in UPLOADS:
         purge(i["url"])
+        parents.add(i["url"].rpartition("/")[0] + "/")
+    for i in parents:
+        purge(i)
     if INDEX_URL:
         purge(INDEX_URL)
+        purge(INDEX_URL.rpartition("/")[0] + "/")
+    if MANIFEST_URL:
+        purge(MANIFEST_URL)
+        purge(MANIFEST_URL.rpartition("/")[0] + "/")

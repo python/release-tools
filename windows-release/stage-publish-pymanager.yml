@@ -73,6 +73,18 @@ jobs:
     displayName: 'Download PuTTY binaries'
 
   - powershell: |
+      if ($env:FILENAME) {
+        "##vso[task.setvariable variable=_PyManagerIndexFilename]${env:FILENAME}"
+        "Updating index named '${env:FILENAME}'"
+      } else {
+        "##vso[task.setvariable variable=_PyManagerIndexFilename]index-windows.json"
+        "Updating index named 'index-windows.json'"
+      }
+    env:
+      FILENAME: $(PyManagerIndexFilename)
+    displayName: 'Infer index filename'
+
+  - powershell: |
       "Uploading following packages:"
       (dir "__install__.*.json").FullName
       (dir "*\__install__.json").FullName
@@ -82,8 +94,8 @@ jobs:
     displayName: 'Produce uploadable ZIPs'
     env:
       NO_UPLOAD: 1
-      INDEX_URL: '$(PyDotOrgUrlPrefix)python/index-windows.json'
-      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\index-windows.json'
+      INDEX_URL: '$(PyDotOrgUrlPrefix)python/$(_PyManagerIndexFilename)'
+      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\$(_PyManagerIndexFilename)'
       MANIFEST_FILE: '$(Build.ArtifactStagingDirectory)\index\windows.json'
 
   - powershell: |
@@ -95,8 +107,8 @@ jobs:
     condition: and(succeeded(), eq(variables['IsRealSigned'], 'true'))
     displayName: 'Upload ZIPs'
     env:
-      INDEX_URL: '$(PyDotOrgUrlPrefix)python/index-windows.json'
-      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\index-windows.json'
+      INDEX_URL: '$(PyDotOrgUrlPrefix)python/$(_PyManagerIndexFilename)'
+      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\$(_PyManagerIndexFilename)'
       MANIFEST_FILE: '$(Build.ArtifactStagingDirectory)\index\windows.json'
       UPLOAD_URL_PREFIX: $(PyDotOrgUrlPrefix)
       UPLOAD_PATH_PREFIX: $(PyDotOrgUploadPathPrefix)
