@@ -5,7 +5,7 @@ parameters:
   DoFreethreaded: false
   ToBeSigned: false
   ExtraOptions: ''
-  ExtraOptionsFreethreaded: ''
+  ExtraOptionsFreethreaded: '--disable-gil'
 
 jobs:
 - job: Build_Docs
