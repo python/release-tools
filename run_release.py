@@ -813,6 +813,7 @@ def unpack_docs_in_the_docs_server(db: ReleaseShelf) -> None:
     execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
 
 
+@functools.cache
 def extract_github_owner(url: str) -> str:
     if https_match := re.match(r"(https://)?github\.com/([^/]+)/", url):
         return https_match.group(2)
@@ -824,25 +825,36 @@ def extract_github_owner(url: str) -> str:
         )
 
 
-def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
-    # Get the git commit SHA for the tag
+@functools.cache
+def get_commit_sha(git_version: str, git_repo: Path) -> str:
+    """Get the Git commit SHA for the tag"""
     commit_sha = (
         subprocess.check_output(
-            ["git", "rev-list", "-n", "1", db["release"].gitname], cwd=db["git_repo"]
+            ["git", "rev-list", "-n", "1", git_version], cwd=git_repo
         )
         .decode()
         .strip()
     )
+    return commit_sha
 
-    # Get the owner of the GitHub repo (first path segment in a 'github.com' remote URL)
-    # This works for both 'https' and 'ssh' style remote URLs.
+
+@functools.cache
+def get_origin_remote_url(git_repo: Path) -> str:
+    """Get the owner of the GitHub repo (first path segment in a 'github.com' remote URL)
+    This works for both 'https' and 'ssh' style remote URLs."""
     origin_remote_url = (
         subprocess.check_output(
-            ["git", "ls-remote", "--get-url", "origin"], cwd=db["git_repo"]
+            ["git", "ls-remote", "--get-url", "origin"], cwd=git_repo
         )
         .decode()
         .strip()
     )
+    return origin_remote_url
+
+
+def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
+    commit_sha = get_commit_sha(db["release"].gitname, db["git_repo"])
+    origin_remote_url = get_origin_remote_url(db["git_repo"])
     origin_remote_github_owner = extract_github_owner(origin_remote_url)
     # We ask for human verification at this point since this commit SHA is 'locked in'
     print()
@@ -887,6 +899,19 @@ def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
 
 
 def send_email_to_platform_release_managers(db: ReleaseShelf) -> None:
+    commit_sha = get_commit_sha(db["release"].gitname, db["git_repo"])
+    origin_remote_url = get_origin_remote_url(db["git_repo"])
+    origin_remote_github_owner = extract_github_owner(origin_remote_url)
+    github_prefix = f"https://github.com/{origin_remote_github_owner}/cpython/tree"
+
+    print()
+    print(f"{github_prefix}/{db['release'].gitname}")
+    print(f"Git commit SHA: {commit_sha}")
+    print(
+        "Source/docs build: https://github.com/python/release-tools/actions/runs/[ENTER-RUN-ID-HERE]"
+    )
+    print()
+
     if not ask_question(
         "Have you notified the platform release managers about the availability of the commit SHA and tag?"
     ):
