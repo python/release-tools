@@ -73,6 +73,7 @@ def _run(*args):
             print(out.encode("ascii", "replace").decode("ascii"))
         if p.returncode:
             raise RunError(p.returncode, out)
+        return out
 
 
 def call_ssh(*args, allow_fail=True):
@@ -80,10 +81,11 @@ def call_ssh(*args, allow_fail=True):
         print("Skipping", args, "because UPLOAD_HOST is missing")
         return
     try:
-        _run(*_std_args(PLINK), f"{UPLOAD_USER}@{UPLOAD_HOST}", *args)
-    except RunError:
+        return _run(*_std_args(PLINK), f"{UPLOAD_USER}@{UPLOAD_HOST}", *args)
+    except RunError as ex:
         if not allow_fail:
             raise
+        return ex.args[1]
 
 
 def upload_ssh(source, dest):
@@ -229,6 +231,13 @@ def install_sortkey(install):
     )
 
 
+def find_missing_from_index(url, installs):
+    with urlopen(url) as r:
+        x = {install_sortkey(i) for i in json.load(r)["versions"]}
+    y = {install_sortkey(i) for i in installs} - x
+    return [i for i in installs if install_sortkey(i) in y]
+
+
 UPLOADS = list(calculate_uploads())
 
 if not UPLOADS:
@@ -241,8 +250,13 @@ hash_packages(UPLOADS)
 
 index = {"versions": []}
 
+INDEX_MTIME = 0
+
 if INDEX_FILE:
     INDEX_PATH = url2path(INDEX_URL)
+
+    INDEX_MTIME = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]) or 0)
+
     try:
         if not LOCAL_INDEX:
             download_ssh(INDEX_PATH, INDEX_FILE)
@@ -256,6 +270,8 @@ if INDEX_FILE:
                 index = json.load(f)
         except FileNotFoundError:
             pass
+
+print(INDEX_PATH, "mtime =", INDEX_MTIME)
 
 
 new_installs = [trim_install(i) for i, *_ in UPLOADS]
@@ -293,14 +309,23 @@ for i, src, dest, sbom, sbom_dest in UPLOADS:
         upload_ssh(sbom, sbom_dest)
 
 
-if not NO_UPLOAD:
-    if INDEX_FILE:
-        print("Uploading", INDEX_FILE, "to", INDEX_URL)
-        upload_ssh(INDEX_FILE, INDEX_PATH)
+# Check that nobody else has published while we were uploading
+if INDEX_FILE and INDEX_MTIME:
+    mtime = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]) or 0)
+    if mtime > INDEX_MTIME:
+        print("##[error]Lost a race with another publish step!")
+        print("Expecting mtime", INDEX_MTIME, "but saw", mtime)
+        sys.exit(1)
 
+
+if not NO_UPLOAD:
     if MANIFEST_FILE:
         print("Uploading", MANIFEST_FILE, "to", MANIFEST_URL)
         upload_ssh(MANIFEST_FILE, MANIFEST_PATH)
+
+    if INDEX_FILE:
+        print("Uploading", INDEX_FILE, "to", INDEX_URL)
+        upload_ssh(INDEX_FILE, INDEX_PATH)
 
     print("Purging", len(UPLOADS), "uploaded files")
     parents = set()
@@ -309,9 +334,16 @@ if not NO_UPLOAD:
         parents.add(i["url"].rpartition("/")[0] + "/")
     for i in parents:
         purge(i)
-    if INDEX_URL:
-        purge(INDEX_URL)
-        purge(INDEX_URL.rpartition("/")[0] + "/")
     if MANIFEST_URL:
         purge(MANIFEST_URL)
         purge(MANIFEST_URL.rpartition("/")[0] + "/")
+    if INDEX_URL:
+        purge(INDEX_URL)
+        purge(INDEX_URL.rpartition("/")[0] + "/")
+        missing = find_missing_from_index(INDEX_URL, [i for i, *_ in UPLOADS])
+        if missing:
+            print("##[error]Lost a race with another publish step!")
+            print("Index at", INDEX_URL, "does not contain installs:")
+            for m in missing:
+                print(m["id"], m["sort-version"])
+            sys.exit(1)
