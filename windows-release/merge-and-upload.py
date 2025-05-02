@@ -255,7 +255,10 @@ INDEX_MTIME = 0
 if INDEX_FILE:
     INDEX_PATH = url2path(INDEX_URL)
 
-    INDEX_MTIME = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]) or 0)
+    try:
+        INDEX_MTIME = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]))
+    except ValueError:
+        pass
 
     try:
         if not LOCAL_INDEX:
@@ -311,7 +314,10 @@ for i, src, dest, sbom, sbom_dest in UPLOADS:
 
 # Check that nobody else has published while we were uploading
 if INDEX_FILE and INDEX_MTIME:
-    mtime = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]) or 0)
+    try:
+        mtime = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]))
+    except ValueError:
+        mtime = 0
     if mtime > INDEX_MTIME:
         print("##[error]Lost a race with another publish step!")
         print("Expecting mtime", INDEX_MTIME, "but saw", mtime)
