@@ -79,7 +79,7 @@ def _run(*args):
 def call_ssh(*args, allow_fail=True):
     if not UPLOAD_HOST or NO_UPLOAD or LOCAL_INDEX:
         print("Skipping", args, "because UPLOAD_HOST is missing")
-        return
+        return ""
     try:
         return _run(*_std_args(PLINK), f"{UPLOAD_USER}@{UPLOAD_HOST}", *args)
     except RunError as ex:
@@ -256,7 +256,7 @@ if INDEX_FILE:
     INDEX_PATH = url2path(INDEX_URL)
 
     try:
-        INDEX_MTIME = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]))
+        INDEX_MTIME = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]) or "0")
     except ValueError:
         pass
 
@@ -315,7 +315,7 @@ for i, src, dest, sbom, sbom_dest in UPLOADS:
 # Check that nobody else has published while we were uploading
 if INDEX_FILE and INDEX_MTIME:
     try:
-        mtime = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]))
+        mtime = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]) or "0")
     except ValueError:
         mtime = 0
     if mtime > INDEX_MTIME:
