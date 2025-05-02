@@ -49,6 +49,18 @@ parameters:
   displayName: "Include free-threaded builds (3.13 and later)"
   type: boolean
   default: true
+- name: DoJIT
+  displayName: "Build the JIT compiler (3.14 and later)"
+  type: boolean
+  default: false
+- name: DoJITEnabled
+  displayName: "Enable the JIT compiler by default (not used yet)"
+  type: boolean
+  default: false
+- name: DoJITFreethreaded
+  displayName: "Build the JIT compiler for free-threaded builds (not used yet)"
+  type: boolean
+  default: false
 - name: DoARM64
   displayName: "Publish ARM64 build (3.11 and later)"
   type: boolean
@@ -137,6 +149,9 @@ stages:
     - template: stage-build.yml
       parameters:
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
+        DoJIT: ${{ parameters.DoJIT }}
+        DoJITEnabled: ${{ parameters.DoJITEnabled }}
+        DoJITFreethreaded: ${{ parameters.DoJITFreethreaded }}
         DoPGO: ${{ parameters.DoPGO }}
         DoPGOARM64: ${{ parameters.DoPGOARM64 }}
         ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
