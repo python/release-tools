@@ -6,7 +6,6 @@
 #
 --only-binary :all:
 --no-binary grapheme
---no-binary grpclib
 
 about-time==4.2.1 \
     --hash=sha256:8bbf4c75fe13cbd3d72f49a03b02c5c7dca32169b6d49117c257e7eb3eaee341
@@ -441,8 +440,8 @@ frozenlist==1.5.0 \
 grapheme==0.6.0 \
     --hash=sha256:44c2b9f21bbe77cfb05835fec230bd435954275267fea1858013b102f8603cca
     # via alive-progress
-grpclib==0.4.7 \
-    --hash=sha256:2988ef57c02b22b7a2e8e961792c41ccf97efc2ace91ae7a5b0de03c363823c3
+grpclib==0.4.8 \
+    --hash=sha256:a5047733a7acc1c1cee6abf3c841c7c6fab67d2844a45a853b113fa2e6cd2654
     # via betterproto
 h2==4.1.0 \
     --hash=sha256:03a46bcf682256c95b5fd9e9a99c1323584c3eec6440d379b9903d709476bc6d
