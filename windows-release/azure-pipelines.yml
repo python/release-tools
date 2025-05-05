@@ -41,6 +41,10 @@ parameters:
   displayName: "Signature description"
   type: string
   default: '(default)'
+- name: DoJIT
+  displayName: "Build the JIT compiler (3.14 and later)"
+  type: boolean
+  default: false
 - name: DoGPG
   displayName: "Include GPG signatures (3.13 and earlier)"
   type: boolean
@@ -99,6 +103,14 @@ parameters:
   displayName: "Enable Nuget signing (not recommended right now)"
   type: boolean
   default: false
+- name: DoJITEnabled
+  displayName: "Enable the JIT compiler by default (not used yet)"
+  type: boolean
+  default: false
+- name: DoJITFreethreaded
+  displayName: "Build the JIT compiler for free-threaded builds (not used yet)"
+  type: boolean
+  default: false
 
 resources:
   pipelines:
@@ -141,6 +153,18 @@ stages:
         DoPGOARM64: ${{ parameters.DoPGOARM64 }}
         ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
           ToBeSigned: true
+        ${{ if ne(parameters.DoJIT, 'true') }}:
+          ExtraOptions: ''
+        ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
+          ExtraOptions: '--experimental-jit-off'
+        ${{ else }}:
+          ExtraOptions: '--experimental-jit'
+        ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
+          ExtraOptionsFreethreaded: '--disable-gil'
+        ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
+          ExtraOptionsFreethreaded: '--disable-gil --experimental-jit-off'
+        ${{ else }}:
+          ExtraOptionsFreethreaded: '--disable-gil --experimental-jit'
 
   - stage: Sign
     displayName: Sign binaries
