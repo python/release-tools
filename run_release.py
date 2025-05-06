@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import datetime as dt
 import functools
 import getpass
 import json
@@ -18,15 +19,17 @@ import shelve
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator, cast
+from typing import Any, cast
 
 import aiohttp
 import gnupg  # type: ignore[import-untyped]
 import paramiko
-import sigstore.oidc  # type: ignore[import-untyped]
+import sigstore.oidc
 from alive_progress import alive_bar  # type: ignore[import-untyped]
 
 import release as release_mod
@@ -341,6 +344,23 @@ def check_ssh_connection(db: ReleaseShelf) -> None:
     client.exec_command("pwd")
 
 
+def check_sigstore_client(db: ReleaseShelf) -> None:
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
+    _, stdout, _ = client.exec_command("python3 -m sigstore --version")
+    sigstore_version = stdout.read(1000).decode()
+    sigstore_vermatch = re.match("^sigstore ([0-9.]+)", sigstore_version)
+    if not sigstore_vermatch or tuple(
+        int(part) for part in sigstore_vermatch.group(1).split(".")
+    ) < (3, 5):
+        raise ReleaseException(
+            f"Sigstore version not detected or not valid. "
+            f"Expecting 3.5.x or later: {sigstore_version}"
+        )
+
+
 def check_buildbots(db: ReleaseShelf) -> None:
     async def _check() -> set[Builder]:
         async def _get_builder_status(
@@ -595,17 +615,14 @@ def check_doc_unreleased_version(db: ReleaseShelf) -> None:
     if release_tag.includes_docs:
         assert archive_path.exists()
     if archive_path.exists():
-        proc = subprocess.run(
-            [
-                "tar",
-                "-xjf",
-                archive_path,
-                '--to-command=! grep -Hn --label="$TAR_FILENAME" "[(]unreleased[)]"',
-            ],
-        )
-        if proc.returncode != 0:
-            if not ask_question("Are these `(unreleased)` strings in built docs OK?"):
-                raise AssertionError("`(unreleased)` strings found in docs")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            subprocess.run(["tar", "-xjf", archive_path, "-C", temp_dir])
+            proc = subprocess.run(["grep", "-rHn", "[(]unreleased[)]", temp_dir])
+            if proc.returncode == 0:
+                if not ask_question(
+                    "Are these `(unreleased)` strings in built docs OK?"
+                ):
+                    raise AssertionError("`(unreleased)` strings found in docs")
 
 
 def sign_source_artifacts(db: ReleaseShelf) -> None:
@@ -696,17 +713,17 @@ class MySFTPClient(paramiko.SFTPClient):
                 raise
 
 
-def upload_files_to_server(db: ReleaseShelf) -> None:
+def upload_files_to_server(db: ReleaseShelf, server: str) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(DOWNLOADS_SERVER, port=22, username=db["ssh_user"])
+    client.connect(server, port=22, username=db["ssh_user"])
     transport = client.get_transport()
-    assert transport is not None, f"SSH transport to {DOWNLOADS_SERVER} is None"
+    assert transport is not None, f"SSH transport to {server} is None"
 
     destination = Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
     ftp_client = MySFTPClient.from_transport(transport)
-    assert ftp_client is not None, f"SFTP client to {DOWNLOADS_SERVER} is None"
+    assert ftp_client is not None, f"SFTP client to {server} is None"
 
     client.exec_command(f"rm -rf {destination}")
 
@@ -727,10 +744,18 @@ def upload_files_to_server(db: ReleaseShelf) -> None:
                 progress=progress,
             )
 
-    upload_subdir("src")
-    if (artifacts_path / "docs").exists():
+    if server == DOCS_SERVER:
         upload_subdir("docs")
+    elif server == DOWNLOADS_SERVER:
+        upload_subdir("src")
+        if (artifacts_path / "docs").exists():
+            upload_subdir("docs")
+
     ftp_client.close()
+
+
+def upload_files_to_downloads_server(db: ReleaseShelf) -> None:
+    upload_files_to_server(db, DOWNLOADS_SERVER)
 
 
 def place_files_in_download_folder(db: ReleaseShelf) -> None:
@@ -777,38 +802,7 @@ def upload_docs_to_the_docs_server(db: ReleaseShelf) -> None:
     if not (release_tag.is_final or release_tag.is_release_candidate):
         return
 
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(DOCS_SERVER, port=22, username=db["ssh_user"])
-    transport = client.get_transport()
-    assert transport is not None, f"SSH transport to {DOCS_SERVER} is None"
-
-    destination = Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
-    ftp_client = MySFTPClient.from_transport(transport)
-    assert ftp_client is not None, f"SFTP client to {DOCS_SERVER} is None"
-
-    client.exec_command(f"rm -rf {destination}")
-
-    with contextlib.suppress(OSError):
-        ftp_client.mkdir(str(destination))
-
-    artifacts_path = Path(db["git_repo"] / str(db["release"]))
-
-    shutil.rmtree(artifacts_path / f"Python-{db['release']}", ignore_errors=True)
-
-    def upload_subdir(subdir: str) -> None:
-        with contextlib.suppress(OSError):
-            ftp_client.mkdir(str(destination / subdir))
-        with alive_bar(len(tuple((artifacts_path / subdir).glob("**/*")))) as progress:
-            ftp_client.put_dir(
-                artifacts_path / subdir,
-                str(destination / subdir),
-                progress=progress,
-            )
-
-    upload_subdir("docs")
-    ftp_client.close()
+    upload_files_to_server(db, DOCS_SERVER)
 
 
 def unpack_docs_in_the_docs_server(db: ReleaseShelf) -> None:
@@ -844,6 +838,7 @@ def unpack_docs_in_the_docs_server(db: ReleaseShelf) -> None:
     execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
 
 
+@functools.cache
 def extract_github_owner(url: str) -> str:
     if https_match := re.match(r"(https://)?github\.com/([^/]+)/", url):
         return https_match.group(2)
@@ -855,25 +850,36 @@ def extract_github_owner(url: str) -> str:
         )
 
 
-def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
-    # Get the git commit SHA for the tag
+@functools.cache
+def get_commit_sha(git_version: str, git_repo: Path) -> str:
+    """Get the Git commit SHA for the tag"""
     commit_sha = (
         subprocess.check_output(
-            ["git", "rev-list", "-n", "1", db["release"].gitname], cwd=db["git_repo"]
+            ["git", "rev-list", "-n", "1", git_version], cwd=git_repo
         )
         .decode()
         .strip()
     )
+    return commit_sha
 
-    # Get the owner of the GitHub repo (first path segment in a 'github.com' remote URL)
-    # This works for both 'https' and 'ssh' style remote URLs.
+
+@functools.cache
+def get_origin_remote_url(git_repo: Path) -> str:
+    """Get the owner of the GitHub repo (first path segment in a 'github.com' remote URL)
+    This works for both 'https' and 'ssh' style remote URLs."""
     origin_remote_url = (
         subprocess.check_output(
-            ["git", "ls-remote", "--get-url", "origin"], cwd=db["git_repo"]
+            ["git", "ls-remote", "--get-url", "origin"], cwd=git_repo
         )
         .decode()
         .strip()
     )
+    return origin_remote_url
+
+
+def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
+    commit_sha = get_commit_sha(db["release"].gitname, db["git_repo"])
+    origin_remote_url = get_origin_remote_url(db["git_repo"])
     origin_remote_github_owner = extract_github_owner(origin_remote_url)
     # We ask for human verification at this point since this commit SHA is 'locked in'
     print()
@@ -904,12 +910,33 @@ def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
     print(f"- Git commit to target for the release: {commit_sha}")
     print(f"- CPython release number: {db['release']}")
     print()
+    print("Or using the GitHub CLI run:")
+    print(
+        "  gh workflow run source-and-docs-release.yml --repo python/release-tools"
+        f" -f git_remote={origin_remote_github_owner}"
+        f" -f git_commit={commit_sha}"
+        f" -f cpython_release={db['release']}"
+    )
+    print()
 
     if not ask_question("Have you started the source and docs build?"):
         raise ReleaseException("Source and docs build must be started")
 
 
 def send_email_to_platform_release_managers(db: ReleaseShelf) -> None:
+    commit_sha = get_commit_sha(db["release"].gitname, db["git_repo"])
+    origin_remote_url = get_origin_remote_url(db["git_repo"])
+    origin_remote_github_owner = extract_github_owner(origin_remote_url)
+    github_prefix = f"https://github.com/{origin_remote_github_owner}/cpython/tree"
+
+    print()
+    print(f"{github_prefix}/{db['release'].gitname}")
+    print(f"Git commit SHA: {commit_sha}")
+    print(
+        "Source/docs build: https://github.com/python/release-tools/actions/runs/[ENTER-RUN-ID-HERE]"
+    )
+    print()
+
     if not ask_question(
         "Have you notified the platform release managers about the availability of the commit SHA and tag?"
     ):
@@ -985,6 +1012,7 @@ def run_add_to_python_dot_org(db: ReleaseShelf) -> None:
     issuer = sigstore.oidc.Issuer(sigstore.oidc.DEFAULT_OAUTH_ISSUER_URL)
     identity_token = issuer.identity_token()
 
+    print("Adding files to python.org...")
     stdin, stdout, stderr = client.exec_command(
         f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add_to_pydotorg.py {db['release']}"
     )
@@ -1036,21 +1064,35 @@ def purge_the_cdn(db: ReleaseShelf) -> None:
             raise RuntimeError("Failed to purge the python.org/downloads CDN")
 
 
-def modify_the_release_to_the_prerelease_pages(db: ReleaseShelf) -> None:
-    pre_release_tags = {"rc", "b", "a"}
-    if any(tag in str(db["release"]) for tag in pre_release_tags):
+def modify_the_prereleases_page(db: ReleaseShelf) -> None:
+    if db["release"].is_final:
         if not ask_question(
-            "Have you already added the release to https://www.python.org/download/pre-releases/"
+            "Have you already removed the release from https://www.python.org/download/pre-releases/ ?"
         ):
             raise ReleaseException(
-                "The release has not been added to the pre-release page"
+                "The release has not been removed from the pre-releases page"
             )
     else:
         if not ask_question(
-            "Have you already removed the release from https://www.python.org/download/pre-releases/"
+            "Have you already added the release to https://www.python.org/download/pre-releases/ ?"
         ):
             raise ReleaseException(
-                "The release has not been removed from the pre-release page"
+                "The release has not been added to the pre-releases page"
+            )
+
+
+def modify_the_docs_by_version_page(db: ReleaseShelf) -> None:
+    if db["release"].is_final:
+        version = db["release"]
+        date = dt.datetime.now().strftime("%d %B %Y")
+        if not ask_question(
+            "Have you already added the docs to https://www.python.org/doc/versions/ ?\n"
+            "For example:\n"
+            f"* `Python {version} <https://docs.python.org/release/{version}/>`_, "
+            f"documentation released on {date}."
+        ):
+            raise ReleaseException(
+                "The docs have not been added to the docs by version page"
             )
 
 
@@ -1212,10 +1254,13 @@ def push_to_upstream(db: ReleaseShelf) -> None:
 
     _push_to_upstream(dry_run=True)
     if not ask_question(
-        "Does these operations look reasonable? ⚠️⚠️⚠️ Answering 'yes' will push to the upstream repository ⚠️⚠️⚠️"
+        "Do these operations look reasonable? ⚠️⚠️⚠️ Answering 'yes' will push to the upstream repository ⚠️⚠️⚠️"
     ):
         raise ReleaseException("Something is wrong - Push to upstream aborted")
-    if not ask_question("Is the target branch unprotected for your user?"):
+    if not ask_question(
+        "Is the target branch unprotected for your user? "
+        "Check at https://github.com/python/cpython/settings/branches"
+    ):
         raise ReleaseException("The target branch is not unprotected for your user")
     _push_to_upstream(dry_run=False)
 
@@ -1264,20 +1309,15 @@ def main() -> None:
         help="Username to be used when authenticating via ssh",
         type=str,
     )
-    parser.add_argument(
-        "--no-gpg",
-        action="store_true",
-        help="Skip GPG signing",
-    )
     args = parser.parse_args()
 
     auth_key = args.auth_key or os.getenv("AUTH_INFO")
     assert isinstance(auth_key, str), "We need an AUTH_INFO env var or --auth-key"
 
-    if "linux" not in sys.platform:
+    if sys.platform not in ("darwin", "linux"):
         print(
             """\
-WARNING! This script has not been tested on a platform other than Linux.
+WARNING! This script has not been tested on a platform other than Linux and macOS.
 
 Although it should work correctly as long as you have all the dependencies,
 some things may not work as expected. As a release manager, you should try to
@@ -1289,7 +1329,8 @@ fix these things in this script so it also supports your platform.
                 "This release script is not compatible with the running platform"
             )
 
-    no_gpg = args.no_gpg
+    release_tag = release_mod.Tag(args.release)
+    no_gpg = release_tag.as_tuple() >= (3, 14)  # see PEP 761
     tasks = [
         Task(check_git, "Checking Git is available"),
         Task(check_make, "Checking make is available"),
@@ -1302,6 +1343,7 @@ fix these things in this script so it also supports your platform.
             check_ssh_connection,
             f"Validating ssh connection to {DOWNLOADS_SERVER} and {DOCS_SERVER}",
         ),
+        Task(check_sigstore_client, "Checking Sigstore CLI"),
         Task(check_buildbots, "Check buildbots are good"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(check_magic_number, "Checking the magic number is up-to-date"),
@@ -1333,7 +1375,9 @@ fix these things in this script so it also supports your platform.
         Task(check_doc_unreleased_version, "Check docs for `(unreleased)`"),
         Task(build_sbom_artifacts, "Building SBOM artifacts"),
         *([] if no_gpg else [Task(sign_source_artifacts, "Sign source artifacts")]),
-        Task(upload_files_to_server, "Upload files to the PSF server"),
+        Task(
+            upload_files_to_downloads_server, "Upload files to the PSF downloads server"
+        ),
         Task(place_files_in_download_folder, "Place files in the download folder"),
         Task(upload_docs_to_the_docs_server, "Upload docs to the PSF docs server"),
         Task(unpack_docs_in_the_docs_server, "Place docs files in the docs folder"),
@@ -1350,14 +1394,15 @@ fix these things in this script so it also supports your platform.
         Task(remove_temporary_branch, "Removing temporary release branch"),
         Task(run_add_to_python_dot_org, "Add files to python.org download page"),
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
-        Task(modify_the_release_to_the_prerelease_pages, "Modify the pre-release page"),
+        Task(modify_the_prereleases_page, "Modify the pre-release page"),
+        Task(modify_the_docs_by_version_page, "Update docs by version page"),
     ]
     automata = ReleaseDriver(
         git_repo=args.repo,
-        release_tag=release_mod.Tag(args.release),
+        release_tag=release_tag,
         api_key=auth_key,
         ssh_user=args.ssh_user,
-        sign_gpg=not args.no_gpg,
+        sign_gpg=not no_gpg,
         tasks=tasks,
     )
     automata.run()

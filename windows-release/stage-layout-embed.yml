@@ -1,3 +1,6 @@
+parameters:
+  BuildToPackage: current
+
 jobs:
 - job: Make_Embed_Layout
   displayName: Make embeddable layout
@@ -28,11 +31,23 @@ jobs:
   steps:
   - template: ./checkout.yml
 
-  - download: current
-    artifact: bin_$(Name)
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: bin_$(Name)'
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: bin_$(Name)
+      targetPath: $(Pipeline.Workspace)\bin_$(Name)
 
   - template: ./layout-command.yml
+    parameters:
+      BuildToPackage: ${{ parameters.BuildToPackage }}
 
   - powershell: |
       $d = (.\PCbuild\build.bat -V) | %{ if($_ -match '\s+(\w+):\s*(.+)\s*$') { @{$Matches[1] = $Matches[2];} }};
@@ -57,6 +72,7 @@ jobs:
       "--cpython-source-dir=$(Build.SourcesDirectory)"
       "$(Build.ArtifactStagingDirectory)\embed\python-$(VersionText)-embed-$(Name).zip"
     workingDirectory: $(Build.BinariesDirectory)
+    condition: and(succeeded(), not(variables['SkipSBOM']))
     displayName: 'Create SBOMs for binaries'
 
   - task: CopyFiles@2
@@ -75,11 +91,11 @@ jobs:
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: embed'
     inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)\embed'
+      PathtoPublish: $(Build.ArtifactStagingDirectory)\embed
       ArtifactName: embed
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: sbom'
     inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)\sbom'
+      PathtoPublish: $(Build.ArtifactStagingDirectory)\sbom
       ArtifactName: sbom

@@ -4,7 +4,7 @@ import pytest
 
 os.environ["AUTH_INFO"] = "test_username:test_api_key"
 
-import add_to_pydotorg  # noqa: E402
+import add_to_pydotorg
 
 
 @pytest.mark.parametrize(

@@ -1,4 +1,5 @@
 parameters:
+  BuildToPackage: current
   DoFreethreaded: false
   SigningCertificate: ''
   Artifacts: []
@@ -13,17 +14,22 @@ steps:
     condition: and(succeeded(), not(variables['SigningDescription']))
 
   - ${{ each a in parameters.Artifacts }}:
-    - download: current
-      artifact: ${{ a.artifact }}
+    - task: DownloadPipelineArtifact@2
       displayName: 'Download artifact: ${{ a.artifact }}'
-
-    - ${{ if a.target }}:
-      - task: CopyFiles@2
-        displayName: 'Move ${{ a.artifact }} files'
-        inputs:
-          sourceFolder: $(Pipeline.Workspace)\${{ a.artifact }}
-          targetFolder: ${{ a.target }}
-          overwrite: false
+      inputs:
+        ${{ if eq(parameters.BuildToPackage, 'current') }}:
+          buildType: current
+        ${{ else }}:
+          buildType: specific
+          buildVersionToDownload: specific
+          project: $(resources.pipeline.build_to_package.projectId)
+          pipeline: $(resources.pipeline.build_to_package.pipelineId)
+          runId: $(resources.pipeline.build_to_package.runID)
+        artifact: ${{ a.artifact }}
+        ${{ if a.target }}:
+          targetPath: ${{ a.target }}
+        ${{ else }}:
+          targetPath: $(Pipeline.Workspace)\${{ a.artifact }}
 
   - ${{ if parameters.SigningCertificate }}:
     - powershell: |
@@ -31,17 +37,16 @@ steps:
       displayName: 'Copy signed files into sources'
 
   - script: |
+      call PCbuild\find_python.bat "%PYTHON%"
       call Tools\msi\get_externals.bat
-      call PCbuild\find_python.bat
-      echo ##vso[task.setvariable variable=PYTHON]%PYTHON%
       call PCbuild\find_msbuild.bat
+      echo ##vso[task.setvariable variable=PYTHON]%PYTHON%
       echo ##vso[task.setvariable variable=MSBUILD]%MSBUILD%
+      %PYTHON% -m ensurepip
     displayName: 'Get external dependencies'
-
-  - script: |
-      %PYTHON% -m pip install blurb
-      %PYTHON% -m blurb merge -f Misc\NEWS
-    displayName: 'Merge NEWS file'
+    env:
+      PYTHON: $(Build.BinariesDirectory)\win32\python.exe
+      PYTHONHOME: $(Build.SourcesDirectory)
 
   - powershell: |
       ("/p:Py_OutDir=" + $env:BUILD_BINARIESDIRECTORY) | Out-File msbuild.rsp -Encoding UTF8
@@ -87,8 +92,8 @@ steps:
       displayName: 'Build ${{ b.bundle }} installer'
       env:
         Platform: ${{ b.Platform }}
-        PYTHON: $(Pipeline.Workspace)\${{ b.PythonForBuild }}\python.exe
-        PythonForBuild: $(Pipeline.Workspace)\${{ b.PythonForBuild }}\python.exe
+        PYTHON: ${{ b.PythonForBuild }}\python.exe
+        PythonForBuild: ${{ b.PythonForBuild }}\python.exe
         PYTHONHOME: $(Build.SourcesDirectory)
         ${{ if b.TclTkArtifact }}:
           TclTkLibraryDir: $(Pipeline.Workspace)\${{ b.TclTkArtifact }}
@@ -121,15 +126,20 @@ steps:
     displayName: 'Clone the python/release-tools repository'
 
   - powershell: >
-      & $(Python)
+      & $(${env:Python}.Trim('"'))
       "$(Pipeline.Workspace)\release-tools\sbom.py"
       "--cpython-source-dir=$(Build.SourcesDirectory)"
       $(gci -r "$(Build.ArtifactStagingDirectory)\msi\**\python-*.exe")
     workingDirectory: $(Build.BinariesDirectory)
+    condition: and(succeeded(), not(variables['SkipSBOM']))
     displayName: 'Create SBOMs for binaries'
+    env:
+      PYTHON: $(Build.BinariesDirectory)\win32\python.exe
+      PYTHONHOME: $(Build.SourcesDirectory)
 
   - task: CopyFiles@2
     displayName: 'Layout Artifact: sbom'
+    condition: and(succeeded(), not(variables['SkipSBOM']))
     inputs:
       sourceFolder: $(Build.ArtifactStagingDirectory)\msi
       targetFolder: $(Build.ArtifactStagingDirectory)\sbom
@@ -144,6 +154,7 @@ steps:
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: sbom'
+    condition: and(succeeded(), not(variables['SkipSBOM']))
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\sbom'
       ArtifactName: sbom

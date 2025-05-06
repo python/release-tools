@@ -5,7 +5,6 @@ parameters:
 jobs:
 - job: Pack_Nuget
   displayName: Pack Nuget bundles
-  condition: and(succeeded(), eq(variables['DoNuget'], 'true'))
 
   pool:
     vmImage: windows-2022
@@ -69,8 +68,13 @@ jobs:
   - template: sign-files.yml
     parameters:
       Include: '*.nupkg'
+      # Additional filter to avoid recursively signing package contents
+      Filter: '*.nupkg'
       WorkingDir: $(Build.ArtifactStagingDirectory)
       SigningCertificate: ${{ parameters.SigningCertificate }}
+      # Nuget signing is not supported by our test certificate, so ignore errors
+      ${{ if eq(parameters.SigningCertificate, 'TestSign') }}:
+        ContinueOnError: true
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: nuget'

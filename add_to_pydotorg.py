@@ -29,8 +29,9 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Generator
 from os import path
-from typing import Any, Generator, NoReturn
+from typing import Any, NoReturn
 
 import requests
 
@@ -422,13 +423,23 @@ def sign_release_files_with_sigstore(
         filename_sigstore = filename + ".sigstore"
 
         if os.path.exists(filename_sigstore):
-            run_cmd(sigstore_verify_argv + ["--bundle", filename_sigstore, filename])
+            run_cmd(
+                sigstore_verify_argv + ["--bundle", filename_sigstore, filename],
+                stderr=subprocess.STDOUT,  # Sigstore sends stderr on success.
+            )
 
         # We use an 'or' here to error out if one of the files is missing.
         if os.path.exists(filename_sig) or os.path.exists(filename_crt):
             run_cmd(
                 sigstore_verify_argv
-                + ["--certificate", filename_crt, "--signature", filename_sig, filename]
+                + [
+                    "--certificate",
+                    filename_crt,
+                    "--signature",
+                    filename_sig,
+                    filename,
+                ],
+                stderr=subprocess.STDOUT,  # Sigstore sends stderr on success.
             )
 
 

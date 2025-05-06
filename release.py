@@ -19,13 +19,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Any,
     Callable,
-    Generator,
     Literal,
     Protocol,
     Self,
@@ -190,6 +190,18 @@ class Tag:
     def gitname(self) -> str:
         return "v" + self.text
 
+    @property
+    def long_name(self) -> str:
+        if self.is_final:
+            return self.text
+
+        level = {
+            "a": "alpha",
+            "b": "beta",
+            "rc": "release candidate",
+        }[self.level]
+        return f"{self.normalized()} {level} {self.serial}"
+
     def next_minor_release(self) -> Self:
         return self.__class__(f"{self.major}.{int(self.minor)+1}.0a0")
 
@@ -248,7 +260,7 @@ def run_cmd(
         error(f"{cmd} failed")
 
 
-readme_re = re.compile(r"This is Python version [23]\.\d").match
+readme_re = re.compile(r"This is Python version 3\.\d").match
 
 
 def chdir_to_repo_root() -> str:
@@ -279,12 +291,8 @@ def chdir_to_repo_root() -> str:
                     return False
             return True
 
-        if not (
-            test_first_line("README", readme_re)
-            or test_first_line("README.rst", readme_re)
-        ):
+        if not test_first_line("README.rst", readme_re):
             continue
-
         if not test_first_line("LICENSE", "A. HISTORY OF THE SOFTWARE".__eq__):
             continue
         if not os.path.exists("Include/Python.h"):
@@ -363,13 +371,16 @@ def get_arg_parser() -> optparse.OptionParser:
 
 
 def constant_replace(
-    fn: str, updated_constants: str, comment_start: str = "/*", comment_end: str = "*/"
+    filename: str,
+    updated_constants: str,
+    comment_start: str = "/*",
+    comment_end: str = "*/",
 ) -> None:
     """Inserts in between --start constant-- and --end constant-- in a file"""
     start_tag = comment_start + "--start constants--" + comment_end
     end_tag = comment_start + "--end constants--" + comment_end
-    with open(fn, encoding="ascii") as infile, open(
-        fn + ".new", "w", encoding="ascii"
+    with open(filename, encoding="ascii") as infile, open(
+        filename + ".new", "w", encoding="ascii"
     ) as outfile:
         found_constants = False
         waiting_for_end = False
@@ -387,12 +398,14 @@ def constant_replace(
             else:
                 outfile.write(line)
     if not found_constants:
-        error(f"Constant section delimiters not found: {fn}")
-    os.rename(fn + ".new", fn)
+        error(f"Constant section delimiters not found: {filename}")
+    os.rename(filename + ".new", filename)
 
 
-def tweak_patchlevel(tag: Tag, done: bool = False) -> None:
-    print("Updating Include/patchlevel.h...", end=" ")
+def tweak_patchlevel(
+    tag: Tag, filename: str = "Include/patchlevel.h", done: bool = False
+) -> None:
+    print(f"Updating {filename}...", end=" ")
     template = '''
 #define PY_MAJOR_VERSION\t{tag.major}
 #define PY_MINOR_VERSION\t{tag.minor}
@@ -414,7 +427,23 @@ def tweak_patchlevel(tag: Tag, done: bool = False) -> None:
     )
     if tag.as_tuple() >= (3, 7, 0, "a", 3):
         new_constants = new_constants.expandtabs()
-    constant_replace("Include/patchlevel.h", new_constants)
+    constant_replace(filename, new_constants)
+    print("done")
+
+
+def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
+    print(f"Updating {filename}...", end=" ")
+    readme = Path(filename)
+
+    # Update first line: "This is Python version 3.14.0 alpha 7"
+    # and update length of underline in second line to match.
+    lines = readme.read_text().splitlines()
+    this_is = f"This is Python version {tag.long_name}"
+    underline = "=" * len(this_is)
+    lines[0] = this_is
+    lines[1] = underline
+
+    readme.write_text("\n".join(lines))
     print("done")
 
 
@@ -422,9 +451,10 @@ def bump(tag: Tag) -> None:
     print(f"Bumping version to {tag}")
 
     tweak_patchlevel(tag)
+    tweak_readme(tag)
 
     extra_work = False
-    other_files = ["README.rst"]
+    other_files = []
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
         extra_work = True
         other_files += [
@@ -432,20 +462,18 @@ def bump(tag: Tag) -> None:
             "Doc/tutorial/interpreter.rst",
             "Doc/tutorial/stdlib.rst",
             "Doc/tutorial/stdlib2.rst",
-            "LICENSE",
-            "Doc/license.rst",
             "PC/pyconfig.h.in",
             "PCbuild/rt.bat",
             ".github/ISSUE_TEMPLATE/bug.yml",
             ".github/ISSUE_TEMPLATE/crash.yml",
         ]
     print("\nManual editing time...")
-    for fn in other_files:
-        if os.path.exists(fn):
-            print(f"Edit {fn}")
-            manual_edit(fn)
+    for filename in other_files:
+        if os.path.exists(filename):
+            print(f"Edit {filename}")
+            manual_edit(filename)
         else:
-            print(f"Skipping {fn}")
+            print(f"Skipping {filename}")
 
     print("Bumped revision")
     if extra_work:
@@ -453,9 +481,9 @@ def bump(tag: Tag) -> None:
     print("Please commit and use --tag")
 
 
-def manual_edit(fn: str) -> None:
+def manual_edit(filename: str) -> None:
     editor = os.environ["EDITOR"].split()
-    run_cmd([*editor, fn])
+    run_cmd([*editor, filename])
 
 
 @contextmanager
@@ -525,8 +553,8 @@ def tarball(source: str, clamp_mtime: str) -> None:
     checksum_xz = hashlib.md5()
     with open(xz, "rb") as data:
         checksum_xz.update(data.read())
-    print("  %s  %8s  %s" % (checksum_tgz.hexdigest(), int(os.path.getsize(tgz)), tgz))
-    print("  %s  %8s  %s" % (checksum_xz.hexdigest(), int(os.path.getsize(xz)), xz))
+    print(f"  {checksum_tgz.hexdigest()}  {os.path.getsize(tgz):8}  {tgz}")
+    print(f"  {checksum_xz.hexdigest()}  {os.path.getsize(xz):8}  {xz}")
 
 
 def export(tag: Tag, silent: bool = False, skip_docs: bool = False) -> None:
@@ -607,7 +635,7 @@ def export(tag: Tag, silent: bool = False, skip_docs: bool = False) -> None:
 
             # Remove directories we don't want to ship in tarballs.
             run_cmd(["blurb", "export"], silent=silent)
-            for name in (".azure-pipelines", ".git", ".github", ".hg"):
+            for name in (".azure-pipelines", ".git", ".github", ".hg", "Misc/mypy"):
                 shutil.rmtree(name, ignore_errors=True)
 
         if not skip_docs and (tag.is_final or tag.level == "rc"):

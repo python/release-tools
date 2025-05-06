@@ -8,3 +8,14 @@ updates:
       actions:
         patterns:
           - "*"
+
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: monthly
+    assignees:
+      - "ezio-melotti"
+    groups:
+      pip:
+        patterns:
+          - "*"

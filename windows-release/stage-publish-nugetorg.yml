@@ -1,10 +1,10 @@
 parameters:
-  BuildToPublish: ''
+  BuildToPublish: current
 
 jobs:
 - job: Publish_Nuget
   displayName: Publish Nuget packages
-  condition: and(succeeded(), eq(variables['DoNuget'], 'true'), ne(variables['SkipNugetPublish'], 'true'))
+  condition: and(succeeded(), ne(variables['SkipNugetPublish'], 'true'))
 
   pool:
     vmImage: windows-2022
@@ -15,25 +15,19 @@ jobs:
   steps:
   - checkout: none
 
-  - ${{ if parameters.BuildToPublish }}:
-    - task: DownloadBuildArtifacts@0
-      displayName: 'Download artifact from ${{ parameters.BuildToPublish }}'
-      inputs:
-        artifactName: nuget
-        downloadPath: $(Build.BinariesDirectory)
+  - task: DownloadBuildArtifacts@1
+    displayName: 'Download artifact: nuget'
+    inputs:
+      ${{ if eq(parameters.BuildToPublish, 'current') }}:
+        buildType: current
+      ${{ else }}:
         buildType: specific
-        project: $(System.TeamProject)
-        pipeline: $(Build.DefinitionName)
         buildVersionToDownload: specific
-        buildId: ${{ parameters.BuildToPublish }}
-
-  - ${{ else }}:
-    - task: DownloadBuildArtifacts@0
-      displayName: 'Download artifact: nuget'
-      inputs:
-        artifactName: nuget
-        downloadPath: $(Build.BinariesDirectory)
-
+        project: $(resources.pipeline.build_to_publish.projectId)
+        pipeline: $(resources.pipeline.build_to_publish.pipelineId)
+        runId: $(resources.pipeline.build_to_publish.runID)
+      artifactName: nuget
+      downloadPath: $(Build.BinariesDirectory)
 
   - powershell: 'gci pythonarm*.nupkg | %{ Write-Host "Not publishing: $($_.Name)"; gi $_ } | del'
     displayName: 'Prevent publishing ARM64 packages'

@@ -1,11 +1,10 @@
 parameters:
-  ARM64TclTk: true
+  BuildToPackage: current
   DoFreethreaded: false
 
 jobs:
 - job: Make_Layouts
   displayName: Make layouts
-  condition: and(succeeded(), eq(variables['DoLayout'], 'true'))
 
   pool:
     vmImage: windows-2022
@@ -35,9 +34,8 @@ jobs:
         DebugName: arm64_d
         Arch: arm64
         HostArch: amd64
+        TclLibrary: tcltk_lib_arm64
         ExtraOptions: ''
-        ${{ if eq(parameters.ARM64TclTk, 'true') }}:
-          TclLibrary: tcltk_lib_arm64
       ${{ if eq(parameters.DoFreethreaded, 'true') }}:
         win32_t:
           Name: win32_t
@@ -64,13 +62,33 @@ jobs:
   steps:
   - template: ./checkout.yml
 
-  - download: current
-    artifact: bin_$(Name)
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: bin_$(Name)'
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: bin_$(Name)
+      targetPath: $(Pipeline.Workspace)\bin_$(Name)
 
-  - download: current
-    artifact: bin_$(DebugName)
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: bin_$(DebugName)'
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: bin_$(DebugName)
+      targetPath: $(Pipeline.Workspace)\bin_$(DebugName)
 
   - powershell: |
       $dest = "$(Pipeline.Workspace)\bin_$(Name)"
@@ -79,14 +97,34 @@ jobs:
       %{ copy $_.FullName $dest }
     displayName: 'Copy debug binaries'
 
-  - download: current
-    artifact: doc
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: doc'
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: doc
+      targetPath: $(Pipeline.Workspace)\doc
 
-  - download: current
-    artifact: $(TclLibrary)
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: $(TclLibrary)'
     condition: and(succeeded(), variables['TclLibrary'])
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: $(TclLibrary)
+      targetPath: $(Pipeline.Workspace)\$(TclLibrary)
 
   - powershell: |
       Write-Host "##vso[task.setvariable variable=TCL_LIBRARY]$(Pipeline.Workspace)\$(TclLibrary)\tcl8"
@@ -99,6 +137,8 @@ jobs:
     condition: and(succeeded(), variables['SigningCertificate'])
 
   - template: ./layout-command.yml
+    parameters:
+      BuildToPackage: ${{ parameters.BuildToPackage }}
 
   - powershell: |
       $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\layout" --preset-default $(ExtraOptions)
