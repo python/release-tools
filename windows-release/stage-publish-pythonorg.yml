@@ -51,6 +51,7 @@ jobs:
           pipeline: $(resources.pipeline.build_to_publish.pipelineId)
           buildId: $(resources.pipeline.build_to_publish.runID)
         artifactName: embed
+        # Artifact name is added to path for DownloadBuildArtifacts
         downloadPath: $(Pipeline.Workspace)
 
   - task: DownloadBuildArtifacts@1
@@ -65,6 +66,7 @@ jobs:
         pipeline: $(resources.pipeline.build_to_publish.pipelineId)
         buildId: $(resources.pipeline.build_to_publish.runID)
       artifactName: sbom
+      # Artifact name is added to path for DownloadBuildArtifacts
       downloadPath: $(Pipeline.Workspace)
 
 
