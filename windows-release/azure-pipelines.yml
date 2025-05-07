@@ -78,7 +78,7 @@ parameters:
   type: boolean
   default: true
 - name: DoEmbed
-  displayName: "Produce embeddable package"
+  displayName: "Produce embeddable package (w/ PyManager or MSI options)"
   type: boolean
   default: true
 - name: DoMSI
