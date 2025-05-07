@@ -342,6 +342,9 @@ jobs:
   pool:
     vmImage: windows-2022
 
+  variables:
+    IncludeLLVM: false
+
   workspace:
     clean: all
 
