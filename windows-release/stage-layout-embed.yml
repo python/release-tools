@@ -4,7 +4,6 @@ parameters:
 jobs:
 - job: Make_Embed_Layout
   displayName: Make embeddable layout
-  condition: and(succeeded(), eq(variables['DoEmbed'], 'true'))
 
   pool:
     vmImage: windows-2022

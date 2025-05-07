@@ -25,20 +25,6 @@ jobs:
       versionSpec: '>=3.10'
 
   - task: DownloadPipelineArtifact@2
-    displayName: 'Download artifact: Doc'
-    inputs:
-      ${{ if eq(parameters.BuildToPublish, 'current') }}:
-        buildType: current
-      ${{ else }}:
-        buildType: specific
-        buildVersionToDownload: specific
-        project: $(resources.pipeline.build_to_publish.projectId)
-        pipeline: $(resources.pipeline.build_to_publish.pipelineId)
-        runId: $(resources.pipeline.build_to_publish.runID)
-      artifact: Doc
-      targetPath: $(Pipeline.Workspace)\Doc
-
-  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: msi'
     inputs:
       ${{ if eq(parameters.BuildToPublish, 'current') }}:
@@ -63,8 +49,9 @@ jobs:
           buildVersionToDownload: specific
           project: $(resources.pipeline.build_to_publish.projectId)
           pipeline: $(resources.pipeline.build_to_publish.pipelineId)
-          runId: $(resources.pipeline.build_to_publish.runID)
+          buildId: $(resources.pipeline.build_to_publish.runID)
         artifactName: embed
+        # Artifact name is added to path for DownloadBuildArtifacts
         downloadPath: $(Pipeline.Workspace)
 
   - task: DownloadBuildArtifacts@1
@@ -77,8 +64,9 @@ jobs:
         buildVersionToDownload: specific
         project: $(resources.pipeline.build_to_publish.projectId)
         pipeline: $(resources.pipeline.build_to_publish.pipelineId)
-        runId: $(resources.pipeline.build_to_publish.runID)
+        buildId: $(resources.pipeline.build_to_publish.runID)
       artifactName: sbom
+      # Artifact name is added to path for DownloadBuildArtifacts
       downloadPath: $(Pipeline.Workspace)
 
 

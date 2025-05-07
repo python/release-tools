@@ -78,11 +78,15 @@ parameters:
   type: boolean
   default: true
 - name: DoEmbed
-  displayName: "Produce embeddable package"
+  displayName: "Produce embeddable package (w/ PyManager or MSI options)"
   type: boolean
   default: true
 - name: DoMSI
   displayName: "Produce EXE/MSI installer"
+  type: boolean
+  default: true
+- name: TestMSI
+  displayName: "Run EXE/MSI installer tests"
   type: boolean
   default: true
 - name: DoPyManager
@@ -224,6 +228,7 @@ stages:
           BuildToPackage: ${{ parameters.BuildToPackage }}
           DoARM64: ${{ parameters.DoARM64}}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
+          SigningCertificate: ${{ parameters.SigningCertificate }}
     - ${{ if eq(parameters.DoMSIX, 'true') }}:
       - template: stage-pack-msix.yml
         parameters:
@@ -247,7 +252,7 @@ stages:
     jobs:
     - ${{ if eq(parameters.DoEmbed, 'true') }}:
       - template: stage-test-embed.yml
-    - ${{ if eq(parameters.DoMSI, 'true') }}:
+    - ${{ if and(eq(parameters.DoMSI, 'true'), eq(parameters.TestMSI, 'true')) }}:
       - template: stage-test-msi.yml
         parameters:
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
