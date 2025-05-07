@@ -85,6 +85,8 @@ steps:
         AZURE_TENANT_ID: $(TrustedSigningTenantId)
         AZURE_CLIENT_ID: $(TrustedSigningClientId)
         AZURE_CLIENT_SECRET: $(TrustedSigningSecret)
+        # Only need the variable here for msi.props to detect
+        SigningCertificate: ${{ parameters.SigningCertificate }}
 
   - ${{ each b in parameters.Bundles }}:
     - script: |
@@ -101,6 +103,8 @@ steps:
           AZURE_TENANT_ID: $(TrustedSigningTenantId)
           AZURE_CLIENT_ID: $(TrustedSigningClientId)
           AZURE_CLIENT_SECRET: $(TrustedSigningSecret)
+          # Only need the variable here for msi.props to detect
+          SigningCertificate: ${{ parameters.SigningCertificate }}
 
   - powershell: |
       del $env:ResponseFile -ErrorAction Continue

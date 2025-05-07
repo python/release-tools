@@ -85,6 +85,10 @@ parameters:
   displayName: "Produce EXE/MSI installer"
   type: boolean
   default: true
+- name: TestMSI
+  displayName: "Run EXE/MSI installer tests"
+  type: boolean
+  default: true
 - name: DoPyManager
   displayName: "Produce PyManager package"
   type: boolean
@@ -248,7 +252,7 @@ stages:
     jobs:
     - ${{ if eq(parameters.DoEmbed, 'true') }}:
       - template: stage-test-embed.yml
-    - ${{ if eq(parameters.DoMSI, 'true') }}:
+    - ${{ if and(eq(parameters.DoMSI, 'true'), eq(parameters.TestMSI, 'true')) }}:
       - template: stage-test-msi.yml
         parameters:
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
