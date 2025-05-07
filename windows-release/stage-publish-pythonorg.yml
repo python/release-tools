@@ -49,7 +49,7 @@ jobs:
           buildVersionToDownload: specific
           project: $(resources.pipeline.build_to_publish.projectId)
           pipeline: $(resources.pipeline.build_to_publish.pipelineId)
-          runId: $(resources.pipeline.build_to_publish.runID)
+          buildId: $(resources.pipeline.build_to_publish.runID)
         artifactName: embed
         downloadPath: $(Pipeline.Workspace)
 
@@ -63,7 +63,7 @@ jobs:
         buildVersionToDownload: specific
         project: $(resources.pipeline.build_to_publish.projectId)
         pipeline: $(resources.pipeline.build_to_publish.pipelineId)
-        runId: $(resources.pipeline.build_to_publish.runID)
+        buildId: $(resources.pipeline.build_to_publish.runID)
       artifactName: sbom
       downloadPath: $(Pipeline.Workspace)
 
