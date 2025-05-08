@@ -228,7 +228,8 @@ stages:
           BuildToPackage: ${{ parameters.BuildToPackage }}
           DoARM64: ${{ parameters.DoARM64}}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
-          SigningCertificate: ${{ parameters.SigningCertificate }}
+          ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
+            SigningCertificate: ${{ parameters.SigningCertificate }}
     - ${{ if eq(parameters.DoMSIX, 'true') }}:
       - template: stage-pack-msix.yml
         parameters:
