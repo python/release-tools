@@ -104,7 +104,15 @@ def get_file_descriptions(
     return [
         (rx(r"\.tgz$"), ("Gzipped source tarball", 3, False, "")),
         (rx(r"\.tar\.xz$"), ("XZ compressed source tarball", 3, True, "")),
-        (rx(r"-webinstall\.exe$"), ("", 0, False, "")),
+        (
+            rx(r"windows-.+\.json"),
+            (
+                "Windows release manifest",
+                1,
+                False,
+                f"Install with 'py install {v[0]}.{v[1]}'",
+            ),
+        ),
         (
             rx(r"-embed-amd64\.zip$"),
             ("Windows embeddable package (64-bit)", 1, False, ""),
