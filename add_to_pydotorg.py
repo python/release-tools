@@ -110,7 +110,7 @@ def get_file_descriptions(
                 "Windows release manifest",
                 1,
                 False,
-                f"Use 'py install {v[0]}.{v[1]}' to install",
+                f"Install with 'py install {v[0]}.{v[1]}'",
             ),
         ),
         (
