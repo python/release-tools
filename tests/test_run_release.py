@@ -208,3 +208,20 @@ def test_modify_the_docs_by_version_page_final_yes(capsys, monkeypatch) -> None:
         "* `Python 3.13.3 <https://docs.python.org/release/3.13.3/>`_, documentation released on"
         in capsys.readouterr().out
     )
+
+
+def test_update_whatsnew_toctree(tmp_path: Path) -> None:
+    # Arrange
+    # Only first beta triggers update
+    db = {"release": Tag("3.14.0b1")}
+
+    original_toctree_file = Path(__file__).parent / "whatsnew_index.rst"
+    toctree__file = tmp_path / "patchlevel.h"
+    toctree__file.write_text(original_toctree_file.read_text())
+
+    # Act
+    run_release.update_whatsnew_toctree(cast(ReleaseShelf, db), str(toctree__file))
+
+    # Assert
+    new_contents = toctree__file.read_text()
+    assert "   3.15.rst\n   3.14.rst\n" in new_contents
