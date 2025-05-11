@@ -34,7 +34,7 @@ def test_invalid_extract_github_owner() -> None:
 
 def test_check_magic_number() -> None:
     db = {
-        "release": Tag("3.13.0rc1"),
+        "release": Tag("3.14.0rc1"),
         "git_repo": str(Path(__file__).parent / "magicdata"),
     }
     with pytest.raises(
