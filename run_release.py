@@ -533,7 +533,10 @@ def check_pyspecific(db: ReleaseShelf) -> None:
         f"SOURCE_URI = 'https://github.com/python/cpython/tree/{expected_branch}/%s'"
     )
     if expected != line.strip():
-        raise ReleaseException("SOURCE_URI is incorrect")
+        raise ReleaseException(
+            f"SOURCE_URI is incorrect, expected: {expected}, got: {line.strip()} "
+            "(it needs changing before beta 1)"
+        )
 
 
 def bump_version(db: ReleaseShelf) -> None:
