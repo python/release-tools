@@ -534,8 +534,9 @@ def check_pyspecific(db: ReleaseShelf) -> None:
     )
     if expected != line.strip():
         raise ReleaseException(
-            f"SOURCE_URI is incorrect, expected: {expected}, got: {line.strip()} "
-            "(it needs changing before beta 1)"
+            f"SOURCE_URI is incorrect (it needs changing before beta 1):\n"
+            f"expected: {expected}\n"
+            f"got     : {line.strip()}"
         )
 
 
