@@ -65,14 +65,6 @@ jobs:
       git -C "$(Pipeline.Workspace)\release-tools" checkout $(Build.SourceVersion)
     displayName: 'Clone the python/release-tools repository'
 
-  - powershell: |
-      if (-not (Test-Path "$(Build.SourcesDirectory)\Misc\externals.spdx.json")) {
-        "externals.spdx.json is missing - skipping SBOM"
-        Write-Host "##vso[task.setvariable variable=SkipSBOM]1"
-      }
-    condition: and(succeeded(), not(variables['SkipSBOM']))
-    displayName: 'Checking for SBOM'
-
   - powershell: >
       & "$(Python)"
       "$(Pipeline.Workspace)\release-tools\sbom.py"
