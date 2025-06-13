@@ -215,6 +215,8 @@ stages:
           BuildToPackage: ${{ parameters.BuildToPackage }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           DoEmbed: ${{ parameters.DoEmbed }}
+          # TODO: Remove LayoutScriptBranch before merge
+          LayoutScriptBranch: gh-135455
 
   - stage: Pack
     dependsOn: Layout
