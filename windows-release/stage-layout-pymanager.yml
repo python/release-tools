@@ -2,7 +2,7 @@ parameters:
   BuildToPackage: current
   DoFreethreaded: false
   DoEmbed: false
-  LayoutScriptBranch: main
+  LayoutScriptBranch: gh-135455
 
 jobs:
 - job: Make_PyManager_Layouts
