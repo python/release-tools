@@ -95,6 +95,7 @@ jobs:
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: sbom'
+    condition: and(succeeded(), not(variables['SkipSBOM']))
     inputs:
       PathtoPublish: $(Build.ArtifactStagingDirectory)\sbom
       ArtifactName: sbom
