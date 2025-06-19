@@ -842,8 +842,8 @@ typing-extensions==4.12.2 \
     #   pydantic
     #   pydantic-core
     #   pyopenssl
-urllib3==2.3.0 \
-    --hash=sha256:1cee9ad369867bfdbbb48b7dd50374c0967a0bb7710050facf0dd6911440e3df
+urllib3==2.5.0 \
+    --hash=sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc
     # via requests
 yarl==1.18.3 \
     --hash=sha256:00e5a1fea0fd4f5bfa7440a47eff01d9822a65b4488f7cff83155a0f31a2ecba \
