@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 
 import pytest
+from pyfakefs.fake_filesystem import FakeFilesystem
 
 os.environ["AUTH_INFO"] = "test_username:test_api_key"
 
@@ -77,3 +79,67 @@ def test_minor_version(release: str, expected: str) -> None:
 )
 def test_minor_version_tuple(release: str, expected: tuple[int, int]) -> None:
     assert add_to_pydotorg.minor_version_tuple(release) == expected
+
+
+def test_list_files(fs: FakeFilesystem) -> None:
+    # Arrange
+    fs.add_real_file("tests/ftp-file-list.txt")
+    fake_files = Path("tests/ftp-file-list.txt").read_text().splitlines()
+    for fn in fake_files:
+        file_path = Path(add_to_pydotorg.ftp_root) / "3.14.0" / fn
+        if fn.endswith("/"):
+            fs.create_dir(file_path)
+        else:
+            fs.create_file(file_path)
+
+    # Act
+    files = list(add_to_pydotorg.list_files("3.14.0b3"))
+
+    # Assert
+    assert files == [
+        ("Python-3.14.0b3.tar.xz", "XZ compressed source tarball", 3, True, ""),
+        ("Python-3.14.0b3.tgz", "Gzipped source tarball", 3, False, ""),
+        (
+            "python-3.14.0b3-amd64.exe",
+            "Windows installer (64-bit)",
+            1,
+            True,
+            "Recommended",
+        ),
+        (
+            "python-3.14.0b3-arm64.exe",
+            "Windows installer (ARM64)",
+            1,
+            False,
+            "Experimental",
+        ),
+        (
+            "python-3.14.0b3-embed-amd64.zip",
+            "Windows embeddable package (64-bit)",
+            1,
+            False,
+            "",
+        ),
+        (
+            "python-3.14.0b3-embed-arm64.zip",
+            "Windows embeddable package (ARM64)",
+            1,
+            False,
+            "",
+        ),
+        (
+            "python-3.14.0b3-embed-win32.zip",
+            "Windows embeddable package (32-bit)",
+            1,
+            False,
+            "",
+        ),
+        (
+            "python-3.14.0b3-macos11.pkg",
+            "macOS 64-bit universal2 installer",
+            2,
+            True,
+            "for macOS 10.13 and later",
+        ),
+        ("python-3.14.0b3.exe", "Windows installer (32-bit)", 1, False, ""),
+    ]
