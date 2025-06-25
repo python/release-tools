@@ -271,17 +271,11 @@ def list_files(release: str) -> Generator[tuple[str, str, int, bool, str], None,
         if rfile.endswith((".asc", ".sig", ".crt", ".sigstore", ".spdx.json")):
             continue
 
-        for prefix in ("python", "Python"):
-            if rfile.startswith(prefix):
-                break
-        else:
+        prefix, _, rest = rfile.partition("-")
+
+        if prefix.lower() not in ("python", "windows"):
             print(f"    File {reldir}/{rfile} has wrong prefix")
             continue
-
-        try:
-            prefix, rest = rfile.split("-", 1)
-        except:  # noqa: E722
-            prefix, rest = rfile, ""
 
         if not rest.startswith((release + "-", release + ".")):
             print(f"    File {reldir}/{rfile} has a different version")
