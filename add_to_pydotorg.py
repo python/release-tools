@@ -273,7 +273,7 @@ def list_files(release: str) -> Generator[tuple[str, str, int, bool, str], None,
 
         prefix, _, rest = rfile.partition("-")
 
-        if prefix.lower() not in ("python-", "windows-"):
+        if prefix.lower() not in ("python", "windows"):
             print(f"    File {reldir}/{rfile} has wrong prefix")
             continue
 
