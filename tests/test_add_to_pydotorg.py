@@ -145,4 +145,11 @@ def test_list_files(fs: FakeFilesystem) -> None:
             "for macOS 10.13 and later",
         ),
         ("python-3.14.0b3.exe", "Windows installer (32-bit)", 1, False, ""),
+        (
+            "windows-3.14.0b3.json",
+            "Windows release manifest",
+            1,
+            False,
+            "Install with 'py install 3.14'",
+        ),
     ]
