@@ -86,6 +86,9 @@ def test_list_files(fs: FakeFilesystem) -> None:
     fs.add_real_file("tests/fake-ftp-files.txt")
     fake_files = Path("tests/fake-ftp-files.txt").read_text().splitlines()
     for fn in fake_files:
+        if fn.startswith("#"):  # comment
+            continue
+
         file_path = Path(add_to_pydotorg.ftp_root) / "3.14.0" / fn
         if fn.endswith("/"):
             fs.create_dir(file_path)

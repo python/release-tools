@@ -1,3 +1,4 @@
+# Test data only, doesn't need to be updated for each release
 Python-3.14.0a1.tar.xz
 Python-3.14.0a1.tar.xz.crt
 Python-3.14.0a1.tar.xz.sig
