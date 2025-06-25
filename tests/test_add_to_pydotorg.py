@@ -83,8 +83,8 @@ def test_minor_version_tuple(release: str, expected: tuple[int, int]) -> None:
 
 def test_list_files(fs: FakeFilesystem) -> None:
     # Arrange
-    fs.add_real_file("tests/ftp-file-list.txt")
-    fake_files = Path("tests/ftp-file-list.txt").read_text().splitlines()
+    fs.add_real_file("tests/fake-ftp-files.txt")
+    fake_files = Path("tests/fake-ftp-files.txt").read_text().splitlines()
     for fn in fake_files:
         file_path = Path(add_to_pydotorg.ftp_root) / "3.14.0" / fn
         if fn.endswith("/"):
