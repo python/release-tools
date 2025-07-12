@@ -252,7 +252,6 @@ class ReleaseDriver:
         print(f"- Normalized release tag: {release_tag.normalized()}")
         print(f"- Git repo: {self.db['git_repo']}")
         print(f"- SSH username: {self.db['ssh_user']}")
-        print(f"- python.org API key: {self.db['auth_info']}")
         print(f"- Sign with GPG: {self.db['sign_gpg']}")
         print()
 
