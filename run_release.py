@@ -30,7 +30,7 @@ import aiohttp
 import gnupg  # type: ignore[import-untyped]
 import paramiko
 import sigstore.oidc
-from alive_progress import alive_bar  # type: ignore[import-untyped]
+from alive_progress import alive_bar
 
 import release as release_mod
 import sbom
