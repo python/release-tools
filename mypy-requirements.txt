@@ -1,5 +1,5 @@
 aiohttp==3.12.14
-alive_progress  # untyped :(
+alive_progress>=3.3.0
 mypy==1.16.1
 pyfakefs
 pytest

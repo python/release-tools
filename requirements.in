@@ -1,10 +1,7 @@
 --only-binary :all:
-# grapheme doesn't have a binary release, but alive_progress
-# requires grapheme==0.6.0.
---no-binary grapheme
 
 paramiko
-alive_progress
+alive_progress>=3.3.0
 python-gnupg
 aiohttp
 blurb>=1.2.1
