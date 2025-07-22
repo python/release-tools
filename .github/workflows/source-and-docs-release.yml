@@ -48,6 +48,7 @@ env:
 jobs:
   verify-input:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     outputs:
       # Needed because env vars are not available in the build-docs check below
       cpython_release: ${{ env.CPYTHON_RELEASE }}
@@ -75,6 +76,7 @@ jobs:
 
   build-source:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     needs:
       - verify-input
     steps:
@@ -115,6 +117,7 @@ jobs:
 
   build-docs:
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     needs:
       - verify-input
 
@@ -158,6 +161,7 @@ jobs:
 
   test-source:
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     needs:
       - build-source
     steps:
