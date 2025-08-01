@@ -1,6 +1,6 @@
-aiohttp==3.12.14
+aiohttp==3.12.15
 alive_progress>=3.3.0
-mypy==1.16.1
+mypy==1.17.1
 pyfakefs
 pytest
 pytest-mock
