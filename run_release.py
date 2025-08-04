@@ -906,7 +906,7 @@ def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
     # with the known good commit SHA.
     print()
     print(
-        "Go to https://github.com/python/release-tools/actions/workflows/source-and-docs-release.yml"
+        "Go to https://github.com/python/release-tools/actions/workflows/build-release.yml"
     )
     print("Select 'Run workflow' and enter the following values:")
     print(f"- Git remote to checkout: {origin_remote_github_owner}")
@@ -915,7 +915,7 @@ def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
     print()
     print("Or using the GitHub CLI run:")
     print(
-        "  gh workflow run source-and-docs-release.yml --repo python/release-tools"
+        "  gh workflow run build-release.yml --repo python/release-tools"
         f" -f git_remote={origin_remote_github_owner}"
         f" -f git_commit={commit_sha}"
         f" -f cpython_release={db['release']}"
