@@ -141,16 +141,16 @@ jobs:
           python -m pip install -r Doc/requirements.txt
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
-            latexmk \
-            texlive-latex-base \
-            texlive-latex-recommended \
-            texlive-latex-extra \
-            texlive-fonts-recommended \
-            texlive-xetex \
-            texlive-fonts-extra \
             fonts-freefont-otf  \
-            xindy \
-            texinfo
+            latexmk \
+            texinfo \
+            texlive-fonts-extra \
+            texlive-fonts-recommended \
+            texlive-latex-base \
+            texlive-latex-extra \
+            texlive-latex-recommended \
+            texlive-xetex \
+            xindy
 
       - name: "Build docs"
         run: |
