@@ -141,7 +141,7 @@ jobs:
           python -m pip install -r Doc/requirements.txt
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
-            fonts-freefont-otf  \
+            fonts-freefont-otf \
             latexmk \
             texinfo \
             texlive-fonts-extra \
