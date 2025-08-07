@@ -110,7 +110,7 @@ def test_list_files(fs: FakeFilesystem) -> None:
             False,
             "",
         ),
-(
+        (
             "python-3.14.0b3-amd64.exe",
             "Windows installer (64-bit)",
             "windows",

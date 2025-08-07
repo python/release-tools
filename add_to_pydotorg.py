@@ -339,8 +339,7 @@ def sign_release_files_with_sigstore(
     ftp_root: str, release: str, release_files: list[tuple[str, str, int, bool, str]]
 ) -> None:
     filenames = [
-        ftp_root + f"{base_version(release)}/{rfile}"
-        for rfile, *_ in release_files
+        ftp_root + f"{base_version(release)}/{rfile}" for rfile, *_ in release_files
     ]
 
     def has_sigstore_signature(filename: str) -> bool:
