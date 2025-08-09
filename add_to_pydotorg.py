@@ -474,12 +474,12 @@ def parse_args() -> argparse.Namespace:
         "--ftp-root",
         metavar="DIR",
         type=ensure_trailing_slash,
-        default="/srv/www.python.org/ftp/python",
+        default="/srv/www.python.org/ftp/python/",
         help="FTP root; defaults to %(default)s",
     )
     parser.add_argument(
         "release",
-        help="Python version number, e.g. 3.3.5rc2",
+        help="Python version number, e.g. 3.14.0rc2",
     )
     return parser.parse_args()
 
