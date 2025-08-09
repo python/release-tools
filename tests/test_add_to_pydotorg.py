@@ -30,16 +30,51 @@ def test_sigfile_for() -> None:
 
 
 @pytest.mark.parametrize(
-    ["release", "expected"],
+    ["text", "expected"],
     [
         ("3.9.0a0", "390a0"),
         ("3.10.0b3", "3100b3"),
         ("3.11.0rc2", "3110rc2"),
         ("3.12.15", "31215"),
+        ("Hello, world!", "Hello-world"),
     ],
 )
-def test_make_slug(release: str, expected: str) -> None:
-    assert add_to_pydotorg.make_slug(release) == expected
+def test_make_slug(text: str, expected: str) -> None:
+    assert add_to_pydotorg.make_slug(text) == expected
+
+
+def test_build_file_dict(tmp_path: Path) -> None:
+    release = "3.14.0rc2"
+    release_url = "https://www.python.org/ftp/python/3.14.0"
+    release_dir = tmp_path / "3.14.0"
+    release_dir.mkdir()
+
+    rfile = "test-artifact.txt"
+    (release_dir / rfile).write_text("Hello world")
+    (release_dir / f"{rfile}.sigstore").touch()
+
+    assert add_to_pydotorg.build_file_dict(
+        str(tmp_path),
+        release,
+        rfile,
+        12,
+        "Test artifact",
+        34,
+        True,
+        "Test description",
+    ) == {
+        "name": "Test artifact",
+        "slug": "3140-rc2-Test-artifact",
+        "os": "/api/v1/downloads/os/34/",
+        "release": "/api/v1/downloads/release/12/",
+        "description": "Test description",
+        "is_source": False,
+        "url": f"{release_url}/test-artifact.txt",
+        "md5_sum": "3e25960a79dbc69b674cd4ec67a72c62",
+        "filesize": 11,
+        "download_button": True,
+        "sigstore_bundle_file": f"{release_url}/test-artifact.txt.sigstore",
+    }
 
 
 @pytest.mark.parametrize(
