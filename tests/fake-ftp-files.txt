@@ -521,6 +521,7 @@ python-3.14.0b2.exe.spdx.json
 python-3.14.0b2t-amd64.zip
 python-3.14.0b2t-arm64.zip
 python-3.14.0b2t-win32.zip
+python-3.14.0b3-aarch64-linux-android.tar.gz
 python-3.14.0b3-amd64.exe
 python-3.14.0b3-amd64.exe.crt
 python-3.14.0b3-amd64.exe.sig
@@ -559,6 +560,7 @@ python-3.14.0b3-test-amd64.zip
 python-3.14.0b3-test-arm64.zip
 python-3.14.0b3-test-win32.zip
 python-3.14.0b3-win32.zip
+python-3.14.0b3-x86_64-linux-android.tar.gz
 python-3.14.0b3.exe
 python-3.14.0b3.exe.crt
 python-3.14.0b3.exe.sig
