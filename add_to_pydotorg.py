@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Script to add ReleaseFile objects for Python releases on the new pydotorg.
-To use (RELEASE is something like 3.3.5rc2):
+To use (RELEASE is the full Python version number):
 
 * Copy this script to dl-files (it needs access to all the release files).
   You could also download all files, then you need to use the "--ftp-root"
