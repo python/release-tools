@@ -93,7 +93,7 @@ release_to_sigstore_identity_and_oidc_issuer = {
 
 def get_file_descriptions(
     release: str,
-) -> list[tuple[re.Pattern[str], tuple[str, int, bool, str]]]:
+) -> list[tuple[re.Pattern[str], tuple[str, str, bool, str]]]:
     v = minor_version_tuple(release)
     rx = re.compile
     # value is (file "name", OS slug, download button, file "description").
@@ -274,7 +274,7 @@ def build_file_dict(
 
 def list_files(
     ftp_root: str, release: str
-) -> Generator[tuple[str, str, int, bool, str], None, None]:
+) -> Generator[tuple[str, str, str, bool, str], None, None]:
     """List all of the release's download files."""
     reldir = base_version(release)
     for rfile in os.listdir(path.join(ftp_root, reldir)):
@@ -336,7 +336,7 @@ def post_object(base_url: str, objtype: str, datadict: dict[str, Any]) -> int:
 
 
 def sign_release_files_with_sigstore(
-    ftp_root: str, release: str, release_files: list[tuple[str, str, int, bool, str]]
+    ftp_root: str, release: str, release_files: list[tuple[str, str, str, bool, str]]
 ) -> None:
     filenames = [
         ftp_root + f"{base_version(release)}/{rfile}" for rfile, *_ in release_files
@@ -457,7 +457,7 @@ def sign_release_files_with_sigstore(
 
 
 def parse_args() -> argparse.Namespace:
-    def ensure_trailing_slash(s: str):
+    def ensure_trailing_slash(s: str) -> str:
         if not s.endswith("/"):
             s += "/"
         return s
