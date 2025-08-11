@@ -59,6 +59,11 @@ jobs:
           echo "git_commit: $GIT_COMMIT"
           echo "cpython_release: $CPYTHON_RELEASE"
 
+      - name: "Checkout python/release-tools"
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
