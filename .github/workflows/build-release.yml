@@ -41,17 +41,18 @@ permissions: {}
 
 # Set from inputs for workflow_dispatch, or set defaults to test push/PR events
 env:
-  GIT_REMOTE: ${{ github.event.inputs.git_remote || 'python' }}
-  GIT_COMMIT: ${{ github.event.inputs.git_commit || '4f8bb3947cfbc20f970ff9d9531e1132a9e95396' }}
-  CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.13.2' }}
+  GIT_REMOTE: ${{ github.event.inputs.git_remote || 'mhsmith' }}
+  GIT_COMMIT: ${{ github.event.inputs.git_commit || 'c9700e47b6bf98f6ca2e60ecdbee15ba228dcc7c' }}
+  CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.15.992' }}
 
 jobs:
   verify-input:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
-      # Needed because env vars are not available in the build-docs check below
+      # Needed because env vars are not available in "if" conditions
       cpython_release: ${{ env.CPYTHON_RELEASE }}
+      cpython_branch: ${{ steps.get-branch.outputs.branch }}
     steps:
       - name: "Workflow run information"
         run: |
@@ -73,6 +74,11 @@ jobs:
             echo "expected git commit ('$GIT_COMMIT') didn't match tagged commit ('$(git rev-parse HEAD)')"
             exit 1
           fi
+
+      - name: "Get CPython branch"
+        id: get-branch
+        run: |
+          echo "branch=$(echo "$CPYTHON_RELEASE" | cut -d . -f 1-2)" >> "$GITHUB_OUTPUT"
 
   build-source:
     runs-on: ubuntu-24.04
@@ -191,22 +197,13 @@ jobs:
           ./bin/python3 -m test -uall
 
   build-android:
+    name: build-android (${{ matrix.arch }})
     needs:
       - verify-input
+    if: fromJSON(needs.verify-input.outputs.cpython_branch) >= 3.14
 
-    # Android binary releases began in Python 3.14.
-    if: |
-       !(
-          startsWith(needs.verify-input.outputs.cpython_release, '3.9.') ||
-          startsWith(needs.verify-input.outputs.cpython_release, '3.10.') ||
-          startsWith(needs.verify-input.outputs.cpython_release, '3.11.') ||
-          startsWith(needs.verify-input.outputs.cpython_release, '3.12.') ||
-          startsWith(needs.verify-input.outputs.cpython_release, '3.13.')
-       )
-    timeout-minutes: 60
     strategy:
       matrix:
-        arch: [aarch64, x86_64]
         include:
           - arch: aarch64
             runs-on: macos-15
@@ -214,6 +211,7 @@ jobs:
             runs-on: ubuntu-24.04
 
     runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 60
     env:
       triplet: ${{ matrix.arch }}-linux-android
     steps:
