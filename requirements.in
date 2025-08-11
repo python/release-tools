@@ -5,4 +5,5 @@ alive_progress>=3.3.0
 python-gnupg
 aiohttp
 blurb>=1.2.1
+packaging
 sigstore>=3

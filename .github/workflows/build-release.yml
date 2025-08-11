@@ -42,17 +42,16 @@ permissions: {}
 # Set from inputs for workflow_dispatch, or set defaults to test push/PR events
 env:
   GIT_REMOTE: ${{ github.event.inputs.git_remote || 'mhsmith' }}
-  GIT_COMMIT: ${{ github.event.inputs.git_commit || 'c9700e47b6bf98f6ca2e60ecdbee15ba228dcc7c' }}
-  CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.15.992' }}
+  GIT_COMMIT: ${{ github.event.inputs.git_commit || '7e87375eeff06e03a66209e506ce83c3f70ec57f' }}
+  CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.15.0b991' }}
 
 jobs:
   verify-input:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
-      # Needed because env vars are not available in "if" conditions
-      cpython_release: ${{ env.CPYTHON_RELEASE }}
-      cpython_branch: ${{ steps.get-branch.outputs.branch }}
+      build-docs: ${{ steps.select-jobs.outputs.docs }}
+      build-android: ${{ steps.select-jobs.outputs.android }}
     steps:
       - name: "Workflow run information"
         run: |
@@ -75,10 +74,18 @@ jobs:
             exit 1
           fi
 
-      - name: "Get CPython branch"
-        id: get-branch
+      - name: "Setup Python"
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: 3.12
+
+      - name: "Install dependencies"
+        run: python -m pip install --no-deps -r requirements.txt
+
+      - name: "Select jobs"
+        id: select-jobs
         run: |
-          echo "branch=$(echo "$CPYTHON_RELEASE" | cut -d . -f 1-2)" >> "$GITHUB_OUTPUT"
+          ./select-jobs.py "$CPYTHON_RELEASE" >> "$GITHUB_OUTPUT"
 
   build-source:
     runs-on: ubuntu-24.04
@@ -126,9 +133,7 @@ jobs:
     timeout-minutes: 45
     needs:
       - verify-input
-
-    # Docs aren't built for alpha or beta releases.
-    if: (!(contains(needs.verify-input.outputs.cpython_release, 'a') || contains(needs.verify-input.outputs.cpython_release, 'b')))
+    if: fromJSON(needs.verify-input.outputs.build-docs)
     steps:
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -200,7 +205,7 @@ jobs:
     name: build-android (${{ matrix.arch }})
     needs:
       - verify-input
-    if: fromJSON(needs.verify-input.outputs.cpython_branch) >= 3.14
+    if: fromJSON(needs.verify-input.outputs.build-android)
 
     strategy:
       matrix:
