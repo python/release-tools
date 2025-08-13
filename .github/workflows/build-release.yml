@@ -35,7 +35,7 @@ on:
         type: string
         description: "CPython release number (ie '3.11.5', note without the 'v' prefix)"
 
-name: "Build Python release artifacts"
+name: "Build release artifacts"
 
 permissions: {}
 

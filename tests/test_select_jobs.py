@@ -13,10 +13,12 @@ import select_jobs
         ("3.13.0rc1", "true", "false"),
         ("3.13.0", "true", "false"),
         ("3.13.1", "true", "false"),
-        ("3.14.0a1", "false", "true"),
+        ("3.14.0b2", "false", "true"),
         ("3.14.0rc1", "true", "true"),
         ("3.14.0", "true", "true"),
         ("3.14.1", "true", "true"),
+        ("3.15.0a1", "false", "true"),
+        ("3.15.0", "true", "true"),
     ],
 )
 def test_select_jobs(
