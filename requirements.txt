@@ -562,9 +562,6 @@ multidict==6.1.0 \
     #   aiohttp
     #   grpclib
     #   yarl
-packaging==23.2 \
-    --hash=sha256:8c491190033a9af7e1d931d0b5dacc2ef47509b34dd0de67ed209b5203fc88c7
-    # via -r requirements.in
 paramiko==3.5.1 \
     --hash=sha256:43b9a0501fc2b5e70680388d9346cf252cfb7d00b0667c39e80eb43a408b8f61
     # via -r requirements.in
