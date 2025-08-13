@@ -731,7 +731,7 @@ def upload_files_to_server(db: ReleaseShelf, server: str) -> None:
     transport = client.get_transport()
     assert transport is not None, f"SSH transport to {server} is None"
 
-    destination = Path(f"/home/{db['ssh_user']}/{db['release']}")
+    destination = Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
     ftp_client = MySFTPClient.from_transport(transport)
     assert ftp_client is not None, f"SFTP client to {server} is None"
 
