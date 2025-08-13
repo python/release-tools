@@ -90,7 +90,7 @@ jobs:
       - name: "Select jobs"
         id: select-jobs
         run: |
-          ./select_jobs.py "$CPYTHON_RELEASE" >> "$GITHUB_OUTPUT"
+          ./select_jobs.py "$CPYTHON_RELEASE" | tee -a "$GITHUB_OUTPUT"
 
   build-source:
     runs-on: ubuntu-24.04
