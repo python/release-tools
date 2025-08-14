@@ -41,9 +41,9 @@ permissions: {}
 
 # Set from inputs for workflow_dispatch, or set defaults to test push/PR events
 env:
-  GIT_REMOTE: ${{ github.event.inputs.git_remote || 'python' }}
-  GIT_COMMIT: ${{ github.event.inputs.git_commit || '4f8bb3947cfbc20f970ff9d9531e1132a9e95396' }}
-  CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.13.2' }}
+  GIT_REMOTE: ${{ github.event.inputs.git_remote || 'mhsmith' }}
+  GIT_COMMIT: ${{ github.event.inputs.git_commit || '7e87375eeff06e03a66209e506ce83c3f70ec57f' }}
+  CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.15.0b991' }}
 
 jobs:
   verify-input:
