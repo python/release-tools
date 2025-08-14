@@ -81,7 +81,6 @@ google_oidc_provider = "https://accounts.google.com"
 
 # Update this list when new release managers are added.
 release_to_sigstore_identity_and_oidc_issuer = {
-    "3.8": ("lukasz@langa.pl", github_oidc_provider),
     "3.9": ("lukasz@langa.pl", github_oidc_provider),
     "3.10": ("pablogsal@python.org", google_oidc_provider),
     "3.11": ("pablogsal@python.org", google_oidc_provider),
@@ -134,13 +133,13 @@ def get_file_descriptions(
         ),
         (
             rx(r"-amd64\.exe$"),
-            ("Windows installer (64-bit)", "windows", v >= (3, 9), "Recommended"),
+            ("Windows installer (64-bit)", "windows", True, "Recommended"),
         ),
         (
             rx(r"-embed-win32\.zip$"),
             ("Windows embeddable package (32-bit)", "windows", False, ""),
         ),
-        (rx(r"\.exe$"), ("Windows installer (32-bit)", "windows", v < (3, 9), "")),
+        (rx(r"\.exe$"), ("Windows installer (32-bit)", "windows", False, "")),
         (
             rx(r"-macosx10\.5(_rev\d)?\.(dm|pk)g$"),
             (
