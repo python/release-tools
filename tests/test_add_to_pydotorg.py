@@ -139,7 +139,7 @@ def test_minor_version_tuple(release: str, expected: tuple[int, int]) -> None:
         ((3, 12, 5), "for macOS 10.9 and later"),
         ((3, 12, 6), "for macOS 10.13 and later"),
         ((3, 13, 0), "for macOS 10.13 and later"),
-        ((3, 14, 0), "for macOS 11 and later"),
+        ((3, 14, 0), "for macOS 10.15 and later"),
     ],
 )
 def test_macos_universal2_description(
@@ -217,7 +217,7 @@ def test_list_files(fs: FakeFilesystem) -> None:
             "macOS 64-bit universal2 installer",
             "macos",
             True,
-            "for macOS 11 and later",
+            "for macOS 10.15 and later",
         ),
         (
             "python-3.14.0b3-x86_64-linux-android.tar.gz",

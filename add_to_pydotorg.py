@@ -92,7 +92,7 @@ release_to_sigstore_identity_and_oidc_issuer = {
 
 def macos_universal2_description(version: tuple[int, int, int]) -> str:
     if version >= (3, 14):
-        return "for macOS 11 and later"
+        return "for macOS 10.15 and later"
     elif version >= (3, 12, 6):
         return "for macOS 10.13 and later"
     else:
