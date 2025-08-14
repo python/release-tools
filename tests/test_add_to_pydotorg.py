@@ -93,6 +93,19 @@ def test_base_version(release: str, expected: str) -> None:
 @pytest.mark.parametrize(
     ["release", "expected"],
     [
+        ("3.9.0a0", (3, 9, 0)),
+        ("3.10.0b3", (3, 10, 0)),
+        ("3.11.0rc2", (3, 11, 0)),
+        ("3.12.15", (3, 12, 15)),
+    ],
+)
+def test_base_version_tuple(release: str, expected: tuple[int, int, int]) -> None:
+    assert add_to_pydotorg.base_version_tuple(release) == expected
+
+
+@pytest.mark.parametrize(
+    ["release", "expected"],
+    [
         ("3.9.0a0", "3.9"),
         ("3.10.0b3", "3.10"),
         ("3.11.0rc2", "3.11"),
@@ -114,6 +127,25 @@ def test_minor_version(release: str, expected: str) -> None:
 )
 def test_minor_version_tuple(release: str, expected: tuple[int, int]) -> None:
     assert add_to_pydotorg.minor_version_tuple(release) == expected
+
+
+@pytest.mark.parametrize(
+    ["release", "expected"],
+    [
+        ((3, 9, 0), "for macOS 10.9 and later"),
+        ((3, 10, 0), "for macOS 10.9 and later"),
+        ((3, 11, 0), "for macOS 10.9 and later"),
+        ((3, 12, 0), "for macOS 10.9 and later"),
+        ((3, 12, 5), "for macOS 10.9 and later"),
+        ((3, 12, 6), "for macOS 10.13 and later"),
+        ((3, 13, 0), "for macOS 10.13 and later"),
+        ((3, 14, 0), "for macOS 10.15 and later"),
+    ],
+)
+def test_macos_universal2_description(
+    release: tuple[int, int, int], expected: str
+) -> None:
+    assert add_to_pydotorg.macos_universal2_description(release) == expected
 
 
 def test_list_files(fs: FakeFilesystem) -> None:
@@ -185,7 +217,7 @@ def test_list_files(fs: FakeFilesystem) -> None:
             "macOS 64-bit universal2 installer",
             "macos",
             True,
-            "for macOS 10.13 and later",
+            "for macOS 10.15 and later",
         ),
         (
             "python-3.14.0b3-x86_64-linux-android.tar.gz",

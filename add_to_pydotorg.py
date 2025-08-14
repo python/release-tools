@@ -81,7 +81,6 @@ google_oidc_provider = "https://accounts.google.com"
 
 # Update this list when new release managers are added.
 release_to_sigstore_identity_and_oidc_issuer = {
-    "3.8": ("lukasz@langa.pl", github_oidc_provider),
     "3.9": ("lukasz@langa.pl", github_oidc_provider),
     "3.10": ("pablogsal@python.org", google_oidc_provider),
     "3.11": ("pablogsal@python.org", google_oidc_provider),
@@ -91,10 +90,19 @@ release_to_sigstore_identity_and_oidc_issuer = {
 }
 
 
+def macos_universal2_description(version: tuple[int, int, int]) -> str:
+    if version >= (3, 14):
+        return "for macOS 10.15 and later"
+    elif version >= (3, 12, 6):
+        return "for macOS 10.13 and later"
+    else:
+        return "for macOS 10.9 and later"
+
+
 def get_file_descriptions(
     release: str,
 ) -> list[tuple[re.Pattern[str], tuple[str, str, bool, str]]]:
-    v = minor_version_tuple(release)
+    v = base_version_tuple(release)
     rx = re.compile
     # value is (file "name", OS slug, download button, file "description").
     # OS=None means no ReleaseFile object. Only one matching *file* (not regex)
@@ -125,13 +133,13 @@ def get_file_descriptions(
         ),
         (
             rx(r"-amd64\.exe$"),
-            ("Windows installer (64-bit)", "windows", v >= (3, 9), "Recommended"),
+            ("Windows installer (64-bit)", "windows", True, "Recommended"),
         ),
         (
             rx(r"-embed-win32\.zip$"),
             ("Windows embeddable package (32-bit)", "windows", False, ""),
         ),
-        (rx(r"\.exe$"), ("Windows installer (32-bit)", "windows", v < (3, 9), "")),
+        (rx(r"\.exe$"), ("Windows installer (32-bit)", "windows", False, "")),
         (
             rx(r"-macosx10\.5(_rev\d)?\.(dm|pk)g$"),
             (
@@ -165,7 +173,7 @@ def get_file_descriptions(
                 "macOS 64-bit universal2 installer",
                 "macos",
                 True,
-                f"for macOS {'10.13' if v >= (3, 12, 6) else '10.9'} and later",
+                macos_universal2_description(v),
             ),
         ),
         (
@@ -209,6 +217,12 @@ def base_version(release: str) -> str:
     m = tag_cre.match(release)
     assert m is not None, f"Invalid release: {release}"
     return ".".join(m.groups()[:3])
+
+
+def base_version_tuple(release: str) -> tuple[int, int, int]:
+    m = tag_cre.match(release)
+    assert m is not None, f"Invalid release: {release}"
+    return int(m.groups()[0]), int(m.groups()[1]), int(m.groups()[2])
 
 
 def minor_version(release: str) -> str:
