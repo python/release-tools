@@ -91,10 +91,19 @@ release_to_sigstore_identity_and_oidc_issuer = {
 }
 
 
+def macos_universal2_description(version: tuple[int, int, int]) -> str:
+    if version >= (3, 14):
+        return "for macOS 11 and later"
+    elif version >= (3, 12, 6):
+        return "for macOS 10.13 and later"
+    else:
+        return "for macOS 10.9 and later"
+
+
 def get_file_descriptions(
     release: str,
 ) -> list[tuple[re.Pattern[str], tuple[str, str, bool, str]]]:
-    v = minor_version_tuple(release)
+    v = base_version_tuple(release)
     rx = re.compile
     # value is (file "name", OS slug, download button, file "description").
     # OS=None means no ReleaseFile object. Only one matching *file* (not regex)
@@ -165,7 +174,7 @@ def get_file_descriptions(
                 "macOS 64-bit universal2 installer",
                 "macos",
                 True,
-                f"for macOS {'10.13' if v >= (3, 12, 6) else '10.9'} and later",
+                macos_universal2_description(v),
             ),
         ),
         (
@@ -209,6 +218,12 @@ def base_version(release: str) -> str:
     m = tag_cre.match(release)
     assert m is not None, f"Invalid release: {release}"
     return ".".join(m.groups()[:3])
+
+
+def base_version_tuple(release: str) -> tuple[int, int, int]:
+    m = tag_cre.match(release)
+    assert m is not None, f"Invalid release: {release}"
+    return int(m.groups()[0]), int(m.groups()[1]), int(m.groups()[2])
 
 
 def minor_version(release: str) -> str:
