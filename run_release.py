@@ -157,6 +157,7 @@ module_name
 -----------
 
 * TODO
+.. Add removals above alphabetically, not here at the end.
 
 
 Deprecated
