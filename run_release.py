@@ -150,15 +150,6 @@ module_name
 
 
 
-Deprecated
-==========
-
-* module_name:
-  TODO
-
-
-.. Add deprecations above alphabetically, not here at the end.
-
 Removed
 =======
 
@@ -167,6 +158,15 @@ module_name
 
 * TODO
 
+
+Deprecated
+==========
+
+* module_name:
+  TODO
+
+
+.. Add deprecations above alphabetically, not here at the end.
 
 Porting to Python {version}
 ======================
