@@ -150,6 +150,16 @@ module_name
 
 
 
+Removed
+=======
+
+module_name
+-----------
+
+* TODO
+.. Add removals above alphabetically, not here at the end.
+
+
 Deprecated
 ==========
 
@@ -158,14 +168,6 @@ Deprecated
 
 
 .. Add deprecations above alphabetically, not here at the end.
-
-Removed
-=======
-
-module_name
------------
-
-* TODO
 
 
 Porting to Python {version}
