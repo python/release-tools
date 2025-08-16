@@ -5,6 +5,6 @@ pyfakefs
 pytest
 pytest-mock
 python-gnupg  # untyped :(
-sigstore==3.6.4
+sigstore==3.6.5
 types-paramiko
 types-requests
