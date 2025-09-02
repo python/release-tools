@@ -454,9 +454,9 @@ propcache==0.2.1 \
     # via
     #   aiohttp
     #   yarl
-pyfakefs==5.9.2 \
-    --hash=sha256:66c5c6ccd4097b484f8782f9a5078fee0533d465e0d9caf594c9157d54382553 \
-    --hash=sha256:8fcea36051d5b8827d49f5e2d242e91a51c5af6b78eeffa8e7adb899a6763e99
+pyfakefs==5.9.3 \
+    --hash=sha256:14a0514e94ff156543208c0b4832facc68bdf19de993799b67d58dd5ca05ef30 \
+    --hash=sha256:b458b11abc8862d4d8500816170a9b25e10d07437332b9dffd651069f3d4c40c
     # via -r dev-requirements.in
 pygments==2.19.2 \
     --hash=sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887 \
