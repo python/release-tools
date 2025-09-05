@@ -8,7 +8,7 @@ TO_CHANGE = """
 Directives to change
 --------------------
 
-Here, all occurences of NEXT (lowercase) should be changed:
+Here, all occurrences of NEXT (lowercase) should be changed:
 
 .. versionadded:: next
 
