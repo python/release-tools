@@ -194,7 +194,6 @@ class ReleaseDriver:
         ssh_user: str,
         sign_gpg: bool,
         ssh_key: str | None = None,
-        security_release: bool = False,
         first_state: Task | None = None,
     ) -> None:
         self.tasks = tasks
@@ -221,8 +220,6 @@ class ReleaseDriver:
             self.db["ssh_key"] = ssh_key
         if not self.db.get("sign_gpg"):
             self.db["sign_gpg"] = sign_gpg
-        if not self.db.get("security_release"):
-            self.db["security_release"] = security_release
 
         if not self.db.get("release"):
             self.db["release"] = release_tag
@@ -236,7 +233,6 @@ class ReleaseDriver:
         print(f"- SSH key: {self.db['ssh_key'] or 'Default'}")
         print(f"- python.org API key: {self.db['auth_info']}")
         print(f"- Sign with GPG: {self.db['sign_gpg']}")
-        print(f"- Security release: {self.db['security_release']}")
         print()
 
     def checkpoint(self) -> None:
@@ -412,9 +408,6 @@ def check_cpython_repo_is_clean(db: ReleaseShelf) -> None:
 
 def check_magic_number(db: ReleaseShelf) -> None:
     release_tag = db["release"]
-    if release_tag.major == 3 and release_tag.minor <= 13:
-        return
-
     if release_tag.is_final or release_tag.is_release_candidate:
 
         def out(msg: str) -> None:
@@ -946,34 +939,19 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
         are_windows_files_there = f"python-{release}.exe" in all_files
         are_macos_files_there = f"python-{release}-macos11.pkg" in all_files
         are_linux_files_there = f"Python-{release}.tgz" in all_files
-
-        if db["security_release"]:
-            # For security releases, only check Linux files
-            are_all_files_there = are_linux_files_there
-        else:
-            # For regular releases, check all platforms
-            are_all_files_there = (
-                are_linux_files_there
-                and are_windows_files_there
-                and are_macos_files_there
-            )
+        are_all_files_there = (
+            are_linux_files_there and are_windows_files_there and are_macos_files_there
+        )
 
         if not are_all_files_there:
             linux_tick = "✅" if are_linux_files_there else "❌"
             windows_tick = "✅" if are_windows_files_there else "❌"
             macos_tick = "✅" if are_macos_files_there else "❌"
-            if db["security_release"]:
-                print(
-                    f"\rWaiting for files: Linux {linux_tick} (security release mode - only checking Linux) ",
-                    flush=True,
-                    end="",
-                )
-            else:
-                print(
-                    f"\rWaiting for files: Linux {linux_tick}  Windows {windows_tick}  Mac {macos_tick} ",
-                    flush=True,
-                    end="",
-                )
+            print(
+                f"\rWaiting for files: Linux {linux_tick}  Windows {windows_tick}  Mac {macos_tick} ",
+                flush=True,
+                end="",
+            )
             time.sleep(1)
     print()
 
@@ -1307,13 +1285,6 @@ def main() -> None:
         help="Path to the SSH key file to use for authentication",
         type=str,
     )
-    parser.add_argument(
-        "--security-release",
-        dest="security_release",
-        action="store_true",
-        default=False,
-        help="Indicate this is a security release (only checks for Linux files)",
-    )
     args = parser.parse_args()
 
     auth_key = args.auth_key or os.getenv("AUTH_INFO")
@@ -1409,7 +1380,6 @@ fix these things in this script so it also supports your platform.
         ssh_user=args.ssh_user,
         sign_gpg=not no_gpg,
         ssh_key=args.ssh_key,
-        security_release=args.security_release,
         tasks=tasks,
     )
     automata.run()
