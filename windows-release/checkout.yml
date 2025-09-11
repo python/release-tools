@@ -35,3 +35,13 @@ steps:
   ${{ if and(parameters.Path, ne(parameters.Path, '.')) }}:
     workingDirectory: ${{ parameters.Path }}
   condition: and(succeeded(), variables['SourceCommit'])
+
+- powershell: |
+    if (-not (Test-Path "Misc\externals.spdx.json")) {
+      "externals.spdx.json is missing - skipping SBOM"
+      Write-Host "##vso[task.setvariable variable=SkipSBOM]1"
+    }
+  displayName: 'Checking for SBOM inputs'
+  ${{ if and(parameters.Path, ne(parameters.Path, '.')) }}:
+    workingDirectory: ${{ parameters.Path }}
+  condition: and(succeeded(), not(variables['SkipSBOM']))
