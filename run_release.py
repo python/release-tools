@@ -1005,7 +1005,6 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
         are_all_files_there = (
             are_linux_files_there and are_windows_files_there and are_macos_files_there
         )
-
         if not are_all_files_there:
             linux_tick = "✅" if are_linux_files_there else "❌"
             windows_tick = "✅" if are_windows_files_there else "❌"
