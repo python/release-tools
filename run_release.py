@@ -188,6 +188,7 @@ New features
 ------------
 
 * TODO
+
 Porting to Python {version}
 ----------------------
 
@@ -1180,10 +1181,32 @@ def maybe_prepare_new_main_branch(db: ReleaseShelf) -> None:
         cwd=db["git_repo"],
     )
 
+    whatsnew_toctree_file = "Doc/whatsnew/index.rst"
+    with cd(db["git_repo"]):
+        update_whatsnew_toctree(db, whatsnew_toctree_file)
+
+    subprocess.check_call(
+        ["git", "add", whatsnew_toctree_file],
+        cwd=db["git_repo"],
+    )
+
     subprocess.check_call(
         ["git", "commit", "-a", "-m", f"Python {new_release}"],
         cwd=db["git_repo"],
     )
+
+
+def update_whatsnew_toctree(db: ReleaseShelf, filename: str) -> None:
+    release_tag: release_mod.Tag = db["release"]
+    this_rst = f"   {release_tag.major}.{release_tag.minor}.rst"
+    next_rst = f"   {release_tag.major}.{release_tag.minor+1}.rst"
+    new = next_rst + "\n" + this_rst
+
+    with open(filename) as f:
+        contents = f.read()
+    contents = contents.replace(this_rst, new)
+    with open(filename, "w") as f:
+        f.write(contents)
 
 
 def branch_new_versions(db: ReleaseShelf) -> None:
