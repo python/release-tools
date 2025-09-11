@@ -1,3 +1,4 @@
+pyfakefs
 pytest
 pytest-aiohttp
 pytest-cov

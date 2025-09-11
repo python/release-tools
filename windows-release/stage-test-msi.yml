@@ -39,7 +39,7 @@ jobs:
   steps:
   - checkout: none
 
-  - task: DownloadPipelineArtifact@1
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: msi'
     inputs:
       artifactName: msi

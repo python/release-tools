@@ -646,7 +646,7 @@ def export(tag: Tag, silent: bool = False, skip_docs: bool = False) -> None:
 
             # Remove directories we don't want to ship in tarballs.
             run_cmd(["blurb", "export"], silent=silent)
-            for name in (".azure-pipelines", ".git", ".github", ".hg"):
+            for name in (".azure-pipelines", ".git", ".github", ".hg", "Misc/mypy"):
                 shutil.rmtree(name, ignore_errors=True)
 
         if not skip_docs and (tag.is_final or tag.level == "rc"):

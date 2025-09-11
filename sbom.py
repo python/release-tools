@@ -608,12 +608,12 @@ def create_sbom_for_source_tarball(tarball_path: str) -> SBOM:
     # Now we walk the tarball and compare known files to our expected checksums in the SBOM.
     # All files that aren't already in the SBOM can be added as "CPython" files.
     for member in tarball.getmembers():
-        if member.isdir():  # Skip directories!
+        if not member.isfile():  # Only keep files (no symlinks)
             continue
 
         # Get the member from the tarball. CPython prefixes all of its
         # source code with 'Python-{version}/...'.
-        assert member.isfile() and member.name.startswith(f"Python-{cpython_version}/")
+        assert member.name.startswith(f"Python-{cpython_version}/")
 
         # Calculate the hashes, either for comparison with a known value
         # or to embed in the SBOM as a new file. SHA1 is only used because
@@ -696,7 +696,7 @@ def create_sbom_for_windows_artifact(
     artifact_path: str, cpython_source_dir: Path | str
 ) -> SBOM:
     artifact_name = os.path.basename(artifact_path)
-    if m := re.match(pat := r"^python-([0-9abrc.]+)(?:-|\.exe|\.zip)", artifact_name):
+    if m := re.match(pat := r"^python-([0-9abrc.]+)t?(?:-|\.exe|\.zip)", artifact_name):
         cpython_version = m.group(1)
     else:
         raise ValueError(f"Invalid {artifact_name=}, expected {pat!r}")
@@ -731,8 +731,8 @@ def create_sbom_for_windows_artifact(
     sbom_cpython_package_spdx_id = spdx_id("SPDXRef-PACKAGE-cpython")
 
     # The Windows embed artifacts don't contain pip/ensurepip,
-    # but the MSI artifacts do. Add pip for MSI installers.
-    if artifact_name.endswith(".exe"):
+    # but the others do.
+    if "-embed" not in artifact_name:
 
         # Find the pip wheel in ensurepip in the source code
         for pathname in os.listdir(cpython_source_dir / "Lib/ensurepip/_bundled"):

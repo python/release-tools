@@ -1,10 +1,10 @@
 parameters:
+  BuildToPackage: current
   DoFreethreaded: false
 
 jobs:
 - job: Make_Nuget_Layout
   displayName: Make Nuget layout
-  condition: and(succeeded(), eq(variables['DoNuget'], 'true'))
 
   pool:
     vmImage: windows-2022
@@ -50,9 +50,19 @@ jobs:
   steps:
   - template: ./checkout.yml
 
-  - download: current
-    artifact: bin_$(Name)
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: bin_$(Name)'
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: bin_$(Name)
+      targetPath: $(Pipeline.Workspace)\bin_$(Name)
 
   - powershell: |
       copy $(Pipeline.Workspace)\bin_$(Name)\Activate.ps1 Lib\venv\scripts\common\Activate.ps1 -Force
@@ -60,6 +70,8 @@ jobs:
     condition: and(succeeded(), variables['SigningCertificate'])
 
   - template: ./layout-command.yml
+    parameters:
+      BuildToPackage: ${{ parameters.BuildToPackage }}
 
   - powershell: |
       $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\nuget" --preset-nuget $(ExtraOptions)
