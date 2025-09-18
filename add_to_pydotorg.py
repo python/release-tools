@@ -88,7 +88,7 @@ release_to_sigstore_identity_and_oidc_issuer = {
     "3.13": ("thomas@python.org", google_oidc_provider),
     "3.14": ("hugo@python.org", github_oidc_provider),
     "3.15": ("hugo@python.org", github_oidc_provider),
-    "3.16": ("savannah@python.org", google_oidc_provider),
+    "3.16": ("savannah@python.org", github_oidc_provider),
 }
 
 
