@@ -24,6 +24,7 @@ on:
         description: "Git remote to checkout"
         options:
           - python
+          - savannahostrowski
           - hugovk
           - Yhg1s
           - pablogsal
