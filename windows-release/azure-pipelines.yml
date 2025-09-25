@@ -7,6 +7,7 @@ parameters:
   default: python
   values:
   - 'python'
+  - 'savannahostrowski'
   - 'hugovk'
   - 'Yhg1s'
   - 'pablogsal'
