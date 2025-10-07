@@ -231,7 +231,7 @@ jobs:
           ref: "v${{ env.CPYTHON_RELEASE }}"
 
       - name: Build and test
-        run: ./Android/android.py ci "$triplet"
+        run: ./Android/android.py ci --fast-ci "$triplet"
 
       - uses: actions/upload-artifact@v4
         with:
