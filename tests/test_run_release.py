@@ -15,7 +15,7 @@ from run_release import ReleaseException
 
 @pytest.mark.parametrize(
     "version",
-    ["sigstore 3.6.2", "sigstore 3.6.6"],
+    ["sigstore 4.0.0", "sigstore 4.1.0"],
 )
 def test_check_sigstore_version_success(version) -> None:
     # Verify runs with no exceptions
@@ -24,7 +24,7 @@ def test_check_sigstore_version_success(version) -> None:
 
 @pytest.mark.parametrize(
     "version",
-    ["sigstore 3.4.0", "sigstore 3.6.0", "sigstore 4.0.0", ""],
+    ["sigstore 3.4.0", "sigstore 3.6.2", "sigstore 3.6.6", ""],
 )
 def test_check_sigstore_version_exception(version) -> None:
     with pytest.raises(
