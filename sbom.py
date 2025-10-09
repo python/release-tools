@@ -362,7 +362,7 @@ def create_pip_sbom_from_wheel(
             match = version_pin_re.match(line)
             assert (
                 match is not None
-            ), f"Unparsable line in vendor.txt: {line!r}"  # Make mypy happy.
+            ), f"Unparseable line in vendor.txt: {line!r}"  # Make mypy happy.
 
             # Parse out and normalize the project name.
             project_name, project_version = match.groups()
