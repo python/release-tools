@@ -89,7 +89,7 @@ steps:
       scriptType: 'ps'
       scriptLocation: 'inlineScript'
       inlineScript: |
-        "##vso[task.setvariable variable=AZURE_CLIENT_ID;issecret=true]${env:servicePrincipalId}" 
+        "##vso[task.setvariable variable=AZURE_CLIENT_ID;issecret=true]${env:servicePrincipalId}"
         "##vso[task.setvariable variable=AZURE_ID_TOKEN;issecret=true]${env:idToken}"
         "##vso[task.setvariable variable=AZURE_TENANT_ID;issecret=true]${env:tenantId}"
       addSpnToEnvironment: true
