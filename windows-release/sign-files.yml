@@ -8,12 +8,52 @@ parameters:
   ExportCommand: ''
   ContinueOnError: false
   AzureServiceConnectionName: 'Python Signing'
+  # To avoid complicated file handling, we just copy-paste the test root
+  # certificate here. This is publicly available from
+  # http://www.microsoft.com/pkiops/certs/Microsoft%20Identity%20Verification%20TEST%20ONLY%20Root%20Certificate%20Authority%202020.crt
+  TestRoot: |
+    -----BEGIN CERTIFICATE-----
+    MIIF4jCCA8qgAwIBAgIQfaIvgmtqu6hPjv+NyFOgRzANBgkqhkiG9w0BAQwFADCB
+    gTELMAkGA1UEBhMCVVMxHjAcBgNVBAoTFU1pY3Jvc29mdCBDb3Jwb3JhdGlvbjFS
+    MFAGA1UEAxNJTWljcm9zb2Z0IElkZW50aXR5IFZlcmlmaWNhdGlvbiBURVNUIE9O
+    TFkgUm9vdCBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkgMjAyMDAeFw0yMDA0MTYxODQ5
+    MjRaFw00NTA0MTYxODU3NThaMIGBMQswCQYDVQQGEwJVUzEeMBwGA1UEChMVTWlj
+    cm9zb2Z0IENvcnBvcmF0aW9uMVIwUAYDVQQDE0lNaWNyb3NvZnQgSWRlbnRpdHkg
+    VmVyaWZpY2F0aW9uIFRFU1QgT05MWSBSb290IENlcnRpZmljYXRlIEF1dGhvcml0
+    eSAyMDIwMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEApSJ41oA+1J4w
+    UvgaCv15SdfRcHDKIEyO6QZG5GkBIF6lq8SmEwVeGlX7qPE1lbeZ+fus1X++Gfi9
+    FYrC1q1GgZAfhpDlmj5NFonHpVjTKQsgTz3pducrDijFdA0LxZTqe5luseNdNOLc
+    SkqdaEj+VzSgzS4CfBqnk36yhlUrfBLOVhSoApZLZsAxsMUq5puOGk/rXoKHjeYr
+    SPa+FFaI3r4Kz26qgZ+HJsrd0AIurAUIlSy/fGAMPkcd/1NJBJ6jNPdrjSR8aUmU
+    bTRRo5ImF0avOtirTwYaaYkvGf9vydMcE8fgzB8JMSwQAM52i9vjZ7b4UXv2CgM/
+    C7jsp9JA2XY5OJJaSGh0Ab1UBzPJbB+HQNLnl9mUlHKqGxbM4saIV3aUkE0rl2gZ
+    KkWhztvOcAv9USQLFwhYIdKBN1RjuFQ83DbvwZ8W9xLG0Qv2QgT9WAYOL6VXv/nX
+    AZy2Zhefvluh4H/glANEc/AQhdwpI2cdlVYs99yA2ppjzMdcgiymZHsUS5WXy5k9
+    sMVldFQ6sfT/OEXkNntVUbTIaSYRF70626q9X+5VmqrMkMH125AKapesL5ekB08j
+    8zqqHQxoHihG/bv+RoLllA1+nuUmdpPCadoPg5PuFz3KTG/UVL+sOOnsA9CYHNMg
+    meXh2ORvDUKxggz0aJX3l35DB0TFKHECAwEAAaNUMFIwDgYDVR0PAQH/BAQDAgGG
+    MA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFINztgy61yyzu84KpaJPGrRhu00r
+    MBAGCSsGAQQBgjcVAQQDAgEAMA0GCSqGSIb3DQEBDAUAA4ICAQAkizoOlkTmonOs
+    H7uUWKcL+r6uEdhuD6yhu4ZERDV0xIWe3dw98Eq9RRdOsvqRkKDy28bPyvVD8XDm
+    6gQqu6g1UPkgUY5PzuSrOLTFjqPX7WB7La7+nBVqjBBdEHL+hZLh77OIi2pgzuIo
+    B9yn25LcU0mu1S3UphPhXfvTGUfOZyLDvHRaTHPieaCZ6im1YcpJWdVe7K+59R4h
+    BHty88+hyv0TJ5ymAWRUhzqwt4iVga/yCVeaEoTZxEfJeshklRvPs74/1SEFhUJt
+    /z3WqejqalUs8bxYBVdYjJeMkiDNoNc29ELjSY2Q4cQMcMsw9pQgjn7iA22ILzii
+    XF7tIwNnLWGcTjiVqWL8nMDu04UV+nSNggkpeBRSbNMNX47Z1i3SOwxSvHm99hQ4
+    PaxE2KAL4YuT3AKzJ4Ez+NBoyhKdQDOEhGg+5vgde0I8+5VKE6xnxj6C4ns0SqUP
+    FAdS2qvJnYK2BDPHYAPWCNQOk/wRMFHTJfawuo1kFSsdIKeRFybHWAlh/TIvjWIt
+    DOkLRI4mXYrK12NaEMpDOAwj8OM1kLdonLoGNIQqPDbvP6xZP8Ql/Qx5D7ZPdSxk
+    vsNmjgvCFs+G0MVbeOhEJ5ttWaJ9PyakVz8kVE2TXRbrmqFXC/GQGhHbr5m7TTIP
+    cyfNsdfsKFE0GOrSxQsxI86SBX82IA==
+    -----END CERTIFICATE-----
+
 
 steps:
 - ${{ if parameters.SigningCertificate }}:
   - powershell: |
       # Install test root, so that signing tool can do test signing
       # See https://github.com/dotnet/sign/issues/908 for underlying issue
+      $env:TEST_ROOT_CERT | Out-File .\TestCertRoot.cer -Encoding ascii
       Import-Certificate -FilePath .\TestCertRoot.cer -CertStoreLocation Cert:\LocalMachine\Root
 
       # Install sign tool
@@ -37,6 +77,7 @@ steps:
     displayName: 'Install Trusted Signing tools'
     env:
       EXPORT_COMMAND: ${{ parameters.ExportCommand }}
+      TEST_ROOT_CERT: ${{ parameters.TestRoot }}
 
   # We sign in once with the AzureCLI task, as it uses OIDC to obtain a
   # temporary token. But the task also logs out, and so we save the token and
