@@ -67,6 +67,10 @@ steps:
         Include: ''
         ExportCommand: SignCommand
         SigningCertificate: ${{ parameters.SigningCertificate }}
+        # WiX is struggling with WIF authentication and sign.exe right now,
+        # so we still rely on the client secret for legacy builds.
+        # We disable the service connection here to skip the login steps.
+        AzureServiceConnectionName: ''
 
     - powershell: |
         $cmd = $env:SignCommand -replace '"', '\"'
@@ -83,6 +87,10 @@ steps:
       Platform: x86
       # Only need the variable here for msi.props to detect
       SigningCertificate: ${{ parameters.SigningCertificate }}
+      ${{ if parameters.SigningCertificate }}:
+        AZURE_TENANT_ID: $(TrustedSigningTenantId)
+        AZURE_CLIENT_ID: $(TrustedSigningClientId)
+        AZURE_CLIENT_SECRET: $(TrustedSigningClientSecret)
 
   - ${{ each b in parameters.Bundles }}:
     - script: |
@@ -97,6 +105,10 @@ steps:
           TclTkLibraryDir: $(Pipeline.Workspace)\${{ b.TclTkArtifact }}
         # Only need the variable here for msi.props to detect
         SigningCertificate: ${{ parameters.SigningCertificate }}
+        ${{ if parameters.SigningCertificate }}:
+          AZURE_TENANT_ID: $(TrustedSigningTenantId)
+          AZURE_CLIENT_ID: $(TrustedSigningClientId)
+          AZURE_CLIENT_SECRET: $(TrustedSigningClientSecret)
 
   - powershell: |
       del $env:ResponseFile -ErrorAction Continue
