@@ -81,12 +81,8 @@ steps:
     displayName: 'Build launcher installer'
     env:
       Platform: x86
-      ${{ if parameters.SigningCertificate }}:
-        AZURE_TENANT_ID: $(TrustedSigningTenantId)
-        AZURE_CLIENT_ID: $(TrustedSigningClientId)
-        AZURE_CLIENT_SECRET: $(TrustedSigningSecret)
-        # Only need the variable here for msi.props to detect
-        SigningCertificate: ${{ parameters.SigningCertificate }}
+      # Only need the variable here for msi.props to detect
+      SigningCertificate: ${{ parameters.SigningCertificate }}
 
   - ${{ each b in parameters.Bundles }}:
     - script: |
@@ -99,12 +95,8 @@ steps:
         PYTHONHOME: $(Build.SourcesDirectory)
         ${{ if b.TclTkArtifact }}:
           TclTkLibraryDir: $(Pipeline.Workspace)\${{ b.TclTkArtifact }}
-        ${{ if parameters.SigningCertificate }}:
-          AZURE_TENANT_ID: $(TrustedSigningTenantId)
-          AZURE_CLIENT_ID: $(TrustedSigningClientId)
-          AZURE_CLIENT_SECRET: $(TrustedSigningSecret)
-          # Only need the variable here for msi.props to detect
-          SigningCertificate: ${{ parameters.SigningCertificate }}
+        # Only need the variable here for msi.props to detect
+        SigningCertificate: ${{ parameters.SigningCertificate }}
 
   - powershell: |
       del $env:ResponseFile -ErrorAction Continue
