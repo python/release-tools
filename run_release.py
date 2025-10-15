@@ -368,13 +368,16 @@ def check_sigstore_client(db: ReleaseShelf) -> None:
 
 def check_sigstore_version(version: str) -> None:
     version_match = re.match("^sigstore ([0-9.]+)", version)
-    if not version_match or tuple(
-        int(part) for part in version_match.group(1).split(".")
-    ) < (3, 5):
-        raise ReleaseException(
-            f"Sigstore version not detected or not valid. "
-            f"Expecting 3.5.x or later: {version}"
-        )
+    if version_match:
+        version_tuple = tuple(int(part) for part in version_match.group(1).split("."))
+        if (3, 6, 2) <= version_tuple < (4, 0):
+            # good version
+            return
+
+    raise ReleaseException(
+        f"Sigstore version not detected or not valid. "
+        f"Expecting >= 3.6.2 and < 4.0.0, got: {version}"
+    )
 
 
 def check_buildbots(db: ReleaseShelf) -> None:
