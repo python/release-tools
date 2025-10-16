@@ -132,7 +132,6 @@ variables:
   SourceTag: ${{ parameters.SourceTag }}
   ${{ if ne(parameters.SourceCommit, 'empty') }}:
     SourceCommit: ${{ parameters.SourceCommit }}
-  SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
   ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
     IsRealSigned: true
   ${{ else }}:
