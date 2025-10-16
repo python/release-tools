@@ -1,5 +1,6 @@
 parameters:
   BuildToPackage: current
+  SigningCertificate: ''
 
 jobs:
 - job: Make_Embed_Layout

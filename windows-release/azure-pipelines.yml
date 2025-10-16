@@ -132,6 +132,7 @@ variables:
   SourceTag: ${{ parameters.SourceTag }}
   ${{ if ne(parameters.SourceCommit, 'empty') }}:
     SourceCommit: ${{ parameters.SourceCommit }}
+  SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
   ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
     IsRealSigned: true
   ${{ else }}:
@@ -140,8 +141,14 @@ variables:
     SigningDescription: ${{ parameters.SigningDescription }}
   PublishARM64: ${{ parameters.DoARM64 }}
 # QUEUE TIME VARIABLES
-#  PyDotOrgUsername: ''
-#  PyDotOrgServer: ''
+#  OverrideNugetVersion: ''
+#  PyManagerIndexFilename: ''
+#  SkipNugetPublish: ''
+#  SkipPipTests: ''
+#  SkipPythonOrgPublish: ''
+#  SkipSBOM: ''
+#  SkipTests: ''
+#  SkipTkTests: ''
 
 trigger: none
 pr: none
@@ -193,29 +200,35 @@ stages:
       parameters:
         BuildToPackage: ${{ parameters.BuildToPackage }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
+        SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - template: stage-layout-symbols.yml
       parameters:
         BuildToPackage: ${{ parameters.BuildToPackage }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
+        SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoEmbed, 'true') }}:
       - template: stage-layout-embed.yml
         parameters:
           BuildToPackage: ${{ parameters.BuildToPackage }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-layout-nuget.yml
         parameters:
           BuildToPackage: ${{ parameters.BuildToPackage }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoMSIX, 'true') }}:
       - template: stage-layout-msix.yml
         parameters:
           BuildToPackage: ${{ parameters.BuildToPackage }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoPyManager, 'true') }}:
       - template: stage-layout-pymanager.yml
         parameters:
           BuildToPackage: ${{ parameters.BuildToPackage }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           DoEmbed: ${{ parameters.DoEmbed }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
 
   - stage: Pack
     dependsOn: Layout
@@ -223,31 +236,31 @@ stages:
     jobs:
     #- ${{ if eq(parameters.DoEmbed, 'true') }}:
     #  - template: stage-pack-embed.yml
+    #    parameters:
+    #      SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoMSI, 'true') }}:
       - template: stage-msi.yml
         parameters:
           BuildToPackage: ${{ parameters.BuildToPackage }}
           DoARM64: ${{ parameters.DoARM64}}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
-          ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
-            SigningCertificate: ${{ parameters.SigningCertificate }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoMSIX, 'true') }}:
       - template: stage-pack-msix.yml
         parameters:
-          ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
-            SigningCertificate: ${{ parameters.SigningCertificate }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-pack-nuget.yml
         parameters:
           ${{ if eq(parameters.SignNuget, 'true') }}:
-            ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
-              SigningCertificate: ${{ parameters.SigningCertificate }}
+            SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
     - ${{ if eq(parameters.DoPyManager, 'true') }}:
       - template: stage-pack-pymanager.yml
         parameters:
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           DoEmbed: ${{ parameters.DoEmbed }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
 
   - stage: Test
     dependsOn: Pack

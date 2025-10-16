@@ -1,5 +1,6 @@
 parameters:
   BuildToPackage: current
+  SigningCertificate: ''
 
 jobs:
 - job: Make_MSIX_Layout
@@ -69,25 +70,24 @@ jobs:
     displayName: 'Update TCL_LIBRARY'
     condition: and(succeeded(), variables['TclLibrary'])
 
-  - task: DownloadPipelineArtifact@2
-    displayName: 'Download artifact: cert'
-    condition: and(succeeded(), variables['SigningCertificate'])
-    inputs:
-      ${{ if eq(parameters.BuildToPackage, 'current') }}:
-        buildType: current
-      ${{ else }}:
-        buildType: specific
-        buildVersionToDownload: specific
-        project: $(resources.pipeline.build_to_package.projectId)
-        pipeline: $(resources.pipeline.build_to_package.pipelineId)
-        runId: $(resources.pipeline.build_to_package.runID)
-      artifact: cert
-      targetPath: $(Pipeline.Workspace)\cert
+  - ${{ if parameters.SigningCertificate }}:
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download artifact: cert'
+      inputs:
+        ${{ if eq(parameters.BuildToPackage, 'current') }}:
+          buildType: current
+        ${{ else }}:
+          buildType: specific
+          buildVersionToDownload: specific
+          project: $(resources.pipeline.build_to_package.projectId)
+          pipeline: $(resources.pipeline.build_to_package.pipelineId)
+          runId: $(resources.pipeline.build_to_package.runID)
+        artifact: cert
+        targetPath: $(Pipeline.Workspace)\cert
 
-  - powershell: |
-      copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
-    displayName: 'Copy signed files into sources'
-    condition: and(succeeded(), variables['SigningCertificate'])
+    - powershell: |
+        copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
+      displayName: 'Copy signed files into sources'
 
   - template: ./layout-command.yml
     parameters:
@@ -100,14 +100,14 @@ jobs:
     env:
       TCL_LIBRARY: $(TclLibrary)
 
-  # The dotnet sign tool shouldn't need this, but we do because of the sccd file
-  - powershell: |
-      $info = (gc "$(Pipeline.Workspace)\cert\certinfo.json" | ConvertFrom-JSON)
-      Write-Host "Side-loadable APPX must be signed with '$($info.Subject)'"
-      Write-Host "##vso[task.setvariable variable=APPX_DATA_PUBLISHER]$($info.Subject)"
-      Write-Host "##vso[task.setvariable variable=APPX_DATA_SHA256]$($info.SHA256)"
-    displayName: 'Override signing parameters'
-    condition: and(succeeded(), variables['SigningCertificate'])
+  - ${{ if parameters.SigningCertificate }}:
+    # The dotnet sign tool shouldn't need this, but we do because of the sccd file
+    - powershell: |
+        $info = (gc "$(Pipeline.Workspace)\cert\certinfo.json" | ConvertFrom-JSON)
+        Write-Host "Side-loadable APPX must be signed with '$($info.Subject)'"
+        Write-Host "##vso[task.setvariable variable=APPX_DATA_PUBLISHER]$($info.Subject)"
+        Write-Host "##vso[task.setvariable variable=APPX_DATA_SHA256]$($info.SHA256)"
+      displayName: 'Override signing parameters'
 
   - powershell: |
       Remove-Item "$(Build.ArtifactStagingDirectory)\appx" -Recurse -Force -EA 0

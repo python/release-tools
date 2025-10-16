@@ -25,7 +25,7 @@ jobs:
         Name: amd64
         Artifact: appxstore
         Suffix: -store
-        Upload: true
+        CreateMsixUpload: true
       arm64:
         Name: arm64
         Artifact: appx
@@ -35,7 +35,7 @@ jobs:
         Name: arm64
         Artifact: appxstore
         Suffix: -store
-        Upload: true
+        CreateMsixUpload: true
 
   steps:
   - template: ./checkout.yml
@@ -70,26 +70,21 @@ jobs:
   - powershell: |
       7z a -tzip "$(Build.ArtifactStagingDirectory)\msixupload\$(Filename).msixupload" *
     displayName: 'Build msixupload'
-    condition: and(succeeded(), eq(variables['Upload'], 'true'))
+    condition: and(succeeded(), eq(variables['CreateMsixUpload'], 'true'))
     workingDirectory: $(Build.ArtifactStagingDirectory)\msix
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: MSIX'
-    condition: and(succeeded(), or(ne(variables['ShouldSign'], 'true'), not(variables['SigningCertificate'])))
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\msix'
-      ArtifactName: msix
-
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publish Artifact: MSIX'
-    condition: and(succeeded(), eq(variables['ShouldSign'], 'true'), variables['SigningCertificate'])
-    inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)\msix'
-      ArtifactName: unsigned_msix
+      ${{ if parameters.SigningCertificate }}:
+        ArtifactName: unsigned_msix
+      ${{ else }}:
+        ArtifactName: msix
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: MSIXUpload'
-    condition: and(succeeded(), eq(variables['Upload'], 'true'))
+    condition: and(succeeded(), eq(variables['CreateMsixUpload'], 'true'))
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\msixupload'
       ArtifactName: msixupload
