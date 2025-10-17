@@ -1,6 +1,7 @@
 parameters:
   BuildToPackage: current
   DoFreethreaded: false
+  SigningCertificate: ''
 
 jobs:
 - job: Make_Nuget_Layout
@@ -64,10 +65,10 @@ jobs:
       artifact: bin_$(Name)
       targetPath: $(Pipeline.Workspace)\bin_$(Name)
 
-  - powershell: |
-      copy $(Pipeline.Workspace)\bin_$(Name)\Activate.ps1 Lib\venv\scripts\common\Activate.ps1 -Force
-    displayName: 'Copy signed files into sources'
-    condition: and(succeeded(), variables['SigningCertificate'])
+  - ${{ if parameters.SigningCertificate }}:
+    - powershell: |
+        copy $(Pipeline.Workspace)\bin_$(Name)\Activate.ps1 Lib\venv\scripts\common\Activate.ps1 -Force
+      displayName: 'Copy signed files into sources'
 
   - template: ./layout-command.yml
     parameters:

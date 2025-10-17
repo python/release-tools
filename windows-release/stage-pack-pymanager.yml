@@ -1,6 +1,7 @@
 parameters:
   DoFreethreaded: false
   DoEmbed: false
+  SigningCertificate: ''
 
   Artifacts:
   - name: win32

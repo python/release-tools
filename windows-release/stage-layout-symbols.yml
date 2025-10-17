@@ -15,6 +15,7 @@ parameters:
   - win32_td
   - amd64_td
   - arm64_td
+  SigningCertificate: ''
 
 
 jobs:
