@@ -102,7 +102,7 @@ def test_tweak_readme(
     tag = release.Tag(test_tag)
 
     original_readme_file = Path(__file__).parent / "README.rst"
-    original_contents = original_readme_file.read_text()
+    original_contents = original_readme_file.read_text(encoding="utf-8")
     readme_file = tmp_path / "README.rst"
     readme_file.write_text(original_contents)
 
@@ -110,8 +110,11 @@ def test_tweak_readme(
     release.tweak_readme(tag, filename=str(readme_file))
 
     # Assert
-    original_lines = original_contents.splitlines()
-    new_lines = readme_file.read_text().splitlines()
+    original_lines = original_contents.split("\n")
+    new_contents = readme_file.read_text(encoding="utf-8")
+    new_lines = new_contents.split("\n")
     assert new_lines[0] == expected_version
     assert new_lines[1] == expected_underline
     assert new_lines[2:] == original_lines[2:]
+    assert original_contents.endswith("\n")
+    assert new_contents.endswith("\n")
