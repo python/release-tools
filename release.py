@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -256,7 +256,7 @@ def error(*msgs: str) -> None:
 
 
 def run_cmd(
-    cmd: list[str] | str, silent: bool = False, shell: bool = False, **kwargs: Any
+    cmd: Sequence[str] | str, silent: bool = False, shell: bool = False, **kwargs: Any
 ) -> None:
     if shell:
         cmd = SPACE.join(cmd)
