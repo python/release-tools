@@ -707,8 +707,10 @@ def build_docs() -> str:
             "SPHINXOPTS": "-j10",
         }
         with pushd("Doc"):
+            run_cmd(("make", "dist-epub"), env=docs_env)
             run_cmd(("make", "dist-html"), env=docs_env)
-            run_cmd(("make", "dist-no-html"), env=docs_env)
+            run_cmd(("make", "dist-texinfo"), env=docs_env)
+            run_cmd(("make", "dist-text"), env=docs_env)
             return os.path.abspath("dist")
 
 

@@ -604,8 +604,6 @@ def wait_for_build_release(db: ReleaseShelf) -> None:
                 docs_path / f"python-{release_tag}-docs.epub",
                 docs_path / f"python-{release_tag}-docs-html.tar.bz2",
                 docs_path / f"python-{release_tag}-docs-html.zip",
-                docs_path / f"python-{release_tag}-docs-pdf-a4.tar.bz2",
-                docs_path / f"python-{release_tag}-docs-pdf-a4.zip",
                 docs_path / f"python-{release_tag}-docs-texinfo.tar.bz2",
                 docs_path / f"python-{release_tag}-docs-texinfo.zip",
                 docs_path / f"python-{release_tag}-docs-text.tar.bz2",
