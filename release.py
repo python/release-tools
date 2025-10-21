@@ -700,11 +700,15 @@ def build_docs() -> str:
         run_cmd([pip, "install", "-r", "Doc/requirements.txt"])
         sphinx_build = os.path.join(venv, "bin", "sphinx-build")
         blurb = os.path.join(venv, "bin", "blurb")
+        docs_env = {
+            **os.environ,
+            "BLURB": blurb,
+            "SPHINXBUILD": sphinx_build,
+            "SPHINXOPTS": "-j10",
+        }
         with pushd("Doc"):
-            run_cmd(
-                ["make", "dist", "SPHINXBUILD=" + sphinx_build, "BLURB=" + blurb],
-                env={**os.environ, "SPHINXOPTS": "-j10"},
-            )
+            run_cmd(("make", "dist-html"), env=docs_env)
+            run_cmd(("make", "dist-no-html"), env=docs_env)
             return os.path.abspath("dist")
 
 
