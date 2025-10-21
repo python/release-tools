@@ -153,26 +153,16 @@ jobs:
       - name: "Install docs dependencies"
         run: |
           python -m pip install -r Doc/requirements.txt
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends \
-            fonts-freefont-otf \
-            latexmk \
-            texinfo \
-            texlive-fonts-extra \
-            texlive-fonts-recommended \
-            texlive-latex-base \
-            texlive-latex-extra \
-            texlive-latex-recommended \
-            texlive-xetex \
-            xindy
 
       - name: "Build docs"
+        env:
+          SPHINXOPTS: "-j10"
         run: |
           cd Doc
-          SPHINXOPTS="-j10" make dist-epub
-          SPHINXOPTS="-j10" make dist-html
-          SPHINXOPTS="-j10" make dist-texinfo
-          SPHINXOPTS="-j10" make dist-text
+          make dist-epub
+          make dist-html
+          make dist-texinfo
+          make dist-text
 
       - name: "Upload the docs artifacts"
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
