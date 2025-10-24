@@ -1125,6 +1125,15 @@ def modify_the_docs_by_version_page(db: ReleaseShelf) -> None:
             )
 
 
+def announce_release(db: ReleaseShelf) -> None:
+    if not ask_question(
+        "Have you announced the release at https://discuss.python.org/c/core-dev/23 "
+        "and https://www.blogger.com?\n"
+        "Tip: use the 'release' tag and 'releases' label respectively."
+    ):
+        raise ReleaseException("The release has not been announced")
+
+
 def post_release_merge(db: ReleaseShelf) -> None:
     subprocess.check_call(
         ["git", "fetch", "--all"],
@@ -1448,6 +1457,7 @@ fix these things in this script so it also supports your platform.
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
         Task(modify_the_prereleases_page, "Modify the pre-release page"),
         Task(modify_the_docs_by_version_page, "Update docs by version page"),
+        Task(announce_release, "Announce the release"),
     ]
     automata = ReleaseDriver(
         git_repo=args.repo,
