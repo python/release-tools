@@ -16,6 +16,7 @@ import json
 import os
 import re
 import shelve
+import shlex
 import shutil
 import subprocess
 import sys
@@ -312,6 +313,7 @@ def check_tool(db: ReleaseShelf, tool: str) -> None:
         raise ReleaseException(f"{tool} is not available")
 
 
+check_gh = functools.partial(check_tool, tool="gh")
 check_git = functools.partial(check_tool, tool="git")
 check_make = functools.partial(check_tool, tool="make")
 check_blurb = functools.partial(check_tool, tool="blurb")
@@ -927,20 +929,15 @@ def start_build_release(db: ReleaseShelf) -> None:
     # After visually confirming the release manager can start the build process
     # with the known good commit SHA.
     print()
-    print(
-        "Go to https://github.com/python/release-tools/actions/workflows/build-release.yml"
-    )
-    print("Select 'Run workflow' and enter the following values:")
-    print(f"- Git remote to checkout: {origin_remote_github_owner}")
-    print(f"- Git commit to target for the release: {commit_sha}")
-    print(f"- CPython release number: {db['release']}")
-    print()
-    print("Or using the GitHub CLI run:")
-    print(
-        "  gh workflow run build-release.yml --repo python/release-tools"
+    cmd = (
+        "gh workflow run build-release.yml --repo python/release-tools"
         f" -f git_remote={origin_remote_github_owner}"
         f" -f git_commit={commit_sha}"
         f" -f cpython_release={db['release']}"
+    )
+    subprocess.check_call(shlex.split(cmd))
+    print(
+        "Go to https://github.com/python/release-tools/actions/workflows/build-release.yml"
     )
     print()
 
@@ -1390,6 +1387,7 @@ fix these things in this script so it also supports your platform.
     release_tag = release_mod.Tag(args.release)
     no_gpg = release_tag.as_tuple() >= (3, 14)  # see PEP 761
     tasks = [
+        Task(check_gh, "Checking gh is available"),
         Task(check_git, "Checking Git is available"),
         Task(check_make, "Checking make is available"),
         Task(check_blurb, "Checking blurb is available"),
