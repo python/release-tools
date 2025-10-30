@@ -1,7 +1,6 @@
 jobs:
 - job: Test_Nuget
   displayName: Test Nuget
-  condition: and(succeeded(), eq(variables['DoNuget'], 'true'))
 
   pool:
     vmImage: windows-2022

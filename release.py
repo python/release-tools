@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -256,7 +256,7 @@ def error(*msgs: str) -> None:
 
 
 def run_cmd(
-    cmd: list[str] | str, silent: bool = False, shell: bool = False, **kwargs: Any
+    cmd: Sequence[str] | str, silent: bool = False, shell: bool = False, **kwargs: Any
 ) -> None:
     if shell:
         cmd = SPACE.join(cmd)
@@ -700,11 +700,17 @@ def build_docs() -> str:
         run_cmd([pip, "install", "-r", "Doc/requirements.txt"])
         sphinx_build = os.path.join(venv, "bin", "sphinx-build")
         blurb = os.path.join(venv, "bin", "blurb")
+        docs_env = {
+            **os.environ,
+            "BLURB": blurb,
+            "SPHINXBUILD": sphinx_build,
+            "SPHINXOPTS": "-j10",
+        }
         with pushd("Doc"):
-            run_cmd(
-                ["make", "dist", "SPHINXBUILD=" + sphinx_build, "BLURB=" + blurb],
-                env={**os.environ, "SPHINXOPTS": "-j10"},
-            )
+            run_cmd(("make", "dist-epub"), env=docs_env)
+            run_cmd(("make", "dist-html"), env=docs_env)
+            run_cmd(("make", "dist-texinfo"), env=docs_env)
+            run_cmd(("make", "dist-text"), env=docs_env)
             return os.path.abspath("dist")
 
 
