@@ -365,7 +365,7 @@ def sign_release_files_with_sigstore(
         )
 
     # Ensure that Sigstore CLI installed on the download server is
-    # at least v3.0.0 or later to ensure valid Sigstore bundles are generated.
+    # at least v4.0.0 or later to ensure valid Sigstore bundles are generated.
     try:
         sigstore_version_stdout = subprocess.check_output(
             ["python3", "-m", "sigstore", "--version"]
@@ -380,9 +380,9 @@ def sign_release_files_with_sigstore(
             )
         sigstore_version = sigstore_version_match.group(1)
         sigstore_major_version = int(sigstore_version.partition(".")[0])
-        if sigstore_major_version < 3:
+        if sigstore_major_version < 4:
             error(
-                f"Sigstore v3 or later must be installed "
+                f"Sigstore v4 or later must be installed "
                 f"(currently {sigstore_version}), "
                 f"run: python -m pip install -r requirements.txt"
             )
