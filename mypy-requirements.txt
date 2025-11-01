@@ -1,4 +1,4 @@
-aiohttp==3.12.15
+aiohttp==3.13.2
 alive_progress>=3.3.0
 mypy==1.18.2
 pyfakefs
