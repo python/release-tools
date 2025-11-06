@@ -77,7 +77,7 @@ def test_tweak_patchlevel(tmp_path: Path) -> None:
         "expected_underline",
         "expected_whatsnew",
         "expected_docs",
-        "expected_release_details_text",
+        "expected_pep_line",
     ],
     [
         (
@@ -86,7 +86,7 @@ def test_tweak_patchlevel(tmp_path: Path) -> None:
             "=====================================",
             "3.14 <https://docs.python.org/3.14/whatsnew/3.14.html>`_",
             "`Documentation for Python 3.14 <https://docs.python.org/3.14/>`_",
-            "for Python 3.14 release details",
+            "`PEP 745 <https://peps.python.org/pep-0745/>`__ for Python 3.14",
         ),
         (
             "3.14.0b2",
@@ -94,7 +94,7 @@ def test_tweak_patchlevel(tmp_path: Path) -> None:
             "====================================",
             "3.14 <https://docs.python.org/3.14/whatsnew/3.14.html>`_",
             "`Documentation for Python 3.14 <https://docs.python.org/3.14/>`_",
-            "for Python 3.14 release details",
+            "`PEP 745 <https://peps.python.org/pep-0745/>`__ for Python 3.14",
         ),
         (
             "3.14.0rc2",
@@ -102,7 +102,7 @@ def test_tweak_patchlevel(tmp_path: Path) -> None:
             "=================================================",
             "3.14 <https://docs.python.org/3.14/whatsnew/3.14.html>`_",
             "`Documentation for Python 3.14 <https://docs.python.org/3.14/>`_",
-            "for Python 3.14 release details",
+            "`PEP 745 <https://peps.python.org/pep-0745/>`__ for Python 3.14",
         ),
         (
             "3.15.1",
@@ -110,7 +110,7 @@ def test_tweak_patchlevel(tmp_path: Path) -> None:
             "=============================",
             "3.15 <https://docs.python.org/3.15/whatsnew/3.15.html>`_",
             "`Documentation for Python 3.15 <https://docs.python.org/3.15/>`_",
-            "for Python 3.15 release details",
+            "`PEP 790 <https://peps.python.org/pep-0790/>`__ for Python 3.15",
         ),
     ],
 )
@@ -121,7 +121,7 @@ def test_tweak_readme(
     expected_underline: str,
     expected_whatsnew: str,
     expected_docs: str,
-    expected_release_details_text: str,
+    expected_pep_line: str,
 ) -> None:
     # Arrange
     tag = release.Tag(test_tag)
@@ -141,4 +141,4 @@ def test_tweak_readme(
     assert new_lines[1] == expected_underline
     assert expected_whatsnew in new_contents
     assert expected_docs in new_contents
-    assert expected_release_details_text in new_contents
+    assert expected_pep_line in new_contents

@@ -11,6 +11,7 @@ from __future__ import annotations
 import datetime
 import glob
 import hashlib
+import json
 import optparse
 import os
 import re
@@ -19,9 +20,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import urllib.request
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 from typing import (
     Any,
@@ -442,6 +445,22 @@ def tweak_patchlevel(
     print("done")
 
 
+@cache
+def get_pep_number(version: str) -> str:
+    """Fetch PEP number for a Python version from the devguide.
+
+    Returns the PEP number as a string, or "TODO" if not found.
+    """
+    url = "https://raw.githubusercontent.com/python/devguide/main/include/release-cycle.json"
+    with urllib.request.urlopen(url, timeout=10) as response:
+        data = json.loads(response.read().decode())
+        if version in data:
+            pep = data[version].get("pep")
+            if pep:
+                return str(pep)
+    return "TODO"
+
+
 def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
     print(f"Updating {filename}...", end=" ")
     readme = Path(filename)
@@ -473,10 +492,14 @@ def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
         content,
     )
 
-    # Replace in "for Python 3.14 release details"
+    # Get PEP number for this version
+    pep_number = get_pep_number(tag.basic_version)
+    pep_padded = pep_number.zfill(4) if pep_number != "TODO" else "TODO"
+
+    # Replace in: `PEP 745 <https://peps.python.org/pep-0745/>`__ for Python 3.14
     content = re.sub(
-        rf"(for Python ){X_Y}( release details)",
-        rf"\g<1>{tag.basic_version}\g<2>",
+        rf"(`PEP )\d+( <https://peps\.python\.org/pep-)\d+(/>`__ for Python ){X_Y}",
+        rf"\g<1>{pep_number}\g<2>{pep_padded}\g<3>{tag.basic_version}",
         content,
     )
 
