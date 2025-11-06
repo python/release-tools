@@ -448,13 +448,39 @@ def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
 
     # Update first line: "This is Python version 3.14.0 alpha 7"
     # and update length of underline in second line to match.
-    lines = readme.read_text().splitlines()
+    content = readme.read_text()
+    lines = content.splitlines()
     this_is = f"This is Python version {tag.long_name}"
     underline = "=" * len(this_is)
     lines[0] = this_is
     lines[1] = underline
+    content = "\n".join(lines)
 
-    readme.write_text("\n".join(lines))
+    DOCS_URL = r"https://docs\.python\.org/"
+    X_Y = r"\d+\.\d+"
+
+    # Replace in: 3.14 <https://docs.python.org/3.14/whatsnew/3.14.html>`_
+    content = re.sub(
+        rf"{X_Y} (<{DOCS_URL}){X_Y}(/whatsnew/){X_Y}(\.html>`_)",
+        rf"{tag.basic_version} \g<1>{tag.basic_version}\g<2>{tag.basic_version}\g<3>",
+        content,
+    )
+
+    # Replace in: `Documentation for Python 3.14 <https://docs.python.org/3.14/>`_
+    content = re.sub(
+        rf"(`Documentation for Python ){X_Y}( <{DOCS_URL}){X_Y}(/>`_)",
+        rf"\g<1>{tag.basic_version}\g<2>{tag.basic_version}\g<3>",
+        content,
+    )
+
+    # Replace in "for Python 3.14 release details"
+    content = re.sub(
+        rf"(for Python ){X_Y}( release details)",
+        rf"\g<1>{tag.basic_version}\g<2>",
+        content,
+    )
+
+    readme.write_text(content)
     print("done")
 
 

@@ -71,32 +71,57 @@ def test_tweak_patchlevel(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    ["test_tag", "expected_version", "expected_underline"],
+    [
+        "test_tag",
+        "expected_version",
+        "expected_underline",
+        "expected_whatsnew",
+        "expected_docs",
+        "expected_release_details_text",
+    ],
     [
         (
             "3.14.0a6",
             "This is Python version 3.14.0 alpha 6",
             "=====================================",
+            "3.14 <https://docs.python.org/3.14/whatsnew/3.14.html>`_",
+            "`Documentation for Python 3.14 <https://docs.python.org/3.14/>`_",
+            "for Python 3.14 release details",
         ),
         (
             "3.14.0b2",
             "This is Python version 3.14.0 beta 2",
             "====================================",
+            "3.14 <https://docs.python.org/3.14/whatsnew/3.14.html>`_",
+            "`Documentation for Python 3.14 <https://docs.python.org/3.14/>`_",
+            "for Python 3.14 release details",
         ),
         (
             "3.14.0rc2",
             "This is Python version 3.14.0 release candidate 2",
             "=================================================",
+            "3.14 <https://docs.python.org/3.14/whatsnew/3.14.html>`_",
+            "`Documentation for Python 3.14 <https://docs.python.org/3.14/>`_",
+            "for Python 3.14 release details",
         ),
         (
-            "3.14.1",
-            "This is Python version 3.14.1",
+            "3.15.1",
+            "This is Python version 3.15.1",
             "=============================",
+            "3.15 <https://docs.python.org/3.15/whatsnew/3.15.html>`_",
+            "`Documentation for Python 3.15 <https://docs.python.org/3.15/>`_",
+            "for Python 3.15 release details",
         ),
     ],
 )
 def test_tweak_readme(
-    tmp_path: Path, test_tag: str, expected_version: str, expected_underline: str
+    tmp_path: Path,
+    test_tag: str,
+    expected_version: str,
+    expected_underline: str,
+    expected_whatsnew: str,
+    expected_docs: str,
+    expected_release_details_text: str,
 ) -> None:
     # Arrange
     tag = release.Tag(test_tag)
@@ -110,8 +135,10 @@ def test_tweak_readme(
     release.tweak_readme(tag, filename=str(readme_file))
 
     # Assert
-    original_lines = original_contents.splitlines()
-    new_lines = readme_file.read_text().splitlines()
+    new_contents = readme_file.read_text()
+    new_lines = new_contents.splitlines()
     assert new_lines[0] == expected_version
     assert new_lines[1] == expected_underline
-    assert new_lines[2:] == original_lines[2:]
+    assert expected_whatsnew in new_contents
+    assert expected_docs in new_contents
+    assert expected_release_details_text in new_contents
