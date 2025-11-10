@@ -208,7 +208,7 @@ class Tag:
 
     @property
     def is_security_release(self) -> bool:
-        url = "https://raw.githubusercontent.com/python/devguide/refs/heads/main/include/release-cycle.json"
+        url = "https://peps.python.org/api/release-cycle.json"
         with urlopen(url) as response:
             data = json.loads(response.read())
         return str(data[self.basic_version]["status"]) == "security"
