@@ -1021,18 +1021,13 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
             linux_tick = "✅" if are_linux_files_there else "❌"
             windows_tick = "✅" if are_windows_files_there else "❌"
             macos_tick = "✅" if are_macos_files_there else "❌"
+
             if db["security_release"]:
-                print(
-                    f"\rWaiting for files: Linux {linux_tick} (security release mode - only checking Linux) ",
-                    flush=True,
-                    end="",
-                )
+                waiting = f"\rWaiting for files: Linux {linux_tick} (security release - only checking Linux)"
             else:
-                print(
-                    f"\rWaiting for files: Linux {linux_tick}  Windows {windows_tick}  Mac {macos_tick} ",
-                    flush=True,
-                    end="",
-                )
+                waiting = f"\rWaiting for files: Linux {linux_tick}  Windows {windows_tick}  Mac {macos_tick} "
+
+            print(waiting, flush=True, end="")
             time.sleep(1)
     print()
 
