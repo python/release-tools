@@ -1,5 +1,6 @@
 parameters:
-  ARM64TclTk: true
+  BuildToPackage: current
+  SigningCertificate: ''
 
 jobs:
 - job: Make_MSIX_Layout
@@ -29,38 +30,68 @@ jobs:
         Name: arm64
         Arch: arm64
         HostArch: amd64
+        TclLibrary: tcltk_lib_arm64
         ExtraOptions: --precompile
-        ${{ if eq(parameters.ARM64TclTk, 'true') }}:
-          TclLibrary: tcltk_lib_arm64
 
   steps:
   - template: ./checkout.yml
 
-  - download: current
-    artifact: bin_$(Name)
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: bin_$(Name)'
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: bin_$(Name)
+      targetPath: $(Pipeline.Workspace)\bin_$(Name)
 
-  - download: current
-    artifact: $(TclLibrary)
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: $(TclLibrary)'
     condition: and(succeeded(), variables['TclLibrary'])
+    inputs:
+      ${{ if eq(parameters.BuildToPackage, 'current') }}:
+        buildType: current
+      ${{ else }}:
+        buildType: specific
+        buildVersionToDownload: specific
+        project: $(resources.pipeline.build_to_package.projectId)
+        pipeline: $(resources.pipeline.build_to_package.pipelineId)
+        runId: $(resources.pipeline.build_to_package.runID)
+      artifact: $(TclLibrary)
+      targetPath: $(Pipeline.Workspace)\$(TclLibrary)
 
   - powershell: |
       Write-Host "##vso[task.setvariable variable=TCL_LIBRARY]$(Pipeline.Workspace)\$(TclLibrary)\tcl8"
     displayName: 'Update TCL_LIBRARY'
     condition: and(succeeded(), variables['TclLibrary'])
 
-  - download: current
-    artifact: cert
-    displayName: 'Download artifact: cert'
-    condition: and(succeeded(), variables['SigningCertificate'])
+  - ${{ if parameters.SigningCertificate }}:
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download artifact: cert'
+      inputs:
+        ${{ if eq(parameters.BuildToPackage, 'current') }}:
+          buildType: current
+        ${{ else }}:
+          buildType: specific
+          buildVersionToDownload: specific
+          project: $(resources.pipeline.build_to_package.projectId)
+          pipeline: $(resources.pipeline.build_to_package.pipelineId)
+          runId: $(resources.pipeline.build_to_package.runID)
+        artifact: cert
+        targetPath: $(Pipeline.Workspace)\cert
 
-  - powershell: |
-      copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
-    displayName: 'Copy signed files into sources'
-    condition: and(succeeded(), variables['SigningCertificate'])
+    - powershell: |
+        copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
+      displayName: 'Copy signed files into sources'
 
   - template: ./layout-command.yml
+    parameters:
+      BuildToPackage: ${{ parameters.BuildToPackage }}
 
   - powershell: |
      Remove-Item "$(Build.ArtifactStagingDirectory)\appx-store" -Recurse -Force -EA 0
@@ -69,14 +100,14 @@ jobs:
     env:
       TCL_LIBRARY: $(TclLibrary)
 
-  # The dotnet sign tool shouldn't need this, but we do because of the sccd file
-  - powershell: |
-      $info = (gc "$(Pipeline.Workspace)\cert\certinfo.json" | ConvertFrom-JSON)
-      Write-Host "Side-loadable APPX must be signed with '$($info.Subject)'"
-      Write-Host "##vso[task.setvariable variable=APPX_DATA_PUBLISHER]$($info.Subject)"
-      Write-Host "##vso[task.setvariable variable=APPX_DATA_SHA256]$($info.SHA256)"
-    displayName: 'Override signing parameters'
-    condition: and(succeeded(), variables['SigningCertificate'])
+  - ${{ if parameters.SigningCertificate }}:
+    # The dotnet sign tool shouldn't need this, but we do because of the sccd file
+    - powershell: |
+        $info = (gc "$(Pipeline.Workspace)\cert\certinfo.json" | ConvertFrom-JSON)
+        Write-Host "Side-loadable APPX must be signed with '$($info.Subject)'"
+        Write-Host "##vso[task.setvariable variable=APPX_DATA_PUBLISHER]$($info.Subject)"
+        Write-Host "##vso[task.setvariable variable=APPX_DATA_SHA256]$($info.SHA256)"
+      displayName: 'Override signing parameters'
 
   - powershell: |
       Remove-Item "$(Build.ArtifactStagingDirectory)\appx" -Recurse -Force -EA 0

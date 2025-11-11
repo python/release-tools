@@ -11,6 +11,9 @@ jobs:
   workspace:
     clean: all
 
+  variables:
+    SigningCertificate: ${{ parameters.SigningCertificate }}
+
   strategy:
     matrix:
       amd64:
@@ -22,7 +25,7 @@ jobs:
         Name: amd64
         Artifact: appxstore
         Suffix: -store
-        Upload: true
+        CreateMsixUpload: true
       arm64:
         Name: arm64
         Artifact: appx
@@ -32,7 +35,7 @@ jobs:
         Name: arm64
         Artifact: appxstore
         Suffix: -store
-        Upload: true
+        CreateMsixUpload: true
 
   steps:
   - template: ./checkout.yml
@@ -41,11 +44,10 @@ jobs:
     artifact: layout_$(Artifact)_$(Name)
     displayName: 'Download artifact: layout_$(Artifact)_$(Name)'
 
-  - task: DownloadBuildArtifacts@0
+  - download: current
+    artifact: symbols
+    patterns: $(Name)\*
     displayName: 'Download artifact: symbols'
-    inputs:
-      artifactName: symbols
-      downloadPath: $(Build.BinariesDirectory)
 
   - powershell: |
       $d = (.\PCbuild\build.bat -V) | %{ if($_ -match '\s+(\w+):\s*(.+)\s*$') { @{$Matches[1] = $Matches[2];} }};
@@ -63,31 +65,26 @@ jobs:
   - powershell: |
       7z a -tzip "$(Build.ArtifactStagingDirectory)\msix\$(Filename).appxsym" *.pdb
     displayName: 'Build appxsym'
-    workingDirectory: $(Build.BinariesDirectory)\symbols\$(Name)
+    workingDirectory: $(Pipeline.Workspace)\symbols\$(Name)
 
   - powershell: |
       7z a -tzip "$(Build.ArtifactStagingDirectory)\msixupload\$(Filename).msixupload" *
     displayName: 'Build msixupload'
-    condition: and(succeeded(), eq(variables['Upload'], 'true'))
+    condition: and(succeeded(), eq(variables['CreateMsixUpload'], 'true'))
     workingDirectory: $(Build.ArtifactStagingDirectory)\msix
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: MSIX'
-    condition: and(succeeded(), or(ne(variables['ShouldSign'], 'true'), not(variables['SigningCertificate'])))
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\msix'
-      ArtifactName: msix
-
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publish Artifact: MSIX'
-    condition: and(succeeded(), eq(variables['ShouldSign'], 'true'), variables['SigningCertificate'])
-    inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)\msix'
-      ArtifactName: unsigned_msix
+      ${{ if parameters.SigningCertificate }}:
+        ArtifactName: unsigned_msix
+      ${{ else }}:
+        ArtifactName: msix
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: MSIXUpload'
-    condition: and(succeeded(), eq(variables['Upload'], 'true'))
+    condition: and(succeeded(), eq(variables['CreateMsixUpload'], 'true'))
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)\msixupload'
       ArtifactName: msixupload

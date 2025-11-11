@@ -1,7 +1,6 @@
 jobs:
 - job: Test_Embed
   displayName: Test Embed
-  condition: and(succeeded(), eq(variables['DoEmbed'], 'true'))
 
   pool:
     vmImage: windows-2022

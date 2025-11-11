@@ -31,11 +31,9 @@ steps:
   - ${{ if ne(parameters.PGRun, 'true') }}:
     # Not running in this job, so we publish our entire build and object files
 
-    - task: PublishPipelineArtifact@0
+    - publish: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
+      artifact: instrumented_bin_$(Name)
       displayName: 'Publish binaries for profiling'
-      inputs:
-        targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
-        artifactName: instrumented_bin_$(Name)
 
     - powershell: |
         if ((Test-Path Python\frozen_modules) -and (Test-Path Python\deepfreeze)) {
@@ -43,20 +41,19 @@ steps:
         }
       displayName: 'Preserve frozen_modules'
 
-    - task: PublishPipelineArtifact@0
+    - publish: '$(Build.SourcesDirectory)\PCbuild\obj'
+      artifact: instrumented_obj_$(Name)
       displayName: 'Download artifact: instrumented_obj_$(Name)'
-      inputs:
-        targetPath: '$(Build.SourcesDirectory)\PCbuild\obj'
-        artifactName: instrumented_obj_$(Name)
 
 
 - ${{ if eq(parameters.PGRun, 'true') }}:
   - ${{ if ne(parameters.PGInstrument, 'true') }}:
     # Didn't build in this job, so download the required binaries
-    - task: DownloadPipelineArtifact@1
+    - task: DownloadPipelineArtifact@2
       displayName: 'Download artifact: instrumented_bin_$(Name)'
       inputs:
-        artifactName: instrumented_bin_$(Name)
+        buildType: current
+        artifact: instrumented_bin_$(Name)
         targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
 
   - powershell: |
@@ -70,26 +67,26 @@ steps:
 
   - ${{ if ne(parameters.PGUpdate, 'true') }}:
     # Not finishing in this job, so publish the binaries
-    - task: PublishPipelineArtifact@0
+    - publish: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
+      artifact: profile_bin_$(Name)
       displayName: 'Publish collected data and binaries'
-      inputs:
-        targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
-        artifactName: profile_bin_$(Name)
 
 
 - ${{ if eq(parameters.PGUpdate, 'true') }}:
   - ${{ if ne(parameters.PGRun, 'true') }}:
     # Didn't run/build in this job, so download files
-    - task: DownloadPipelineArtifact@1
+    - task: DownloadPipelineArtifact@2
       displayName: 'Download artifact: profile_bin_$(Name)'
       inputs:
-        artifactName: profile_bin_$(Name)
+        buildType: current
+        artifact: profile_bin_$(Name)
         targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
 
-    - task: DownloadPipelineArtifact@1
+    - task: DownloadPipelineArtifact@2
       displayName: 'Download artifact: instrumented_obj_$(Name)'
       inputs:
-        artifactName: instrumented_obj_$(Name)
+        buildType: current
+        artifact: instrumented_obj_$(Name)
         targetPath: '$(Build.SourcesDirectory)\PCbuild\obj'
 
     - powershell: |
@@ -137,31 +134,11 @@ steps:
     displayName: 'Cleanup build'
     workingDirectory: '$(Build.BinariesDirectory)\bin\$(Arch)'
 
-  - task: PublishPipelineArtifact@0
+  - powershell: |
+      copy "$(Build.SourcesDirectory)\Lib\venv\scripts\common\Activate.ps1" .
+    displayName: 'Copy Powershell scripts from source'
+    workingDirectory: '$(Build.BinariesDirectory)\bin\$(Arch)'
+
+  - publish: '$(Build.BinariesDirectory)\bin\$(Arch)'
+    artifact: $(Artifact)
     displayName: 'Publish binaries'
-    condition: and(succeeded(), not(variables['SigningCertificate']))
-    inputs:
-      targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)'
-      artifactName: bin_$(Name)
-
-  - task: PublishPipelineArtifact@0
-    displayName: 'Publish binaries for signing'
-    condition: and(succeeded(), variables['SigningCertificate'])
-    inputs:
-      targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)'
-      artifactName: unsigned_bin_$(Name)
-
-  - task: CopyFiles@2
-    displayName: 'Layout Artifact: symbols'
-    inputs:
-      sourceFolder: $(Build.BinariesDirectory)\bin\$(Arch)
-      targetFolder: $(Build.ArtifactStagingDirectory)\symbols\$(Name)
-      flatten: true
-      contents: |
-        **\*.pdb
-
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publish Artifact: symbols'
-    inputs:
-      PathToPublish: '$(Build.ArtifactStagingDirectory)\symbols'
-      ArtifactName: symbols

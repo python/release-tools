@@ -1,9 +1,11 @@
 parameters:
-  ARM64TclTk: true
   DoPGO: false
   # DoPGOARM64 only applies if DoPGO is also true
   DoPGOARM64: true
   DoFreethreaded: false
+  ToBeSigned: false
+  ExtraOptions: ''
+  ExtraOptionsFreethreaded: '--disable-gil'
 
 jobs:
 - job: Build_Docs
@@ -30,11 +32,9 @@ jobs:
       contents: |
         html\**\*
 
-  - task: PublishPipelineArtifact@0
+  - publish: $(Build.ArtifactStagingDirectory)\Doc
+    artifact: doc
     displayName: 'Publish artifact: doc'
-    inputs:
-      targetPath: $(Build.ArtifactStagingDirectory)\Doc
-      artifactName: doc
 
 
 - job: Build_Python
@@ -54,14 +54,19 @@ jobs:
         Platform: x86
         Configuration: Release
         _HostPython: .\python
-        ExtraOptions: ''
+        ExtraOptions: ${{ parameters.ExtraOptions }}
+        ${{ if eq(parameters.ToBeSigned, 'true') }}:
+          Artifact: unsigned_win32
+        ${{ else }}:
+          Artifact: bin_win32
       win32_d:
         Name: win32_d
         Arch: win32
         Platform: x86
         Configuration: Debug
         _HostPython: .\python
-        ExtraOptions: ''
+        ExtraOptions: ${{ parameters.ExtraOptions }}
+        Artifact: bin_win32_d
       ${{ if ne(parameters.DoPGO, 'true') }}:
         amd64:
           Name: amd64
@@ -69,14 +74,19 @@ jobs:
           Platform: x64
           Configuration: Release
           _HostPython: .\python
-          ExtraOptions: ''
+          ExtraOptions: ${{ parameters.ExtraOptions }}
+          ${{ if eq(parameters.ToBeSigned, 'true') }}:
+            Artifact: unsigned_amd64
+          ${{ else }}:
+            Artifact: bin_amd64
       amd64_d:
         Name: amd64_d
         Arch: amd64
         Platform: x64
         Configuration: Debug
         _HostPython: .\python
-        ExtraOptions: ''
+        ExtraOptions: ${{ parameters.ExtraOptions }}
+        Artifact: bin_amd64_d
       ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
         arm64:
           Name: arm64
@@ -84,14 +94,19 @@ jobs:
           Platform: ARM64
           Configuration: Release
           _HostPython: python
-          ExtraOptions: ''
+          ExtraOptions: ${{ parameters.ExtraOptions }}
+          ${{ if eq(parameters.ToBeSigned, 'true') }}:
+            Artifact: unsigned_arm64
+          ${{ else }}:
+            Artifact: bin_arm64
       arm64_d:
         Name: arm64_d
         Arch: arm64
         Platform: ARM64
         Configuration: Debug
         _HostPython: python
-        ExtraOptions: ''
+        ExtraOptions: ${{ parameters.ExtraOptions }}
+        Artifact: bin_arm64_d
       ${{ if eq(parameters.DoFreethreaded, 'true') }}:
         win32_t:
           Name: win32_t
@@ -99,14 +114,19 @@ jobs:
           Platform: x86
           Configuration: Release
           _HostPython: .\python
-          ExtraOptions: --disable-gil
+          ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+          ${{ if eq(parameters.ToBeSigned, 'true') }}:
+            Artifact: unsigned_win32_t
+          ${{ else }}:
+            Artifact: bin_win32_t
         win32_td:
           Name: win32_td
           Arch: win32
           Platform: x86
           Configuration: Debug
           _HostPython: .\python
-          ExtraOptions: --disable-gil
+          ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+          Artifact: bin_win32_td
         ${{ if ne(parameters.DoPGO, 'true') }}:
           amd64_t:
             Name: amd64_t
@@ -114,14 +134,19 @@ jobs:
             Platform: x64
             Configuration: Release
             _HostPython: .\python
-            ExtraOptions: --disable-gil
+            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+            ${{ if eq(parameters.ToBeSigned, 'true') }}:
+              Artifact: unsigned_amd64_t
+            ${{ else }}:
+              Artifact: bin_amd64_t
         amd64_td:
           Name: amd64_td
           Arch: amd64
           Platform: x64
           Configuration: Debug
           _HostPython: .\python
-          ExtraOptions: --disable-gil
+          ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+          Artifact: bin_amd64_td
         ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
           arm64_t:
             Name: arm64_t
@@ -129,14 +154,19 @@ jobs:
             Platform: ARM64
             Configuration: Release
             _HostPython: python
-            ExtraOptions: --disable-gil
+            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+            ${{ if eq(parameters.ToBeSigned, 'true') }}:
+              Artifact: unsigned_arm64_t
+            ${{ else }}:
+              Artifact: bin_arm64_t
         arm64_td:
           Name: arm64_td
           Arch: arm64
           Platform: ARM64
           Configuration: Debug
           _HostPython: python
-          ExtraOptions: --disable-gil
+          ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+          Artifact: bin_arm64_td
 
   steps:
     - template: ./build-steps.yml
@@ -160,7 +190,11 @@ jobs:
           Platform: x64
           _HostPython: .\python
           PythonExePattern: python.exe
-          ExtraOptions: ''
+          ExtraOptions: ${{ parameters.ExtraOptions }}
+          ${{ if eq(parameters.ToBeSigned, 'true') }}:
+            Artifact: unsigned_amd64
+          ${{ else }}:
+            Artifact: bin_amd64
         ${{ if eq(parameters.DoFreethreaded, 'true') }}:
           amd64_t:
             Name: amd64_t
@@ -168,7 +202,11 @@ jobs:
             Platform: x64
             _HostPython: .\python
             PythonExePattern: python3*t.exe
-            ExtraOptions: --disable-gil
+            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+            ${{ if eq(parameters.ToBeSigned, 'true') }}:
+              Artifact: unsigned_amd64_t
+            ${{ else }}:
+              Artifact: bin_amd64_t
 
     steps:
       - template: ./build-steps-pgo.yml
@@ -197,12 +235,20 @@ jobs:
           arm64:
             Name: arm64
             PythonExePattern: python.exe
-            ExtraOptions: ''
+            ExtraOptions: ${{ parameters.ExtraOptions }}
+            ${{ if eq(parameters.ToBeSigned, 'true') }}:
+              Artifact: unsigned_arm64
+            ${{ else }}:
+              Artifact: bin_arm64
           ${{ if eq(parameters.DoFreethreaded, 'true') }}:
             arm64_t:
               Name: arm64_t
               PythonExePattern: python3*t.exe
-              ExtraOptions: --disable-gil
+              ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+              ${{ if eq(parameters.ToBeSigned, 'true') }}:
+                Artifact: unsigned_arm64_t
+              ${{ else }}:
+                Artifact: bin_arm64_t
 
       steps:
         - template: ./build-steps-pgo.yml
@@ -231,10 +277,18 @@ jobs:
           arm64:
             Name: arm64
             PythonExePattern: python.exe
+            ${{ if eq(parameters.ToBeSigned, 'true') }}:
+              Artifact: unsigned_arm64
+            ${{ else }}:
+              Artifact: bin_arm64
           ${{ if eq(parameters.DoFreethreaded, 'true') }}:
             arm64_t:
               Name: arm64_t
               PythonExePattern: python3*t.exe
+              ${{ if eq(parameters.ToBeSigned, 'true') }}:
+                Artifact: unsigned_arm64_t
+              ${{ else }}:
+                Artifact: bin_arm64_t
 
       steps:
         - template: ./build-steps-pgo.yml
@@ -261,12 +315,20 @@ jobs:
           arm64:
             Name: arm64
             PythonExePattern: python.exe
-            ExtraOptions: ''
+            ExtraOptions: ${{ parameters.ExtraOptions }}
+            ${{ if eq(parameters.ToBeSigned, 'true') }}:
+              Artifact: unsigned_arm64
+            ${{ else }}:
+              Artifact: bin_arm64
           ${{ if eq(parameters.DoFreethreaded, 'true') }}:
             arm64_t:
               Name: arm64_t
               PythonExePattern: python3*t.exe
-              ExtraOptions: --disable-gil
+              ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+              ${{ if eq(parameters.ToBeSigned, 'true') }}:
+                Artifact: unsigned_arm64_t
+              ${{ else }}:
+                Artifact: bin_arm64_t
 
       steps:
         - template: ./build-steps-pgo.yml
@@ -279,6 +341,9 @@ jobs:
 
   pool:
     vmImage: windows-2022
+
+  variables:
+    IncludeLLVM: false
 
   workspace:
     clean: all
@@ -303,13 +368,12 @@ jobs:
       platform: x64
       msbuildArguments: /t:CopyTclTkLib /p:OutDir="$(Build.ArtifactStagingDirectory)\tcl_amd64"
 
-  - ${{ if eq(parameters.ARM64TclTk, true) }}:
-    - task: MSBuild@1
-      displayName: 'Copy Tcl/Tk lib for publish'
-      inputs:
-        solution: PCbuild\tcltk.props
-        platform: ARM64
-        msbuildArguments: /t:CopyTclTkLib /p:OutDir="$(Build.ArtifactStagingDirectory)\tcl_arm64"
+  - task: MSBuild@1
+    displayName: 'Copy Tcl/Tk lib for publish'
+    inputs:
+      solution: PCbuild\tcltk.props
+      platform: ARM64
+      msbuildArguments: /t:CopyTclTkLib /p:OutDir="$(Build.ArtifactStagingDirectory)\tcl_arm64"
 
   - publish: '$(Build.ArtifactStagingDirectory)\tcl_win32'
     artifact: tcltk_lib_win32
@@ -319,7 +383,6 @@ jobs:
     artifact: tcltk_lib_amd64
     displayName: 'Publish artifact: tcltk_lib_amd64'
 
-  - ${{ if eq(parameters.ARM64TclTk, true) }}:
-    - publish: '$(Build.ArtifactStagingDirectory)\tcl_arm64'
-      artifact: tcltk_lib_arm64
-      displayName: 'Publish artifact: tcltk_lib_arm64'
+  - publish: '$(Build.ArtifactStagingDirectory)\tcl_arm64'
+    artifact: tcltk_lib_arm64
+    displayName: 'Publish artifact: tcltk_lib_arm64'

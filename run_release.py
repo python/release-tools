@@ -30,7 +30,7 @@ import aiohttp
 import gnupg  # type: ignore[import-untyped]
 import paramiko
 import sigstore.oidc
-from alive_progress import alive_bar  # type: ignore[import-untyped]
+from alive_progress import alive_bar
 
 import release as release_mod
 import sbom
@@ -47,7 +47,7 @@ DOCS_SERVER = "docs.nyc1.psf.io"
 
 WHATS_NEW_TEMPLATE = """
 ****************************
-  What's New In Python {version}
+  What's new in Python {version}
 ****************************
 
 :Editor: TBD
@@ -103,8 +103,8 @@ For full details, see the :ref:`changelog <changelog>`.
    so it's worth checking back even after reading earlier versions.
 
 
-Summary -- Release highlights
-=============================
+Summary --- release highlights
+==============================
 
 .. This section singles out the most important changes in Python {version}.
    Brevity is key.
@@ -114,40 +114,60 @@ Summary -- Release highlights
 
 
 
-New Features
+New features
 ============
 
 
 
-Other Language Changes
+Other language changes
 ======================
 
 
 
-New Modules
+New modules
 ===========
 
 * None yet.
 
 
-Improved Modules
+Improved modules
 ================
 
+module_name
+-----------
+
+* TODO
+
+.. Add improved modules above alphabetically, not here at the end.
 
 Optimizations
 =============
 
+module_name
+-----------
 
-
-
-Deprecated
-==========
+* TODO
 
 
 
 Removed
 =======
 
+module_name
+-----------
+
+* TODO
+.. Add removals above alphabetically, not here at the end.
+
+
+Deprecated
+==========
+
+* module_name:
+  TODO
+
+
+.. Add deprecations above alphabetically, not here at the end.
 
 
 Porting to Python {version}
@@ -157,24 +177,32 @@ This section lists previously described changes and other bugfixes
 that may require changes to your code.
 
 
-Build Changes
+Build changes
 =============
 
 
-C API Changes
+C API changes
 =============
 
-New Features
+New features
 ------------
+
+* TODO
 
 Porting to Python {version}
 ----------------------
 
-Deprecated
-----------
+* TODO
 
-Removed
--------
+Deprecated C APIs
+-----------------
+
+* TODO
+
+.. Add C API deprecations above alphabetically, not here at the end.
+
+Removed C APIs
+--------------
 
 """
 
@@ -234,7 +262,6 @@ class ReleaseDriver:
         print(f"- Git repo: {self.db['git_repo']}")
         print(f"- SSH username: {self.db['ssh_user']}")
         print(f"- SSH key: {self.db['ssh_key'] or 'Default'}")
-        print(f"- python.org API key: {self.db['auth_info']}")
         print(f"- Sign with GPG: {self.db['sign_gpg']}")
         print(f"- Security release: {self.db['security_release']}")
         print()
@@ -525,7 +552,11 @@ def check_pyspecific(db: ReleaseShelf) -> None:
         f"SOURCE_URI = 'https://github.com/python/cpython/tree/{expected_branch}/%s'"
     )
     if expected != line.strip():
-        raise ReleaseException("SOURCE_URI is incorrect")
+        raise ReleaseException(
+            f"SOURCE_URI is incorrect (it needs changing before beta 1):\n"
+            f"expected: {expected}\n"
+            f"got     : {line.strip()}"
+        )
 
 
 def bump_version(db: ReleaseShelf) -> None:
@@ -552,21 +583,26 @@ def create_tag(db: ReleaseShelf) -> None:
     )
 
 
-def wait_for_source_and_docs_artifacts(db: ReleaseShelf) -> None:
-    # Determine if we need to wait for docs or only source artifacts.
+def wait_for_build_release(db: ReleaseShelf) -> None:
+    # Determine if we need to wait for docs.
     release_tag = db["release"]
     should_wait_for_docs = release_tag.includes_docs
 
     # Create the directory so it's easier to place the artifacts there.
     release_path = Path(db["git_repo"] / str(release_tag))
-    src_path = release_path / "src"
-    src_path.mkdir(parents=True, exist_ok=True)
+    downloads_path = release_path / "downloads"
+    downloads_path.mkdir(parents=True, exist_ok=True)
 
     # Build the list of filepaths we're expecting.
     wait_for_paths = [
-        src_path / f"Python-{release_tag}.tgz",
-        src_path / f"Python-{release_tag}.tar.xz",
+        downloads_path / f"Python-{release_tag}.tgz",
+        downloads_path / f"Python-{release_tag}.tar.xz",
     ]
+    if release_tag.as_tuple() >= (3, 14):
+        wait_for_paths += [
+            downloads_path / f"python-{release_tag}-{arch}-linux-android.tar.gz"
+            for arch in ["aarch64", "x86_64"]
+        ]
     if should_wait_for_docs:
         docs_path = release_path / "docs"
         docs_path.mkdir(parents=True, exist_ok=True)
@@ -575,8 +611,6 @@ def wait_for_source_and_docs_artifacts(db: ReleaseShelf) -> None:
                 docs_path / f"python-{release_tag}-docs.epub",
                 docs_path / f"python-{release_tag}-docs-html.tar.bz2",
                 docs_path / f"python-{release_tag}-docs-html.zip",
-                docs_path / f"python-{release_tag}-docs-pdf-a4.tar.bz2",
-                docs_path / f"python-{release_tag}-docs-pdf-a4.zip",
                 docs_path / f"python-{release_tag}-docs-texinfo.tar.bz2",
                 docs_path / f"python-{release_tag}-docs-texinfo.zip",
                 docs_path / f"python-{release_tag}-docs-text.tar.bz2",
@@ -584,12 +618,12 @@ def wait_for_source_and_docs_artifacts(db: ReleaseShelf) -> None:
             ]
         )
 
-    print(
-        f"Waiting for source{' and docs' if should_wait_for_docs else ''} artifacts to be built"
-    )
-    print(f"Artifacts should be placed at '{release_path}':")
+    print("Once the build-release workflow is complete:")
+    print("- Download its artifacts from the workflow summary page.")
+    print(f"- Copy the following files into {release_path}:")
     for path in wait_for_paths:
-        print(f"- '{os.path.relpath(path, release_path)}'")
+        print(f"  - {os.path.relpath(path, release_path)}")
+    print("The script will continue once all files are present.")
 
     while not all(path.exists() for path in wait_for_paths):
         time.sleep(1)
@@ -625,7 +659,7 @@ def sign_source_artifacts(db: ReleaseShelf) -> None:
         subprocess.check_call('gpg -K | grep -A 1 "^sec"', shell=True)
         uid = input("Please enter key ID to use for signing: ")
 
-    tarballs_path = Path(db["git_repo"] / str(db["release"]) / "src")
+    tarballs_path = Path(db["git_repo"] / str(db["release"]) / "downloads")
     tgz = str(tarballs_path / f"Python-{db['release']}.tgz")
     xz = str(tarballs_path / f"Python-{db['release']}.tar.xz")
 
@@ -667,7 +701,9 @@ def build_sbom_artifacts(db: ReleaseShelf) -> None:
     # For each source tarball build an SBOM.
     for ext in (".tgz", ".tar.xz"):
         tarball_name = f"Python-{release_version}{ext}"
-        tarball_path = str(db["git_repo"] / str(db["release"]) / "src" / tarball_name)
+        tarball_path = str(
+            db["git_repo"] / str(db["release"]) / "downloads" / tarball_name
+        )
 
         print(f"Building an SBOM for artifact '{tarball_name}'")
         sbom_data = sbom.create_sbom_for_source_tarball(tarball_path)
@@ -739,7 +775,7 @@ def upload_files_to_server(db: ReleaseShelf, server: str) -> None:
     if server == DOCS_SERVER:
         upload_subdir("docs")
     elif server == DOWNLOADS_SERVER:
-        upload_subdir("src")
+        upload_subdir("downloads")
         if (artifacts_path / "docs").exists():
             upload_subdir("docs")
 
@@ -760,7 +796,7 @@ def place_files_in_download_folder(db: ReleaseShelf) -> None:
     transport = client.get_transport()
     assert transport is not None, f"SSH transport to {DOWNLOADS_SERVER} is None"
 
-    # Sources
+    # Downloads
 
     source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
     destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
@@ -772,7 +808,7 @@ def place_files_in_download_folder(db: ReleaseShelf) -> None:
             raise ReleaseException(channel.recv_stderr(1000))
 
     execute_command(f"mkdir -p {destination}")
-    execute_command(f"cp {source}/src/* {destination}")
+    execute_command(f"cp {source}/downloads/* {destination}")
     execute_command(f"chgrp downloads {destination}")
     execute_command(f"chmod 775 {destination}")
     execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
@@ -834,6 +870,7 @@ def unpack_docs_in_the_docs_server(db: ReleaseShelf) -> None:
     execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
 
 
+@functools.cache
 def extract_github_owner(url: str) -> str:
     if https_match := re.match(r"(https://)?github\.com/([^/]+)/", url):
         return https_match.group(2)
@@ -845,25 +882,36 @@ def extract_github_owner(url: str) -> str:
         )
 
 
-def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
-    # Get the git commit SHA for the tag
+@functools.cache
+def get_commit_sha(git_version: str, git_repo: Path) -> str:
+    """Get the Git commit SHA for the tag"""
     commit_sha = (
         subprocess.check_output(
-            ["git", "rev-list", "-n", "1", db["release"].gitname], cwd=db["git_repo"]
+            ["git", "rev-list", "-n", "1", git_version], cwd=git_repo
         )
         .decode()
         .strip()
     )
+    return commit_sha
 
-    # Get the owner of the GitHub repo (first path segment in a 'github.com' remote URL)
-    # This works for both 'https' and 'ssh' style remote URLs.
+
+@functools.cache
+def get_origin_remote_url(git_repo: Path) -> str:
+    """Get the owner of the GitHub repo (first path segment in a 'github.com' remote URL)
+    This works for both 'https' and 'ssh' style remote URLs."""
     origin_remote_url = (
         subprocess.check_output(
-            ["git", "ls-remote", "--get-url", "origin"], cwd=db["git_repo"]
+            ["git", "ls-remote", "--get-url", "origin"], cwd=git_repo
         )
         .decode()
         .strip()
     )
+    return origin_remote_url
+
+
+def start_build_release(db: ReleaseShelf) -> None:
+    commit_sha = get_commit_sha(db["release"].gitname, db["git_repo"])
+    origin_remote_url = get_origin_remote_url(db["git_repo"])
     origin_remote_github_owner = extract_github_owner(origin_remote_url)
     # We ask for human verification at this point since this commit SHA is 'locked in'
     print()
@@ -887,7 +935,7 @@ def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
     # with the known good commit SHA.
     print()
     print(
-        "Go to https://github.com/python/release-tools/actions/workflows/source-and-docs-release.yml"
+        "Go to https://github.com/python/release-tools/actions/workflows/build-release.yml"
     )
     print("Select 'Run workflow' and enter the following values:")
     print(f"- Git remote to checkout: {origin_remote_github_owner}")
@@ -896,18 +944,31 @@ def start_build_of_source_and_docs(db: ReleaseShelf) -> None:
     print()
     print("Or using the GitHub CLI run:")
     print(
-        "  gh workflow run source-and-docs-release.yml --repo python/release-tools"
+        "  gh workflow run build-release.yml --repo python/release-tools"
         f" -f git_remote={origin_remote_github_owner}"
         f" -f git_commit={commit_sha}"
         f" -f cpython_release={db['release']}"
     )
     print()
 
-    if not ask_question("Have you started the source and docs build?"):
-        raise ReleaseException("Source and docs build must be started")
+    if not ask_question("Have you started the build-release workflow?"):
+        raise ReleaseException("build-release workflow must be started")
 
 
 def send_email_to_platform_release_managers(db: ReleaseShelf) -> None:
+    commit_sha = get_commit_sha(db["release"].gitname, db["git_repo"])
+    origin_remote_url = get_origin_remote_url(db["git_repo"])
+    origin_remote_github_owner = extract_github_owner(origin_remote_url)
+    github_prefix = f"https://github.com/{origin_remote_github_owner}/cpython/tree"
+
+    print()
+    print(f"{github_prefix}/{db['release'].gitname}")
+    print(f"Git commit SHA: {commit_sha}")
+    print(
+        "build-release workflow: https://github.com/python/release-tools/actions/runs/[ENTER-RUN-ID-HERE]"
+    )
+    print()
+
     if not ask_question(
         "Have you notified the platform release managers about the availability of the commit SHA and tag?"
     ):
@@ -1087,6 +1148,15 @@ def modify_the_docs_by_version_page(db: ReleaseShelf) -> None:
             )
 
 
+def announce_release(db: ReleaseShelf) -> None:
+    if not ask_question(
+        "Have you announced the release at https://discuss.python.org/c/core-dev/23 "
+        "and https://www.blogger.com?\n"
+        "Tip: use the 'release' tag and 'releases' label respectively."
+    ):
+        raise ReleaseException("The release has not been announced")
+
+
 def post_release_merge(db: ReleaseShelf) -> None:
     subprocess.check_call(
         ["git", "fetch", "--all"],
@@ -1159,10 +1229,32 @@ def maybe_prepare_new_main_branch(db: ReleaseShelf) -> None:
         cwd=db["git_repo"],
     )
 
+    whatsnew_toctree_file = "Doc/whatsnew/index.rst"
+    with cd(db["git_repo"]):
+        update_whatsnew_toctree(db, whatsnew_toctree_file)
+
+    subprocess.check_call(
+        ["git", "add", whatsnew_toctree_file],
+        cwd=db["git_repo"],
+    )
+
     subprocess.check_call(
         ["git", "commit", "-a", "-m", f"Python {new_release}"],
         cwd=db["git_repo"],
     )
+
+
+def update_whatsnew_toctree(db: ReleaseShelf, filename: str) -> None:
+    release_tag: release_mod.Tag = db["release"]
+    this_rst = f"   {release_tag.major}.{release_tag.minor}.rst"
+    next_rst = f"   {release_tag.major}.{release_tag.minor+1}.rst"
+    new = next_rst + "\n" + this_rst
+
+    with open(filename) as f:
+        contents = f.read()
+    contents = contents.replace(this_rst, new)
+    with open(filename, "w") as f:
+        f.write(contents)
 
 
 def branch_new_versions(db: ReleaseShelf) -> None:
@@ -1365,18 +1457,12 @@ fix these things in this script so it also supports your platform.
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
         Task(create_tag, "Create tag"),
         Task(push_to_local_fork, "Push new tags and branches to private fork"),
-        Task(
-            start_build_of_source_and_docs,
-            "Start the builds for source and docs artifacts",
-        ),
+        Task(start_build_release, "Start the build-release workflow"),
         Task(
             send_email_to_platform_release_managers,
             "Platform release managers have been notified of the commit SHA",
         ),
-        Task(
-            wait_for_source_and_docs_artifacts,
-            "Wait for source and docs artifacts to build",
-        ),
+        Task(wait_for_build_release, "Wait for build-release workflow"),
         Task(check_doc_unreleased_version, "Check docs for `(unreleased)`"),
         Task(build_sbom_artifacts, "Building SBOM artifacts"),
         *([] if no_gpg else [Task(sign_source_artifacts, "Sign source artifacts")]),
@@ -1401,6 +1487,7 @@ fix these things in this script so it also supports your platform.
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
         Task(modify_the_prereleases_page, "Modify the pre-release page"),
         Task(modify_the_docs_by_version_page, "Update docs by version page"),
+        Task(announce_release, "Announce the release"),
     ]
     automata = ReleaseDriver(
         git_repo=args.repo,

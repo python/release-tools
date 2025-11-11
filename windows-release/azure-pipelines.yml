@@ -7,10 +7,12 @@ parameters:
   default: python
   values:
   - 'python'
+  - 'savannahostrowski'
   - 'hugovk'
   - 'Yhg1s'
   - 'pablogsal'
   - 'ambv'
+  - 'zooba'
   - '(Other)'
 - name: GitRemote_Other
   displayName: "If Other, specify Git remote"
@@ -39,7 +41,11 @@ parameters:
 - name: SigningDescription
   displayName: "Signature description"
   type: string
-  default: 'Built: $(Build.BuildNumber)'
+  default: '(default)'
+- name: DoJIT
+  displayName: "Build the JIT compiler (3.14 and later)"
+  type: boolean
+  default: false
 - name: DoGPG
   displayName: "Include GPG signatures (3.13 and earlier)"
   type: boolean
@@ -50,14 +56,6 @@ parameters:
   default: true
 - name: DoARM64
   displayName: "Publish ARM64 build (3.11 and later)"
-  type: boolean
-  default: true
-# Because there is no ARM64 Tcl/Tk pre-3.11, we need a separate option
-# to keep those builds working when the files are going to be absent.
-# Eventually when we stop releasing anything that old, we can drop this
-# argument (and make it implicitly always 'true')
-- name: ARM64TclTk
-  displayName: "Use Tcl/Tk for ARM64 (3.11 and later)"
   type: boolean
   default: true
 - name: DoPGO
@@ -81,21 +79,50 @@ parameters:
   type: boolean
   default: true
 - name: DoEmbed
-  displayName: "Produce embeddable package"
+  displayName: "Produce embeddable package (w/ PyManager or MSI options)"
   type: boolean
   default: true
 - name: DoMSI
   displayName: "Produce EXE/MSI installer"
   type: boolean
   default: true
+- name: TestMSI
+  displayName: "Run EXE/MSI installer tests"
+  type: boolean
+  default: true
+- name: DoPyManager
+  displayName: "Produce PyManager package"
+  type: boolean
+  default: true
 - name: BuildToPublish
-  displayName: "Build number to publish (0 to skip)"
-  type: number
-  default: '0'
+  displayName: "Republish a build (select in Resources)"
+  type: string
+  default: current
+  values: ['current', 'build_to_publish']
+- name: BuildToPackage
+  displayName: "Repackage and publish a build (select in Resources)"
+  type: string
+  default: current
+  values: ['current', 'build_to_package']
 - name: SignNuget
   displayName: "Enable Nuget signing (not recommended right now)"
   type: boolean
   default: false
+- name: DoJITEnabled
+  displayName: "Enable the JIT compiler by default (not used yet)"
+  type: boolean
+  default: false
+- name: DoJITFreethreaded
+  displayName: "Build the JIT compiler for free-threaded builds (not used yet)"
+  type: boolean
+  default: false
+
+resources:
+  pipelines:
+  - pipeline: build_to_publish
+    source: 'Windows-Release'
+  - pipeline: build_to_package
+    source: 'Windows-Release'
 
 variables:
   ${{ if ne(parameters.GitRemote, '(Other)') }}:
@@ -105,41 +132,50 @@ variables:
   SourceTag: ${{ parameters.SourceTag }}
   ${{ if ne(parameters.SourceCommit, 'empty') }}:
     SourceCommit: ${{ parameters.SourceCommit }}
-  ${{ else }}:
-    SourceCommit: ''
-  ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
-    SigningCertificate: ${{ parameters.SigningCertificate }}
-  SigningDescription: ${{ parameters.SigningDescription }}
   ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
     IsRealSigned: true
   ${{ else }}:
     IsRealSigned: false
-  DoFreethreaded: ${{ parameters.DoFreethreaded }}
-  DoLayout: ${{ parameters.DoLayout }}
-  DoMSIX: ${{ parameters.DoMSIX }}
-  DoNuget: ${{ parameters.DoNuget }}
-  DoEmbed: ${{ parameters.DoEmbed }}
-  DoMSI: ${{ parameters.DoMSI }}
-  DoPublish: ${{ parameters.DoPublish }}
+  ${{ if ne(parameters.SigningDescription, '(default)') }}:
+    SigningDescription: ${{ parameters.SigningDescription }}
   PublishARM64: ${{ parameters.DoARM64 }}
 # QUEUE TIME VARIABLES
-#  PyDotOrgUsername: ''
-#  PyDotOrgServer: ''
+#  OverrideNugetVersion: ''
+#  PyManagerIndexFilename: ''
+#  SkipNugetPublish: ''
+#  SkipPipTests: ''
+#  SkipPythonOrgPublish: ''
+#  SkipSBOM: ''
+#  SkipTests: ''
+#  SkipTkTests: ''
 
 trigger: none
 pr: none
 
 stages:
-- ${{ if eq(parameters.BuildToPublish, '0') }}:
+- ${{ if and(eq(parameters.BuildToPublish, 'current'), eq(parameters.BuildToPackage, 'current')) }}:
   - stage: Build
     displayName: Build binaries
     jobs:
     - template: stage-build.yml
       parameters:
-        ARM64TclTk: ${{ parameters.ARM64TclTk }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
         DoPGO: ${{ parameters.DoPGO }}
         DoPGOARM64: ${{ parameters.DoPGOARM64 }}
+        ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
+          ToBeSigned: true
+        ${{ if ne(parameters.DoJIT, 'true') }}:
+          ExtraOptions: ''
+        ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
+          ExtraOptions: '--experimental-jit-off'
+        ${{ else }}:
+          ExtraOptions: '--experimental-jit'
+        ${{ if or(ne(parameters.DoJIT, 'true'), ne(parameters.DoJITFreethreaded, 'true')) }}:
+          ExtraOptionsFreethreaded: '--disable-gil'
+        ${{ elseif ne(parameters.DoJITEnabled, 'true') }}:
+          ExtraOptionsFreethreaded: '--disable-gil --experimental-jit-off'
+        ${{ else }}:
+          ExtraOptionsFreethreaded: '--disable-gil --experimental-jit'
 
   - stage: Sign
     displayName: Sign binaries
@@ -147,127 +183,123 @@ stages:
     jobs:
     - template: stage-sign.yml
       parameters:
-        ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
-          SigningCertificate: ${{ parameters.SigningCertificate }}
+        SigningCertificate: ${{ parameters.SigningCertificate }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
+- ${{ if eq(parameters.BuildToPublish, 'current') }}:
   - stage: Layout
-    displayName: Generate layouts
-    dependsOn: Sign
+    ${{ if eq(parameters.BuildToPackage, 'current') }}:
+      displayName: Generate layouts
+      dependsOn: Sign
+    ${{ else }}:
+      displayName: Generate layouts from prior build
+      dependsOn: []
     jobs:
     - template: stage-layout-full.yml
       parameters:
-        ARM64TclTk: ${{ parameters.ARM64TclTk }}
+        BuildToPackage: ${{ parameters.BuildToPackage }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
-    - template: stage-layout-embed.yml
-    - template: stage-layout-nuget.yml
+        SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
+    - template: stage-layout-symbols.yml
       parameters:
+        BuildToPackage: ${{ parameters.BuildToPackage }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
+        SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
+    - ${{ if eq(parameters.DoEmbed, 'true') }}:
+      - template: stage-layout-embed.yml
+        parameters:
+          BuildToPackage: ${{ parameters.BuildToPackage }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
+    - ${{ if eq(parameters.DoNuget, 'true') }}:
+      - template: stage-layout-nuget.yml
+        parameters:
+          BuildToPackage: ${{ parameters.BuildToPackage }}
+          DoFreethreaded: ${{ parameters.DoFreethreaded }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
+    - ${{ if eq(parameters.DoMSIX, 'true') }}:
+      - template: stage-layout-msix.yml
+        parameters:
+          BuildToPackage: ${{ parameters.BuildToPackage }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
+    - ${{ if eq(parameters.DoPyManager, 'true') }}:
+      - template: stage-layout-pymanager.yml
+        parameters:
+          BuildToPackage: ${{ parameters.BuildToPackage }}
+          DoFreethreaded: ${{ parameters.DoFreethreaded }}
+          DoEmbed: ${{ parameters.DoEmbed }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
 
   - stage: Pack
     dependsOn: Layout
+    displayName: Pack
     jobs:
-    - template: stage-pack-nuget.yml
-      parameters:
-        ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
+    #- ${{ if eq(parameters.DoEmbed, 'true') }}:
+    #  - template: stage-pack-embed.yml
+    #    parameters:
+    #      SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
+    - ${{ if eq(parameters.DoMSI, 'true') }}:
+      - template: stage-msi.yml
+        parameters:
+          BuildToPackage: ${{ parameters.BuildToPackage }}
+          DoARM64: ${{ parameters.DoARM64}}
+          DoFreethreaded: ${{ parameters.DoFreethreaded }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
+    - ${{ if eq(parameters.DoMSIX, 'true') }}:
+      - template: stage-pack-msix.yml
+        parameters:
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
+    - ${{ if eq(parameters.DoNuget, 'true') }}:
+      - template: stage-pack-nuget.yml
+        parameters:
           ${{ if eq(parameters.SignNuget, 'true') }}:
-            SigningCertificate: ${{ parameters.SigningCertificate }}
-        DoFreethreaded: ${{ parameters.DoFreethreaded }}
+            SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
+          DoFreethreaded: ${{ parameters.DoFreethreaded }}
+    - ${{ if eq(parameters.DoPyManager, 'true') }}:
+      - template: stage-pack-pymanager.yml
+        parameters:
+          DoFreethreaded: ${{ parameters.DoFreethreaded }}
+          DoEmbed: ${{ parameters.DoEmbed }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
 
   - stage: Test
     dependsOn: Pack
     jobs:
-    - template: stage-test-embed.yml
-    - template: stage-test-nuget.yml
-      parameters:
-        DoFreethreaded: ${{ parameters.DoFreethreaded }}
-
-  - ${{ if eq(parameters.DoMSIX, 'true') }}:
-    - stage: Layout_MSIX
-      displayName: Generate MSIX layouts
-      dependsOn: Sign
-      jobs:
-      - template: stage-layout-msix.yml
-        parameters:
-          ARM64TclTk: ${{ parameters.ARM64TclTk }}
-
-    - stage: Pack_MSIX
-      displayName: Package MSIX
-      dependsOn: Layout_MSIX
-      jobs:
-      - template: stage-pack-msix.yml
-        parameters:
-          ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
-            SigningCertificate: ${{ parameters.SigningCertificate }}
-
-  - ${{ if eq(parameters.DoMSI, 'true') }}:
-    - stage: Build_MSI
-      displayName: Build MSI installer
-      dependsOn: Sign
-      jobs:
-      - template: stage-msi.yml
-        parameters:
-          ARM64TclTk: ${{ parameters.ARM64TclTk }}
-          ${{ if and(parameters.SigningCertificate, ne(parameters.SigningCertificate, 'Unsigned')) }}:
-            SigningCertificate: ${{ parameters.SigningCertificate }}
-          DoARM64: ${{ parameters.DoARM64}}
-          DoFreethreaded: ${{ parameters.DoFreethreaded }}
-
-    - stage: Test_MSI
-      displayName: Test MSI installer
-      dependsOn: Build_MSI
-      jobs:
+    - ${{ if eq(parameters.DoEmbed, 'true') }}:
+      - template: stage-test-embed.yml
+    - ${{ if and(eq(parameters.DoMSI, 'true'), eq(parameters.TestMSI, 'true')) }}:
       - template: stage-test-msi.yml
         parameters:
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
-
-  - ${{ if eq(parameters.DoPublish, 'true') }}:
-    - ${{ if eq(parameters.DoMSI, 'true') }}:
-      - stage: PublishPyDotOrg
-        displayName: Publish to python.org
-        dependsOn: ['Test_MSI', 'Test']
-        jobs:
-        - template: stage-publish-pythonorg.yml
-          parameters:
-            IncludeGPG: ${{ parameters.DoGPG }}
-
     - ${{ if eq(parameters.DoNuget, 'true') }}:
-      - stage: PublishNuget
-        displayName: Publish to nuget.org
-        ${{ if eq(parameters.DoMSI, 'true') }}:
-          dependsOn: ['Test_MSI', 'Test']
-        ${{ else }}:
-          dependsOn: 'Test'
-        jobs:
-        - template: stage-publish-nugetorg.yml
+      - template: stage-test-nuget.yml
+        parameters:
+          DoFreethreaded: ${{ parameters.DoFreethreaded }}
+    - ${{ if eq(parameters.DoPyManager, 'true') }}:
+      - template: stage-test-pymanager.yml
+        parameters:
+          DoEmbed: ${{ parameters.DoEmbed }}
+          DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
-    - ${{ if eq(parameters.DoMSIX, 'true') }}:
-      - stage: PublishStore
-        displayName: Publish to Store
-        ${{ if eq(parameters.DoMSI, 'true') }}:
-          dependsOn: ['Test_MSI', 'Pack_MSIX']
-        ${{ else }}:
-          dependsOn: 'Pack_MSIX'
-        jobs:
-        - template: stage-publish-store.yml
-
-- ${{ else }}:
-  - stage: PublishExisting
-    displayName: Publish existing build
-    dependsOn: []
+- ${{ if eq(parameters.DoPublish, 'true') }}:
+  - stage: Publish
+    displayName: Publish
+    dependsOn:
+    - ${{ if eq(parameters.BuildToPublish, 'current') }}:
+      - Test
     jobs:
+    - ${{ if eq(parameters.DoPyManager, 'true') }}:
+      - template: stage-publish-pymanager.yml
+        parameters:
+          BuildToPublish: ${{ parameters.BuildToPublish }}
+          DoEmbed: ${{ parameters.DoEmbed }}
+          DoFreethreaded: ${{ parameters.DoFreethreaded }}
     - ${{ if eq(parameters.DoMSI, 'true') }}:
       - template: stage-publish-pythonorg.yml
         parameters:
           BuildToPublish: ${{ parameters.BuildToPublish }}
+          DoEmbed: ${{ parameters.DoEmbed }}
           IncludeGPG: ${{ parameters.DoGPG }}
-
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-publish-nugetorg.yml
-        parameters:
-          BuildToPublish: ${{ parameters.BuildToPublish }}
-
-    - ${{ if eq(parameters.DoMSIX, 'true') }}:
-      - template: stage-publish-store.yml
         parameters:
           BuildToPublish: ${{ parameters.BuildToPublish }}

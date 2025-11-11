@@ -1,22 +1,28 @@
 parameters:
   depth: 3
+  IncludeSelf: false
+  Path: .
 
 steps:
-- checkout: none
+- ${{ if eq(parameters.IncludeSelf, 'true') }}:
+  - checkout: self
+    path: release-tools
+- ${{ else }}:
+  - checkout: none
 
-- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(SourceTag) --single-branch https://github.com/$(GitRemote)/cpython.git .
+- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(SourceTag) --single-branch https://github.com/$(GitRemote)/cpython.git ${{ parameters.Path }}
   displayName: 'git clone ($(GitRemote)/$(SourceTag))'
   condition: and(succeeded(), and(variables['GitRemote'], variables['SourceTag']))
 
-- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(SourceTag) --single-branch $(Build.Repository.Uri) .
+- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(SourceTag) --single-branch $(Build.Repository.Uri) ${{ parameters.Path }}
   displayName: 'git clone (<default>/$(SourceTag))'
   condition: and(succeeded(), and(not(variables['GitRemote']), variables['SourceTag']))
 
-- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(Build.SourceBranchName) --single-branch https://github.com/$(GitRemote)/cpython.git .
+- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(Build.SourceBranchName) --single-branch https://github.com/$(GitRemote)/cpython.git ${{ parameters.Path }}
   displayName: 'git clone ($(GitRemote)/<default>)'
   condition: and(succeeded(), and(variables['GitRemote'], not(variables['SourceTag'])))
 
-- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(Build.SourceBranchName) --single-branch $(Build.Repository.Uri) .
+- script: git clone --progress -v --depth ${{ parameters.depth }} --branch $(Build.SourceBranchName) --single-branch $(Build.Repository.Uri) ${{ parameters.Path }}
   displayName: 'git clone'
   condition: and(succeeded(), and(not(variables['GitRemote']), not(variables['SourceTag'])))
 
@@ -26,4 +32,16 @@ steps:
         throw "Expected git commit '$(SourceCommit)' didn't match tagged commit '$checkout_commit'"
     }
   displayName: "Verify CPython commit matches tag"
+  ${{ if and(parameters.Path, ne(parameters.Path, '.')) }}:
+    workingDirectory: ${{ parameters.Path }}
   condition: and(succeeded(), variables['SourceCommit'])
+
+- powershell: |
+    if (-not (Test-Path "Misc\externals.spdx.json")) {
+      "externals.spdx.json is missing - skipping SBOM"
+      Write-Host "##vso[task.setvariable variable=SkipSBOM]1"
+    }
+  displayName: 'Checking for SBOM inputs'
+  ${{ if and(parameters.Path, ne(parameters.Path, '.')) }}:
+    workingDirectory: ${{ parameters.Path }}
+  condition: and(succeeded(), not(variables['SkipSBOM']))
