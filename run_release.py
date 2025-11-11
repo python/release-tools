@@ -437,9 +437,6 @@ def check_cpython_repo_is_clean(db: ReleaseShelf) -> None:
 
 def check_magic_number(db: ReleaseShelf) -> None:
     release_tag = db["release"]
-    if release_tag.major == 3 and release_tag.minor <= 13:
-        return
-
     if release_tag.is_final or release_tag.is_release_candidate:
 
         def out(msg: str) -> None:
