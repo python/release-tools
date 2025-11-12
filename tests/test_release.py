@@ -102,7 +102,7 @@ def test_tweak_readme(
     tag = release.Tag(test_tag)
 
     original_readme_file = Path(__file__).parent / "README.rst"
-    original_contents = original_readme_file.read_text(encoding="utf-8")
+    original_contents = original_readme_file.read_text()
     readme_file = tmp_path / "README.rst"
     readme_file.write_text(original_contents)
 
