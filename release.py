@@ -34,6 +34,7 @@ from typing import (
     Self,
     overload,
 )
+from urllib.request import urlopen
 
 COMMASPACE = ", "
 SPACE = " "
@@ -72,6 +73,11 @@ class ReleaseShelf(Protocol):
     def get(self, key: Literal["sign_gpg"], default: bool | None = None) -> bool: ...
 
     @overload
+    def get(
+        self, key: Literal["security_release"], default: bool | None = None
+    ) -> bool: ...
+
+    @overload
     def get(self, key: Literal["release"], default: Tag | None = None) -> Tag: ...
 
     @overload
@@ -97,6 +103,9 @@ class ReleaseShelf(Protocol):
 
     @overload
     def __getitem__(self, key: Literal["sign_gpg"]) -> bool: ...
+
+    @overload
+    def __getitem__(self, key: Literal["security_release"]) -> bool: ...
 
     @overload
     def __getitem__(self, key: Literal["release"]) -> Tag: ...
@@ -126,6 +135,9 @@ class ReleaseShelf(Protocol):
 
     @overload
     def __setitem__(self, key: Literal["sign_gpg"], value: bool) -> None: ...
+
+    @overload
+    def __setitem__(self, key: Literal["security_release"], value: bool) -> None: ...
 
     @overload
     def __setitem__(self, key: Literal["release"], value: Tag) -> None: ...
@@ -195,6 +207,13 @@ class Tag:
     @property
     def is_feature_freeze_release(self) -> bool:
         return self.level == "b" and self.serial == 1
+
+    @property
+    def is_security_release(self) -> bool:
+        url = "https://peps.python.org/api/release-cycle.json"
+        with urlopen(url) as response:
+            data = json.loads(response.read())
+        return str(data[self.basic_version]["status"]) == "security"
 
     @property
     def nickname(self) -> str:
@@ -465,10 +484,9 @@ def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
     print(f"Updating {filename}...", end=" ")
     readme = Path(filename)
 
-    # Update first line: "This is Python version 3.14.0 alpha 7"
+    # Update first line: "This is Python version X.Y.Z {release_level} N"
     # and update length of underline in second line to match.
-    content = readme.read_text()
-    lines = content.split("\n")
+    lines = readme.read_text().split("\n")
     this_is = f"This is Python version {tag.long_name}"
     underline = "=" * len(this_is)
     lines[0] = this_is

@@ -136,9 +136,11 @@ def test_tweak_readme(
 
     # Assert
     new_contents = readme_file.read_text()
-    new_lines = new_contents.splitlines()
+    new_lines = new_contents.split("\n")
     assert new_lines[0] == expected_version
     assert new_lines[1] == expected_underline
     assert expected_whatsnew in new_contents
     assert expected_docs in new_contents
     assert expected_pep_line in new_contents
+    assert original_contents.endswith("\n")
+    assert new_contents.endswith("\n")

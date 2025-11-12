@@ -248,9 +248,10 @@ class ReleaseDriver:
             self.db["ssh_key"] = ssh_key
         if not self.db.get("sign_gpg"):
             self.db["sign_gpg"] = sign_gpg
-
         if not self.db.get("release"):
             self.db["release"] = release_tag
+        if not self.db.get("security_release"):
+            self.db["security_release"] = self.db["release"].is_security_release
 
         print("Release data: ")
         print(f"- Branch: {release_tag.branch}")
@@ -260,6 +261,7 @@ class ReleaseDriver:
         print(f"- SSH username: {self.db['ssh_user']}")
         print(f"- SSH key: {self.db['ssh_key'] or 'Default'}")
         print(f"- Sign with GPG: {self.db['sign_gpg']}")
+        print(f"- Security release: {self.db['security_release']}")
         print()
 
     def checkpoint(self) -> None:
@@ -1000,18 +1002,29 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
         are_windows_files_there = f"python-{release}.exe" in all_files
         are_macos_files_there = f"python-{release}-macos11.pkg" in all_files
         are_linux_files_there = f"Python-{release}.tgz" in all_files
-        are_all_files_there = (
-            are_linux_files_there and are_windows_files_there and are_macos_files_there
-        )
+
+        if db["security_release"]:
+            # For security releases, only check Linux files
+            are_all_files_there = are_linux_files_there
+        else:
+            # For regular releases, check all platforms
+            are_all_files_there = (
+                are_linux_files_there
+                and are_windows_files_there
+                and are_macos_files_there
+            )
+
         if not are_all_files_there:
             linux_tick = "✅" if are_linux_files_there else "❌"
             windows_tick = "✅" if are_windows_files_there else "❌"
             macos_tick = "✅" if are_macos_files_there else "❌"
-            print(
-                f"\rWaiting for files: Linux {linux_tick}  Windows {windows_tick}  Mac {macos_tick} ",
-                flush=True,
-                end="",
-            )
+
+            if db["security_release"]:
+                waiting = f"\rWaiting for files: Linux {linux_tick} (security release - only checking Linux)"
+            else:
+                waiting = f"\rWaiting for files: Linux {linux_tick}  Windows {windows_tick}  Mac {macos_tick} "
+
+            print(waiting, flush=True, end="")
             time.sleep(1)
     print()
 
