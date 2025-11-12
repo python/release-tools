@@ -1410,6 +1410,7 @@ fix these things in this script so it also supports your platform.
             )
 
     release_tag = release_mod.Tag(args.release)
+    magic = release_tag.as_tuple() >= (3, 14)
     no_gpg = release_tag.as_tuple() >= (3, 14)  # see PEP 761
     tasks = [
         Task(check_git, "Checking Git is available"),
@@ -1426,7 +1427,11 @@ fix these things in this script so it also supports your platform.
         Task(check_sigstore_client, "Checking Sigstore CLI"),
         Task(check_buildbots, "Check buildbots are good"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
-        Task(check_magic_number, "Checking the magic number is up-to-date"),
+        *(
+            [Task(check_magic_number, "Checking the magic number is up-to-date")]
+            if magic
+            else []
+        ),
         Task(prepare_temporary_branch, "Checking out a temporary release branch"),
         Task(run_blurb_release, "Run blurb release"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
