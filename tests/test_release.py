@@ -111,7 +111,7 @@ def test_tweak_readme(
 
     # Assert
     original_lines = original_contents.split("\n")
-    new_contents = readme_file.read_text(encoding="utf-8")
+    new_contents = readme_file.read_text()
     new_lines = new_contents.split("\n")
     assert new_lines[0] == expected_version
     assert new_lines[1] == expected_underline
