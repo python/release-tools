@@ -466,9 +466,9 @@ def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
     print(f"Updating {filename}...", end=" ")
     readme = Path(filename)
 
-    # Update first line: "This is Python version 3.14.0 alpha 7"
+    # Update first line: "This is Python version X.Y.Z {release_level} N"
     # and update length of underline in second line to match.
-    lines = readme.read_text().splitlines()
+    lines = readme.read_text().split("\n")
     this_is = f"This is Python version {tag.long_name}"
     underline = "=" * len(this_is)
     lines[0] = this_is
