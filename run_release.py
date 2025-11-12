@@ -29,6 +29,7 @@ from typing import Any, cast
 import aiohttp
 import gnupg  # type: ignore[import-untyped]
 import paramiko
+import sigstore.models
 import sigstore.oidc
 from alive_progress import alive_bar
 
@@ -368,10 +369,10 @@ def check_sigstore_client(db: ReleaseShelf) -> None:
     sigstore_vermatch = re.match("^sigstore ([0-9.]+)", sigstore_version)
     if not sigstore_vermatch or tuple(
         int(part) for part in sigstore_vermatch.group(1).split(".")
-    ) < (3, 5):
+    ) < (4, 0):
         raise ReleaseException(
             f"Sigstore version not detected or not valid. "
-            f"Expecting 3.5.x or later: {sigstore_version}"
+            f"Expecting 4.0.x or later: {sigstore_version}"
         )
 
 
@@ -1051,7 +1052,9 @@ def run_add_to_python_dot_org(db: ReleaseShelf) -> None:
     assert auth_info is not None
 
     # Do the interactive flow to get an identity for Sigstore
-    issuer = sigstore.oidc.Issuer(sigstore.oidc.DEFAULT_OAUTH_ISSUER_URL)
+    trust_config = sigstore.models.ClientTrustConfig.production()
+    oidc_url = trust_config.signing_config.get_oidc_url()
+    issuer = sigstore.oidc.Issuer(oidc_url)
     identity_token = issuer.identity_token()
 
     print("Adding files to python.org...")
