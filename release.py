@@ -447,11 +447,11 @@ def tweak_patchlevel(
 
 @cache
 def get_pep_number(version: str) -> str:
-    """Fetch PEP number for a Python version from the devguide.
+    """Fetch PEP number for a Python version from peps.python.org.
 
     Returns the PEP number as a string, or "TODO" if not found.
     """
-    url = "https://raw.githubusercontent.com/python/devguide/main/include/release-cycle.json"
+    url = "https://peps.python.org/api/release-cycle.json"
     with urllib.request.urlopen(url, timeout=10) as response:
         data = json.loads(response.read().decode())
         if version in data:
@@ -468,7 +468,7 @@ def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
     # Update first line: "This is Python version 3.14.0 alpha 7"
     # and update length of underline in second line to match.
     content = readme.read_text()
-    lines = content.splitlines()
+    lines = content.split("\n")
     this_is = f"This is Python version {tag.long_name}"
     underline = "=" * len(this_is)
     lines[0] = this_is
