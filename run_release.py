@@ -365,14 +365,21 @@ def check_sigstore_client(db: ReleaseShelf) -> None:
     )
     _, stdout, _ = client.exec_command("python3 -m sigstore --version")
     sigstore_version = stdout.read(1000).decode()
-    sigstore_vermatch = re.match("^sigstore ([0-9.]+)", sigstore_version)
-    if not sigstore_vermatch or tuple(
-        int(part) for part in sigstore_vermatch.group(1).split(".")
-    ) < (3, 5):
-        raise ReleaseException(
-            f"Sigstore version not detected or not valid. "
-            f"Expecting 3.5.x or later: {sigstore_version}"
-        )
+    check_sigstore_version(sigstore_version)
+
+
+def check_sigstore_version(version: str) -> None:
+    version_match = re.match("^sigstore ([0-9.]+)", version)
+    if version_match:
+        version_tuple = tuple(int(part) for part in version_match.group(1).split("."))
+        if (3, 6, 2) <= version_tuple < (4, 0):
+            # good version
+            return
+
+    raise ReleaseException(
+        f"Sigstore version not detected or not valid. "
+        f"Expecting >= 3.6.2 and < 4.0.0, got: {version}"
+    )
 
 
 def check_buildbots(db: ReleaseShelf) -> None:

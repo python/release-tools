@@ -12,6 +12,27 @@ from release import ReleaseShelf, Tag
 
 
 @pytest.mark.parametrize(
+    "version",
+    ["sigstore 3.6.2", "sigstore 3.6.6"],
+)
+def test_check_sigstore_version_success(version) -> None:
+    # Verify runs with no exceptions
+    run_release.check_sigstore_version(version)
+
+
+@pytest.mark.parametrize(
+    "version",
+    ["sigstore 3.4.0", "sigstore 3.6.0", "sigstore 4.0.0", ""],
+)
+def test_check_sigstore_version_exception(version) -> None:
+    with pytest.raises(
+        run_release.ReleaseException,
+        match="Sigstore version not detected or not valid",
+    ):
+        run_release.check_sigstore_version(version)
+
+
+@pytest.mark.parametrize(
     ["url", "expected"],
     [
         ("github.com/hugovk/cpython.git", "hugovk"),
