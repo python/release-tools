@@ -195,7 +195,7 @@ jobs:
           make install -j
 
           cd ../installation
-          ./bin/python3 -m test -uall
+          ./bin/python3 -m test -uall -j4
 
   build-android:
     name: build-android (${{ matrix.arch }})
