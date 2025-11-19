@@ -47,7 +47,7 @@ parameters:
   type: boolean
   default: false
 - name: DoGPG
-  displayName: "Include GPG signatures (3.13 and earlier)"
+  displayName: "Include GPG signatures (3.13 only)"
   type: boolean
   default: false
 - name: DoFreethreaded
