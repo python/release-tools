@@ -51,7 +51,7 @@ parameters:
   type: boolean
   default: false
 - name: DoFreethreaded
-  displayName: "Include free-threaded builds (3.13 and later)"
+  displayName: "Include free-threaded builds"
   type: boolean
   default: true
 - name: DoARM64
