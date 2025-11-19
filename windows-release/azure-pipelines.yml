@@ -55,7 +55,7 @@ parameters:
   type: boolean
   default: true
 - name: DoARM64
-  displayName: "Publish ARM64 build (3.11 and later)"
+  displayName: "Publish ARM64 build"
   type: boolean
   default: true
 - name: DoPGO
