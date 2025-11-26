@@ -147,46 +147,6 @@ def test_check_doc_unreleased_version_waived(monkeypatch, tmp_path: Path) -> Non
         run_release.check_doc_unreleased_version(cast(ReleaseShelf, db))
 
 
-@pytest.mark.parametrize(
-    ["tag", "expected"],
-    [
-        ("3.14.0a7", "Have you already added the release to "),
-        ("3.13.3", "Have you already removed the release from "),
-    ],
-)
-def test_modify_the_prerelease_page_yes(
-    capsys, monkeypatch, tag: str, expected: str
-) -> None:
-    # Arrange
-    db = {"release": Tag(tag)}
-
-    # Act
-    with fake_answers(monkeypatch, ["yes"]):
-        run_release.modify_the_prereleases_page(cast(ReleaseShelf, db))
-
-    # Assert
-    assert expected in capsys.readouterr().out
-
-
-@pytest.mark.parametrize(
-    ["tag", "expected"],
-    [
-        ("3.14.0a7", "The release has not been added to the pre-releases page"),
-        ("3.13.3", "The release has not been removed from the pre-releases page"),
-    ],
-)
-def test_modify_the_prerelease_page_no(monkeypatch, tag: str, expected: str) -> None:
-    # Arrange
-    db = {"release": Tag(tag)}
-
-    # Act
-    with (
-        fake_answers(monkeypatch, ["no"]),
-        pytest.raises(run_release.ReleaseException, match=expected),
-    ):
-        run_release.modify_the_prereleases_page(cast(ReleaseShelf, db))
-
-
 def test_modify_the_docs_by_version_page_prerelease(capsys) -> None:
     # Arrange
     db = {"release": Tag("3.14.0a7")}
