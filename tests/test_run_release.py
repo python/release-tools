@@ -147,50 +147,6 @@ def test_check_doc_unreleased_version_waived(monkeypatch, tmp_path: Path) -> Non
         run_release.check_doc_unreleased_version(cast(ReleaseShelf, db))
 
 
-def test_modify_the_docs_by_version_page_prerelease(capsys) -> None:
-    # Arrange
-    db = {"release": Tag("3.14.0a7")}
-
-    # Act
-    run_release.modify_the_docs_by_version_page(cast(ReleaseShelf, db))
-
-    # Assert
-    assert capsys.readouterr().out == ""
-
-
-def test_modify_the_docs_by_version_page_final_no(capsys, monkeypatch) -> None:
-    # Arrange
-    db = {"release": Tag("3.13.3")}
-
-    # Act
-    with (
-        fake_answers(monkeypatch, ["no"]),
-        pytest.raises(run_release.ReleaseException),
-    ):
-        run_release.modify_the_docs_by_version_page(cast(ReleaseShelf, db))
-
-    # Assert
-    assert (
-        "* `Python 3.13.3 <https://docs.python.org/release/3.13.3/>`_, documentation released on"
-        in capsys.readouterr().out
-    )
-
-
-def test_modify_the_docs_by_version_page_final_yes(capsys, monkeypatch) -> None:
-    # Arrange
-    db = {"release": Tag("3.13.3")}
-
-    # Act
-    with fake_answers(monkeypatch, ["yes"]):
-        run_release.modify_the_docs_by_version_page(cast(ReleaseShelf, db))
-
-    # Assert
-    assert (
-        "* `Python 3.13.3 <https://docs.python.org/release/3.13.3/>`_, documentation released on"
-        in capsys.readouterr().out
-    )
-
-
 def test_update_whatsnew_toctree(tmp_path: Path) -> None:
     # Arrange
     # Only first beta triggers update
