@@ -209,7 +209,7 @@ def md5sum_for(filename: str) -> str:
 
 
 def sha256sum_for(filename: str) -> str:
-    """Returns SHA265 checksum for filename."""
+    """Returns SHA256 checksum for filename."""
     return hashlib.sha256(
         open(filename, "rb").read(),
     ).hexdigest()
