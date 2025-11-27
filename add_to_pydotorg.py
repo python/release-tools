@@ -208,6 +208,13 @@ def md5sum_for(filename: str) -> str:
     ).hexdigest()
 
 
+def sha256sum_for(filename: str) -> str:
+    """Returns SHA265 checksum for filename."""
+    return hashlib.sha256(
+        open(filename, "rb").read(),
+    ).hexdigest()
+
+
 def filesize_for(filename: str) -> int:
     return path.getsize(filename)
 
@@ -261,6 +268,7 @@ def build_file_dict(
         "is_source": os_pk == 3,
         "url": download_root + f"{base_version(release)}/{rfile}",
         "md5_sum": md5sum_for(filename),
+        "sha256sum": sha256sum_for(filename),
         "filesize": filesize_for(filename),
         "download_button": add_download,
     }
