@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
-import datetime as dt
 import functools
 import getpass
 import json
@@ -1110,38 +1109,6 @@ def purge_the_cdn(db: ReleaseShelf) -> None:
             raise RuntimeError("Failed to purge the python.org/downloads CDN")
 
 
-def modify_the_prereleases_page(db: ReleaseShelf) -> None:
-    if db["release"].is_final:
-        if not ask_question(
-            "Have you already removed the release from https://www.python.org/download/pre-releases/ ?"
-        ):
-            raise ReleaseException(
-                "The release has not been removed from the pre-releases page"
-            )
-    else:
-        if not ask_question(
-            "Have you already added the release to https://www.python.org/download/pre-releases/ ?"
-        ):
-            raise ReleaseException(
-                "The release has not been added to the pre-releases page"
-            )
-
-
-def modify_the_docs_by_version_page(db: ReleaseShelf) -> None:
-    if db["release"].is_final:
-        version = db["release"]
-        date = dt.datetime.now().strftime("%d %B %Y")
-        if not ask_question(
-            "Have you already added the docs to https://www.python.org/doc/versions/ ?\n"
-            "For example:\n"
-            f"* `Python {version} <https://docs.python.org/release/{version}/>`_, "
-            f"documentation released on {date}."
-        ):
-            raise ReleaseException(
-                "The docs have not been added to the docs by version page"
-            )
-
-
 def announce_release(db: ReleaseShelf) -> None:
     if not ask_question(
         "Have you announced the release at https://discuss.python.org/c/core-dev/23 "
@@ -1478,8 +1445,6 @@ fix these things in this script so it also supports your platform.
         Task(remove_temporary_branch, "Removing temporary release branch"),
         Task(run_add_to_python_dot_org, "Add files to python.org download page"),
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
-        Task(modify_the_prereleases_page, "Modify the pre-release page"),
-        Task(modify_the_docs_by_version_page, "Update docs by version page"),
         Task(announce_release, "Announce the release"),
     ]
     automata = ReleaseDriver(
