@@ -45,9 +45,9 @@ parameters:
 - name: DoJIT
   displayName: "Build the JIT compiler (3.14 and later)"
   type: boolean
-  default: false
+  default: true
 - name: DoGPG
-  displayName: "Include GPG signatures (3.13 only)"
+  displayName: "Include GPG signatures (3.13 and earlier)"
   type: boolean
   default: false
 - name: DoFreethreaded
@@ -71,7 +71,7 @@ parameters:
   type: boolean
   default: true
 - name: DoMSIX
-  displayName: "Produce Store packages (3.13 only)"
+  displayName: "Produce Store packages (3.13 and earlier)"
   type: boolean
   default: true
 - name: DoNuget
