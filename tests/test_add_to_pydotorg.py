@@ -212,7 +212,7 @@ def test_list_files(fs: FakeFilesystem) -> None:
         ),
         (
             "python-3.14.0b3-macos11.pkg",
-            "macOS 64-bit installer",
+            "macOS installer",
             "macos",
             True,
             "for macOS 10.15 and later",
