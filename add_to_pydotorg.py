@@ -93,7 +93,7 @@ release_to_sigstore_identity_and_oidc_issuer = {
 }
 
 
-def macos_universal2_description(version: tuple[int, int, int]) -> str:
+def macos_description(version: tuple[int, int, int]) -> str:
     if version >= (3, 14):
         return "for macOS 10.15 and later"
     elif version >= (3, 12, 6):
@@ -173,10 +173,10 @@ def get_file_descriptions(
         (
             rx(r"-macos(x)?1[1-9](\.[0-9]*)?\.pkg$"),
             (
-                "macOS 64-bit universal2 installer",
+                "macOS installer",
                 "macos",
                 True,
-                macos_universal2_description(v),
+                macos_description(v),
             ),
         ),
         (
