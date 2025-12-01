@@ -173,7 +173,7 @@ def get_file_descriptions(
         (
             rx(r"-macos(x)?1[1-9](\.[0-9]*)?\.pkg$"),
             (
-                "macOS 64-bit installer",
+                "macOS installer",
                 "macos",
                 True,
                 macos_description(v),
