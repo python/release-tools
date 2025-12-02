@@ -771,7 +771,7 @@ def make_tag(tag: Tag, *, sign_gpg: bool = True) -> bool:
     if tag.patch > 0:
         if (
             get_output(["git", "name-rev", "--name-only", "HEAD"]).strip().decode()
-            != tag.basic_version
+            != f"branch-{tag}"
         ):
             print("It doesn't look like you're on the correct branch.")
             if input("Are you sure you want to tag? (y/n) > ").lower() not in (
