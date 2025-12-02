@@ -73,7 +73,7 @@ parameters:
 - name: DoMSIX
   displayName: "Produce Store packages (3.13 and earlier)"
   type: boolean
-  default: true
+  default: false
 - name: DoNuget
   displayName: "Produce Nuget packages"
   type: boolean
