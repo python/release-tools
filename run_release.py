@@ -921,9 +921,6 @@ def start_build_release(db: ReleaseShelf) -> None:
     print(
         f"Go to https://github.com/{origin_remote_github_owner}/cpython/commit/{commit_sha}"
     )
-    print(
-        "- Ensure that there is no warning that the commit does not belong to this repository."
-    )
     print("- Ensure that the commit diff does not contain any unexpected changes.")
     print(
         "- For the next step, ensure the commit SHA matches the one you verified on GitHub in this step."
