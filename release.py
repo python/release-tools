@@ -47,8 +47,8 @@ class ReleaseShelf(Protocol):
 
     @overload
     def get(
-        self, key: Literal["completed_tasks"], default: list[Task] | None = None
-    ) -> list[Task]: ...
+        self, key: Literal["completed_tasks"], default: list[str] | None = None
+    ) -> list[str]: ...
 
     @overload
     def get(self, key: Literal["gpg_key"], default: str | None = None) -> str: ...
@@ -82,7 +82,7 @@ class ReleaseShelf(Protocol):
     def __getitem__(self, key: Literal["finished"]) -> bool: ...
 
     @overload
-    def __getitem__(self, key: Literal["completed_tasks"]) -> list[Task]: ...
+    def __getitem__(self, key: Literal["completed_tasks"]) -> list[str]: ...
 
     @overload
     def __getitem__(self, key: Literal["gpg_key"]) -> str: ...
@@ -113,7 +113,7 @@ class ReleaseShelf(Protocol):
 
     @overload
     def __setitem__(
-        self, key: Literal["completed_tasks"], value: list[Task]
+        self, key: Literal["completed_tasks"], value: list[str]
     ) -> None: ...
 
     @overload
