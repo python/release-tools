@@ -854,8 +854,8 @@ typing-extensions==4.12.2 \
     #   pydantic
     #   pydantic-core
     #   pyopenssl
-urllib3==2.5.0 \
-    --hash=sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc
+urllib3==2.6.0 \
+    --hash=sha256:c90f7a39f716c572c4e3e58509581ebd83f9b59cced005b7db7ad2d22b0db99f
     # via
     #   requests
     #   tuf
