@@ -6,12 +6,15 @@ Original code by Pablo Galindo
 """
 from __future__ import annotations
 
+__all__ = ["ReleaseDriver", "ReleaseException", "ReleaseState", "main"]
+
 import argparse
 import asyncio
 import contextlib
 import functools
 import getpass
 import json
+import logging
 import os
 import re
 import shelve
@@ -23,11 +26,12 @@ import tempfile
 import time
 import urllib.request
 from collections.abc import Iterator
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any, cast
 
 import aiohttp
-import gnupg  # type: ignore[import-untyped]
+import gnupg  # type: ignore[import-untyped,unused-ignore]
 import paramiko
 import sigstore.oidc
 from alive_progress import alive_bar
@@ -207,8 +211,105 @@ Removed C APIs
 """
 
 
+logger = logging.getLogger("release")
+
+
+def setup_logging(verbose: bool = False) -> None:
+    """Configure logging for the release process."""
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+
 class ReleaseException(Exception):
     """An error happened in the release process"""
+
+
+@dataclass
+class ReleaseState:
+    """Persisted release state using JSON for cross-platform reliability."""
+
+    finished: bool = False
+    completed_tasks: list[str] = field(default_factory=list)
+    gpg_key: str | None = None
+    git_repo: str | None = None
+    auth_info: str | None = None
+    ssh_user: str | None = None
+    ssh_key: str | None = None
+    sign_gpg: bool = True
+    security_release: bool = False
+    release_tag: str | None = None
+
+    @classmethod
+    def load(cls, path: Path) -> "ReleaseState":
+        """Load state from JSON file, or return empty state if file doesn't exist."""
+        if path.exists():
+            try:
+                data = json.loads(path.read_text())
+                # Filter to only known fields for forward compatibility
+                known_fields = {f.name for f in fields(cls)}
+                filtered_data = {k: v for k, v in data.items() if k in known_fields}
+                return cls(**filtered_data)
+            except (json.JSONDecodeError, TypeError, PermissionError, OSError) as e:
+                logger.warning(f"Failed to load state from {path}: {e}")
+                return cls()
+        return cls()
+
+    def save(self, path: Path) -> None:
+        """Save state to JSON file."""
+        path.write_text(json.dumps(asdict(self), indent=2))
+
+    def clear(self, path: Path) -> None:
+        """Remove the state file."""
+        if path.exists():
+            path.unlink()
+
+
+def with_retry(
+    max_attempts: int = 3,
+    delay: float = 1.0,
+    backoff: float = 2.0,
+    exceptions: tuple[type[Exception], ...] = (IOError, OSError),
+) -> Any:
+    """Decorator for retrying operations with exponential backoff.
+
+    Args:
+        max_attempts: Maximum number of retry attempts.
+        delay: Initial delay between retries in seconds.
+        backoff: Multiplier for delay after each retry.
+        exceptions: Tuple of exception types to catch and retry.
+
+    Returns:
+        Decorated function with retry logic.
+    """
+
+    def decorator(func: Any) -> Any:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            last_exception: Exception | None = None
+            current_delay = delay
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except exceptions as e:
+                    last_exception = e
+                    if attempt < max_attempts - 1:
+                        logger.warning(
+                            f"Attempt {attempt + 1}/{max_attempts} failed: {e}, "
+                            f"retrying in {current_delay:.1f}s"
+                        )
+                        time.sleep(current_delay)
+                        current_delay *= backoff
+            if last_exception is not None:
+                raise last_exception
+            return None  # Should never reach here
+
+        return wrapper
+
+    return decorator
 
 
 class ReleaseDriver:
@@ -234,8 +335,12 @@ class ReleaseDriver:
             self.db = cast(ReleaseShelf, shelve.open(str(dbfile), "n"))
 
         self.current_task: Task | None = first_state
-        self.completed_tasks = self.db.get("completed_tasks", [])
-        self.remaining_tasks = iter(tasks[len(self.completed_tasks) :])
+        # Store completed task descriptions (strings), not Task objects, for pickling
+        self.completed_task_descriptions: list[str] = self.db.get("completed_tasks", [])
+        # Filter out tasks whose descriptions are already in the completed list
+        self.remaining_tasks = iter(
+            t for t in tasks if t.description not in self.completed_task_descriptions
+        )
         if self.db.get("gpg_key"):
             os.environ["GPG_KEY_FOR_RELEASE"] = self.db["gpg_key"]
         if not self.db.get("git_repo"):
@@ -265,11 +370,11 @@ class ReleaseDriver:
         print()
 
     def checkpoint(self) -> None:
-        self.db["completed_tasks"] = self.completed_tasks
+        self.db["completed_tasks"] = self.completed_task_descriptions
 
     def run(self) -> None:
-        for task in self.completed_tasks:
-            print(f"✅  {task.description}")
+        for description in self.completed_task_descriptions:
+            print(f"✅  {description}")
 
         self.current_task = next(self.remaining_tasks, None)
         while self.current_task is not None:
@@ -278,9 +383,11 @@ class ReleaseDriver:
                 self.current_task(self.db)
             except Exception as e:
                 print(f"\r💥  {self.current_task.description}")
-                raise e from None
+                raise ReleaseException(
+                    f"Task '{self.current_task.description}' failed: {e}"
+                ) from e
             print(f"\r✅  {self.current_task.description}")
-            self.completed_tasks.append(self.current_task)
+            self.completed_task_descriptions.append(self.current_task.description)
             self.current_task = next(self.remaining_tasks, None)
         self.db["finished"] = True
         print()
@@ -305,8 +412,47 @@ def ask_question(question: str) -> bool:
 def cd(path: Path) -> Iterator[None]:
     current_path = os.getcwd()
     os.chdir(path)
-    yield
-    os.chdir(current_path)
+    try:
+        yield
+    finally:
+        os.chdir(current_path)
+
+
+@contextlib.contextmanager
+def ssh_client(
+    server: str, ssh_user: str, ssh_key: str | None = None
+) -> Iterator[paramiko.SSHClient]:
+    """Context manager for SSH connections with automatic cleanup."""
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    try:
+        client.connect(server, port=22, username=ssh_user, key_filename=ssh_key)
+        yield client
+    finally:
+        client.close()
+
+
+def ssh_exec(
+    client: paramiko.SSHClient, command: str
+) -> tuple[str, str, int]:
+    """Execute SSH command and return (stdout, stderr, exit_code)."""
+    transport = client.get_transport()
+    assert transport is not None, "SSH transport is None"
+    channel = transport.open_session()
+    channel.exec_command(command)
+    exit_code = channel.recv_exit_status()
+    stdout = channel.recv(65536).decode()
+    stderr = channel.recv_stderr(65536).decode()
+    return stdout, stderr, exit_code
+
+
+def ssh_exec_or_raise(client: paramiko.SSHClient, command: str) -> str:
+    """Execute command and raise ReleaseException on failure."""
+    stdout, stderr, exit_code = ssh_exec(client, command)
+    if exit_code != 0:
+        raise ReleaseException(f"Command '{command}' failed: {stderr}")
+    return stdout
 
 
 def check_tool(db: ReleaseShelf, tool: str) -> None:
@@ -336,7 +482,7 @@ def check_gpg_keys(db: ReleaseShelf) -> None:
                 input("Select one GPG key for release (by index):")
             )
     selected_key = keys[selected_key_index]["keyid"]
-    os.environ["GPG_KEY_FOR_db['release']"] = selected_key
+    os.environ["GPG_KEY_FOR_RELEASE"] = selected_key
     if selected_key not in {key["keyid"] for key in keys}:
         raise ReleaseException("Invalid GPG key selected")
     db["gpg_key"] = selected_key
@@ -344,29 +490,16 @@ def check_gpg_keys(db: ReleaseShelf) -> None:
 
 
 def check_ssh_connection(db: ReleaseShelf) -> None:
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(
-        DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
-    )
-    client.exec_command("pwd")
-    client.connect(
-        DOCS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
-    )
-    client.exec_command("pwd")
+    with ssh_client(DOWNLOADS_SERVER, db["ssh_user"], db["ssh_key"]) as client:
+        ssh_exec(client, "pwd")
+    with ssh_client(DOCS_SERVER, db["ssh_user"], db["ssh_key"]) as client:
+        ssh_exec(client, "pwd")
 
 
 def check_sigstore_client(db: ReleaseShelf) -> None:
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(
-        DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
-    )
-    _, stdout, _ = client.exec_command("python3 -m sigstore --version")
-    sigstore_version = stdout.read(1000).decode()
-    check_sigstore_version(sigstore_version)
+    with ssh_client(DOWNLOADS_SERVER, db["ssh_user"], db["ssh_key"]) as client:
+        stdout, _, _ = ssh_exec(client, "python3 -m sigstore --version")
+        check_sigstore_version(stdout)
 
 
 def check_sigstore_version(version: str) -> None:
@@ -745,44 +878,41 @@ class MySFTPClient(paramiko.SFTPClient):
 
 
 def upload_files_to_server(db: ReleaseShelf, server: str) -> None:
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(server, port=22, username=db["ssh_user"], key_filename=db["ssh_key"])
-    transport = client.get_transport()
-    assert transport is not None, f"SSH transport to {server} is None"
+    with ssh_client(server, db["ssh_user"], db["ssh_key"]) as client:
+        transport = client.get_transport()
+        assert transport is not None, f"SSH transport to {server} is None"
 
-    destination = Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
-    ftp_client = MySFTPClient.from_transport(transport)
-    assert ftp_client is not None, f"SFTP client to {server} is None"
+        destination = Path(f"/home/psf-users/{db['ssh_user']}/{db['release']}")
+        ftp_client = MySFTPClient.from_transport(transport)
+        assert ftp_client is not None, f"SFTP client to {server} is None"
 
-    client.exec_command(f"rm -rf {destination}")
+        ssh_exec(client, f"rm -rf {destination}")
 
-    with contextlib.suppress(OSError):
-        ftp_client.mkdir(str(destination))
-
-    artifacts_path = Path(db["git_repo"] / str(db["release"]))
-
-    shutil.rmtree(artifacts_path / f"Python-{db['release']}", ignore_errors=True)
-
-    def upload_subdir(subdir: str) -> None:
         with contextlib.suppress(OSError):
-            ftp_client.mkdir(str(destination / subdir))
-        with alive_bar(len(tuple((artifacts_path / subdir).glob("**/*")))) as progress:
-            ftp_client.put_dir(
-                artifacts_path / subdir,
-                str(destination / subdir),
-                progress=progress,
-            )
+            ftp_client.mkdir(str(destination))
 
-    if server == DOCS_SERVER:
-        upload_subdir("docs")
-    elif server == DOWNLOADS_SERVER:
-        upload_subdir("downloads")
-        if (artifacts_path / "docs").exists():
+        artifacts_path = Path(db["git_repo"] / str(db["release"]))
+
+        shutil.rmtree(artifacts_path / f"Python-{db['release']}", ignore_errors=True)
+
+        def upload_subdir(subdir: str) -> None:
+            with contextlib.suppress(OSError):
+                ftp_client.mkdir(str(destination / subdir))
+            with alive_bar(len(tuple((artifacts_path / subdir).glob("**/*")))) as progress:
+                ftp_client.put_dir(
+                    artifacts_path / subdir,
+                    str(destination / subdir),
+                    progress=progress,
+                )
+
+        if server == DOCS_SERVER:
             upload_subdir("docs")
+        elif server == DOWNLOADS_SERVER:
+            upload_subdir("downloads")
+            if (artifacts_path / "docs").exists():
+                upload_subdir("docs")
 
-    ftp_client.close()
+        ftp_client.close()
 
 
 def upload_files_to_downloads_server(db: ReleaseShelf) -> None:
@@ -790,44 +920,32 @@ def upload_files_to_downloads_server(db: ReleaseShelf) -> None:
 
 
 def place_files_in_download_folder(db: ReleaseShelf) -> None:
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(
-        DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
-    )
-    transport = client.get_transport()
-    assert transport is not None, f"SSH transport to {DOWNLOADS_SERVER} is None"
-
-    # Downloads
-
-    source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
-    destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
-
-    def execute_command(command: str) -> None:
-        channel = transport.open_session()
-        channel.exec_command(command)
-        if channel.recv_exit_status() != 0:
-            raise ReleaseException(channel.recv_stderr(1000))
-
-    execute_command(f"mkdir -p {destination}")
-    execute_command(f"cp {source}/downloads/* {destination}")
-    execute_command(f"chgrp downloads {destination}")
-    execute_command(f"chmod 775 {destination}")
-    execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
-
-    # Docs
-
-    release_tag = db["release"]
-    if release_tag.is_final or release_tag.is_release_candidate:
+    with ssh_client(DOWNLOADS_SERVER, db["ssh_user"], db["ssh_key"]) as client:
+        # Downloads
         source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
-        destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
+        destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
 
-        execute_command(f"mkdir -p {destination}")
-        execute_command(f"cp {source}/docs/* {destination}")
-        execute_command(f"chgrp downloads {destination}")
-        execute_command(f"chmod 775 {destination}")
-        execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
+        ssh_exec_or_raise(client, f"mkdir -p {destination}")
+        ssh_exec_or_raise(client, f"cp {source}/downloads/* {destination}")
+        ssh_exec_or_raise(client, f"chgrp downloads {destination}")
+        ssh_exec_or_raise(client, f"chmod 775 {destination}")
+        ssh_exec_or_raise(
+            client, f"find {destination} -type f -exec chmod 664 {{}} \\;"
+        )
+
+        # Docs
+        release_tag = db["release"]
+        if release_tag.is_final or release_tag.is_release_candidate:
+            source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
+            destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
+
+            ssh_exec_or_raise(client, f"mkdir -p {destination}")
+            ssh_exec_or_raise(client, f"cp {source}/docs/* {destination}")
+            ssh_exec_or_raise(client, f"chgrp downloads {destination}")
+            ssh_exec_or_raise(client, f"chmod 775 {destination}")
+            ssh_exec_or_raise(
+                client, f"find {destination} -type f -exec chmod 664 {{}} \\;"
+            )
 
 
 def upload_docs_to_the_docs_server(db: ReleaseShelf) -> None:
@@ -843,34 +961,22 @@ def unpack_docs_in_the_docs_server(db: ReleaseShelf) -> None:
     if not (release_tag.is_final or release_tag.is_release_candidate):
         return
 
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(
-        DOCS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
-    )
-    transport = client.get_transport()
-    assert transport is not None, f"SSH transport to {DOCS_SERVER} is None"
+    with ssh_client(DOCS_SERVER, db["ssh_user"], db["ssh_key"]) as client:
+        source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
+        destination = f"/srv/docs.python.org/release/{release_tag}"
 
-    # Sources
-
-    source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
-    destination = f"/srv/docs.python.org/release/{release_tag}"
-
-    def execute_command(command: str) -> None:
-        channel = transport.open_session()
-        channel.exec_command(command)
-        if channel.recv_exit_status() != 0:
-            raise ReleaseException(channel.recv_stderr(1000))
-
-    docs_filename = f"python-{release_tag}-docs-html"
-    execute_command(f"mkdir -p {destination}")
-    execute_command(f"unzip {source}/docs/{docs_filename}.zip -d {destination}")
-    execute_command(f"mv /{destination}/{docs_filename}/* {destination}")
-    execute_command(f"rm -rf /{destination}/{docs_filename}")
-    execute_command(f"chgrp -R docs {destination}")
-    execute_command(f"chmod -R 775 {destination}")
-    execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
+        docs_filename = f"python-{release_tag}-docs-html"
+        ssh_exec_or_raise(client, f"mkdir -p {destination}")
+        ssh_exec_or_raise(
+            client, f"unzip {source}/docs/{docs_filename}.zip -d {destination}"
+        )
+        ssh_exec_or_raise(client, f"mv /{destination}/{docs_filename}/* {destination}")
+        ssh_exec_or_raise(client, f"rm -rf /{destination}/{docs_filename}")
+        ssh_exec_or_raise(client, f"chgrp -R docs {destination}")
+        ssh_exec_or_raise(client, f"chmod -R 775 {destination}")
+        ssh_exec_or_raise(
+            client, f"find {destination} -type f -exec chmod 664 {{}} \\;"
+        )
 
 
 @functools.cache
@@ -979,92 +1085,83 @@ def create_release_object_in_db(db: ReleaseShelf) -> None:
 
 
 def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(
-        DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
-    )
-    ftp_client = client.open_sftp()
+    with ssh_client(DOWNLOADS_SERVER, db["ssh_user"], db["ssh_key"]) as client:
+        ftp_client = client.open_sftp()
 
-    destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
+        destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
 
-    are_all_files_there = False
-    release = str(db["release"])
-    print()
-    while not are_all_files_there:
-        try:
-            all_files = set(ftp_client.listdir(destination))
-        except FileNotFoundError:
-            raise FileNotFoundError(
-                f"The release folder in {destination} has not been created"
-            ) from None
-        are_windows_files_there = f"python-{release}.exe" in all_files
-        are_macos_files_there = f"python-{release}-macos11.pkg" in all_files
-        are_linux_files_there = f"Python-{release}.tgz" in all_files
-
-        if db["security_release"]:
-            # For security releases, only check Linux files
-            are_all_files_there = are_linux_files_there
-        else:
-            # For regular releases, check all platforms
-            are_all_files_there = (
-                are_linux_files_there
-                and are_windows_files_there
-                and are_macos_files_there
-            )
-
-        if not are_all_files_there:
-            linux_tick = "✅" if are_linux_files_there else "❌"
-            windows_tick = "✅" if are_windows_files_there else "❌"
-            macos_tick = "✅" if are_macos_files_there else "❌"
+        are_all_files_there = False
+        release = str(db["release"])
+        print()
+        while not are_all_files_there:
+            try:
+                all_files = set(ftp_client.listdir(destination))
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    f"The release folder in {destination} has not been created"
+                ) from None
+            are_windows_files_there = f"python-{release}.exe" in all_files
+            are_macos_files_there = f"python-{release}-macos11.pkg" in all_files
+            are_linux_files_there = f"Python-{release}.tgz" in all_files
 
             if db["security_release"]:
-                waiting = f"\rWaiting for files: Linux {linux_tick} (security release - only checking Linux)"
+                # For security releases, only check Linux files
+                are_all_files_there = are_linux_files_there
             else:
-                waiting = f"\rWaiting for files: Linux {linux_tick}  Windows {windows_tick}  Mac {macos_tick} "
+                # For regular releases, check all platforms
+                are_all_files_there = (
+                    are_linux_files_there
+                    and are_windows_files_there
+                    and are_macos_files_there
+                )
 
-            print(waiting, flush=True, end="")
-            time.sleep(1)
-    print()
+            if not are_all_files_there:
+                linux_tick = "✅" if are_linux_files_there else "❌"
+                windows_tick = "✅" if are_windows_files_there else "❌"
+                macos_tick = "✅" if are_macos_files_there else "❌"
+
+                if db["security_release"]:
+                    waiting = f"\rWaiting for files: Linux {linux_tick} (security release - only checking Linux)"
+                else:
+                    waiting = f"\rWaiting for files: Linux {linux_tick}  Windows {windows_tick}  Mac {macos_tick} "
+
+                print(waiting, flush=True, end="")
+                time.sleep(1)
+        print()
 
 
 def run_add_to_python_dot_org(db: ReleaseShelf) -> None:
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
-    client.connect(
-        DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
-    )
-    transport = client.get_transport()
-    assert transport is not None, f"SSH transport to {DOWNLOADS_SERVER} is None"
+    with ssh_client(DOWNLOADS_SERVER, db["ssh_user"], db["ssh_key"]) as client:
+        transport = client.get_transport()
+        assert transport is not None, f"SSH transport to {DOWNLOADS_SERVER} is None"
 
-    # Ensure the file is there
-    source = Path(__file__).parent / "add_to_pydotorg.py"
-    destination = Path(f"/home/psf-users/{db['ssh_user']}/add_to_pydotorg.py")
-    ftp_client = MySFTPClient.from_transport(transport)
-    assert ftp_client is not None, f"SFTP client to {DOWNLOADS_SERVER} is None"
-    ftp_client.put(str(source), str(destination))
-    ftp_client.close()
+        # Ensure the file is there
+        source = Path(__file__).parent / "add_to_pydotorg.py"
+        destination = Path(f"/home/psf-users/{db['ssh_user']}/add_to_pydotorg.py")
+        ftp_client = MySFTPClient.from_transport(transport)
+        assert ftp_client is not None, f"SFTP client to {DOWNLOADS_SERVER} is None"
+        ftp_client.put(str(source), str(destination))
+        ftp_client.close()
 
-    auth_info = db["auth_info"]
-    assert auth_info is not None
+        auth_info = db["auth_info"]
+        assert auth_info is not None
 
-    # Do the interactive flow to get an identity for Sigstore
-    issuer = sigstore.oidc.Issuer(sigstore.oidc.DEFAULT_OAUTH_ISSUER_URL)
-    identity_token = issuer.identity_token()
+        # Do the interactive flow to get an identity for Sigstore
+        # Use the default Sigstore OAuth issuer URL
+        issuer = sigstore.oidc.Issuer("https://oauth2.sigstore.dev/auth")
+        identity_token = issuer.identity_token()
 
-    print("Adding files to python.org...")
-    stdin, stdout, stderr = client.exec_command(
-        f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add_to_pydotorg.py {db['release']}"
-    )
-    stderr_text = stderr.read().decode()
-    if stderr_text:
-        raise paramiko.SSHException(f"Failed to execute the command: {stderr_text}")
-    stdout_text = stdout.read().decode()
-    print("-- Command output --")
-    print(stdout_text)
-    print("-- End of command output --")
+        print("Adding files to python.org...")
+        command = (
+            f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} "
+            f"python3 add_to_pydotorg.py {db['release']}"
+        )
+        stdout_text, stderr_text, exit_code = ssh_exec(client, command)
+        if exit_code != 0 or stderr_text:
+            raise ReleaseException(f"Failed to execute the command: {stderr_text}")
+        print("-- Command output --")
+        print(stdout_text)
+        print("-- End of command output --")
 
 
 def purge_the_cdn(db: ReleaseShelf) -> None:
@@ -1357,7 +1454,20 @@ def main() -> None:
         help="Path to the SSH key file to use for authentication",
         type=str,
     )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable verbose logging output",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview actions without executing destructive operations",
+    )
     args = parser.parse_args()
+
+    setup_logging(verbose=args.verbose)
 
     auth_key = args.auth_key or os.getenv("AUTH_INFO")
     assert isinstance(auth_key, str), "We need an AUTH_INFO env var or --auth-key"
