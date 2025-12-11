@@ -46,6 +46,38 @@ def test_task(mocker: MockerFixture) -> None:
     my_task.assert_called_once_with(cast(release.ReleaseShelf, db))
 
 
+@pytest.mark.parametrize(
+    ["test_inputs", "expected"],
+    [
+        (["yes"], True),
+        (["no"], False),
+        (["maybe", "yes"], True),
+        (["maybe", "no"], False),
+        (["", "nope", "y", "yes"], True),
+        (["", "nope", "n", "no"], False),
+    ],
+)
+def test_ask_question(
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+    test_inputs: list[str],
+    expected: bool,
+) -> None:
+    # Arrange
+    mocker.patch("release.input", side_effect=test_inputs)
+
+    # Act
+    result = release.ask_question("Do you want to proceed?")
+
+    # Assert
+    assert result is expected
+    captured = capsys.readouterr()
+    assert "Do you want to proceed?" in captured.out
+    # All inputs except the last are invalid
+    invalid_count = len(test_inputs) - 1
+    assert captured.out.count("Please enter yes or no.") == invalid_count
+
+
 def test_tweak_patchlevel(tmp_path: Path) -> None:
     # Arrange
     tag = release.Tag("3.14.0b2")

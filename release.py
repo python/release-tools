@@ -291,6 +291,20 @@ def run_cmd(
         error(f"{cmd} failed")
 
 
+def ask_question(question: str) -> bool:
+    answer = ""
+    print(question)
+    while answer not in ("yes", "no"):
+        answer = input("Enter yes or no: ")
+        if answer == "yes":
+            return True
+        elif answer == "no":
+            return False
+        else:
+            print("Please enter yes or no.")
+    return True
+
+
 readme_re = re.compile(r"This is Python version 3\.\d").match
 
 
@@ -763,7 +777,7 @@ def make_tag(tag: Tag, *, sign_gpg: bool = True) -> bool:
             print("There are still reST files in NEWS.d/next/...")
         if not good_files:
             print(f"There is no Misc/NEWS.d/{tag}.rst file.")
-        if input("Are you sure you want to tag? (y/n) > ") not in ("y", "yes"):
+        if not ask_question("Are you sure you want to tag?"):
             print("Aborting.")
             return False
 
@@ -774,10 +788,7 @@ def make_tag(tag: Tag, *, sign_gpg: bool = True) -> bool:
             != f"branch-{tag}"
         ):
             print("It doesn't look like you're on the correct branch.")
-            if input("Are you sure you want to tag? (y/n) > ").lower() not in (
-                "y",
-                "yes",
-            ):
+            if not ask_question("Are you sure you want to tag?"):
                 print("Aborting.")
                 return False
 

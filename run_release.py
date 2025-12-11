@@ -36,7 +36,7 @@ import release as release_mod
 import sbom
 import update_version_next
 from buildbotapi import BuildBotAPI, Builder
-from release import ReleaseShelf, Tag, Task
+from release import ReleaseShelf, Tag, Task, ask_question
 
 API_KEY_REGEXP = re.compile(r"(?P<user>\w+):(?P<key>\w+)")
 RELEASE_REGEXP = re.compile(
@@ -285,20 +285,6 @@ class ReleaseDriver:
         self.db["finished"] = True
         print()
         print(f"Congratulations, Python {self.db['release']} is released 🎉🎉🎉")
-
-
-def ask_question(question: str) -> bool:
-    answer = ""
-    print(question)
-    while answer not in ("yes", "no"):
-        answer = input("Enter yes or no: ")
-        if answer == "yes":
-            return True
-        elif answer == "no":
-            return False
-        else:
-            print("Please enter yes or no.")
-    return True
 
 
 @contextlib.contextmanager
