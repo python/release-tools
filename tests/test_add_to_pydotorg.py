@@ -71,6 +71,7 @@ def test_build_file_dict(tmp_path: Path) -> None:
         "is_source": False,
         "url": f"{release_url}/test-artifact.txt",
         "md5_sum": "3e25960a79dbc69b674cd4ec67a72c62",
+        "sha256sum": "64ec88ca00b268e5ba1a35678a1b5316d212f4f366b2477232534a8aeca37f3c",
         "filesize": 11,
         "download_button": True,
         "sigstore_bundle_file": f"{release_url}/test-artifact.txt.sigstore",
