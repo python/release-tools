@@ -210,9 +210,7 @@ def md5sum_for(filename: str) -> str:
 
 def sha256sum_for(filename: str) -> str:
     """Returns SHA256 checksum for filename."""
-    return hashlib.sha256(
-        open(filename, "rb").read(),
-    ).hexdigest()
+    return hashlib.sha256(open(filename, "rb").read()).hexdigest()
 
 
 def filesize_for(filename: str) -> int:
