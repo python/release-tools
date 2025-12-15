@@ -143,10 +143,8 @@ def test_minor_version_tuple(release: str, expected: tuple[int, int]) -> None:
         ((3, 14, 0), "for macOS 10.15 and later"),
     ],
 )
-def test_macos_universal2_description(
-    release: tuple[int, int, int], expected: str
-) -> None:
-    assert add_to_pydotorg.macos_universal2_description(release) == expected
+def test_macos_description(release: tuple[int, int, int], expected: str) -> None:
+    assert add_to_pydotorg.macos_description(release) == expected
 
 
 def test_list_files(fs: FakeFilesystem) -> None:
@@ -215,7 +213,7 @@ def test_list_files(fs: FakeFilesystem) -> None:
         ),
         (
             "python-3.14.0b3-macos11.pkg",
-            "macOS 64-bit universal2 installer",
+            "macOS installer",
             "macos",
             True,
             "for macOS 10.15 and later",
