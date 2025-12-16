@@ -266,7 +266,7 @@ def build_file_dict(
         "is_source": os_pk == 3,
         "url": download_root + f"{base_version(release)}/{rfile}",
         "md5_sum": md5sum_for(filename),
-        "sha256sum": sha256sum_for(filename),
+        "sha256_sum": sha256sum_for(filename),
         "filesize": filesize_for(filename),
         "download_button": add_download,
     }
