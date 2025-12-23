@@ -133,12 +133,6 @@ def test_minor_version_tuple(release: str, expected: tuple[int, int]) -> None:
 @pytest.mark.parametrize(
     ["release", "expected"],
     [
-        ((3, 9, 0), "for macOS 10.9 and later"),
-        ((3, 10, 0), "for macOS 10.9 and later"),
-        ((3, 11, 0), "for macOS 10.9 and later"),
-        ((3, 12, 0), "for macOS 10.9 and later"),
-        ((3, 12, 5), "for macOS 10.9 and later"),
-        ((3, 12, 6), "for macOS 10.13 and later"),
         ((3, 13, 0), "for macOS 10.13 and later"),
         ((3, 14, 0), "for macOS 10.15 and later"),
     ],

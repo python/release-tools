@@ -96,10 +96,8 @@ release_to_sigstore_identity_and_oidc_issuer = {
 def macos_description(version: tuple[int, int, int]) -> str:
     if version >= (3, 14):
         return "for macOS 10.15 and later"
-    elif version >= (3, 12, 6):
-        return "for macOS 10.13 and later"
     else:
-        return "for macOS 10.9 and later"
+        return "for macOS 10.13 and later"
 
 
 def get_file_descriptions(
@@ -143,33 +141,6 @@ def get_file_descriptions(
             ("Windows embeddable package (32-bit)", "windows", False, ""),
         ),
         (rx(r"\.exe$"), ("Windows installer (32-bit)", "windows", False, "")),
-        (
-            rx(r"-macosx10\.5(_rev\d)?\.(dm|pk)g$"),
-            (
-                "macOS 32-bit i386/PPC installer",
-                "macos",
-                False,
-                "for Mac OS X 10.5 and later",
-            ),
-        ),
-        (
-            rx(r"-macosx10\.6(_rev\d)?\.(dm|pk)g$"),
-            (
-                "macOS 64-bit/32-bit Intel installer",
-                "macos",
-                False,
-                "for Mac OS X 10.6 and later",
-            ),
-        ),
-        (
-            rx(r"-macos(x)?10\.9\.(dm|pk)g$"),
-            (
-                "macOS 64-bit Intel-only installer",
-                "macos",
-                False,
-                "for macOS 10.9 and later, deprecated",
-            ),
-        ),
         (
             rx(r"-macos(x)?1[1-9](\.[0-9]*)?\.pkg$"),
             (
