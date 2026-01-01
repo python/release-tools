@@ -300,7 +300,7 @@ def list_files(
 ) -> Generator[tuple[str, str, str, bool, str], None, None]:
     """List all of the release's download files."""
     reldir = base_version(release)
-    for rfile in os.listdir(path.join(ftp_root, reldir)):
+    for rfile in sorted(os.listdir(path.join(ftp_root, reldir))):
         if not path.isfile(path.join(ftp_root, reldir, rfile)):
             continue
 
