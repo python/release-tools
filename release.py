@@ -20,13 +20,12 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from collections.abc import Generator, Sequence
+from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
     Literal,
     Protocol,
     Self,
