@@ -71,6 +71,7 @@ def test_build_file_dict(tmp_path: Path) -> None:
         "is_source": False,
         "url": f"{release_url}/test-artifact.txt",
         "md5_sum": "3e25960a79dbc69b674cd4ec67a72c62",
+        "sha256_sum": "64ec88ca00b268e5ba1a35678a1b5316d212f4f366b2477232534a8aeca37f3c",
         "filesize": 11,
         "download_button": True,
         "sigstore_bundle_file": f"{release_url}/test-artifact.txt.sigstore",
@@ -132,20 +133,12 @@ def test_minor_version_tuple(release: str, expected: tuple[int, int]) -> None:
 @pytest.mark.parametrize(
     ["release", "expected"],
     [
-        ((3, 9, 0), "for macOS 10.9 and later"),
-        ((3, 10, 0), "for macOS 10.9 and later"),
-        ((3, 11, 0), "for macOS 10.9 and later"),
-        ((3, 12, 0), "for macOS 10.9 and later"),
-        ((3, 12, 5), "for macOS 10.9 and later"),
-        ((3, 12, 6), "for macOS 10.13 and later"),
         ((3, 13, 0), "for macOS 10.13 and later"),
         ((3, 14, 0), "for macOS 10.15 and later"),
     ],
 )
-def test_macos_universal2_description(
-    release: tuple[int, int, int], expected: str
-) -> None:
-    assert add_to_pydotorg.macos_universal2_description(release) == expected
+def test_macos_description(release: tuple[int, int, int], expected: str) -> None:
+    assert add_to_pydotorg.macos_description(release) == expected
 
 
 def test_list_files(fs: FakeFilesystem) -> None:
@@ -214,7 +207,7 @@ def test_list_files(fs: FakeFilesystem) -> None:
         ),
         (
             "python-3.14.0b3-macos11.pkg",
-            "macOS 64-bit universal2 installer",
+            "macOS installer",
             "macos",
             True,
             "for macOS 10.15 and later",

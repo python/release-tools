@@ -12,6 +12,27 @@ from release import ReleaseShelf, Tag
 
 
 @pytest.mark.parametrize(
+    "version",
+    ["sigstore 3.6.2", "sigstore 3.6.6"],
+)
+def test_check_sigstore_version_success(version) -> None:
+    # Verify runs with no exceptions
+    run_release.check_sigstore_version(version)
+
+
+@pytest.mark.parametrize(
+    "version",
+    ["sigstore 3.4.0", "sigstore 3.6.0", "sigstore 4.0.0", ""],
+)
+def test_check_sigstore_version_exception(version) -> None:
+    with pytest.raises(
+        run_release.ReleaseException,
+        match="Sigstore version not detected or not valid",
+    ):
+        run_release.check_sigstore_version(version)
+
+
+@pytest.mark.parametrize(
     ["url", "expected"],
     [
         ("github.com/hugovk/cpython.git", "hugovk"),
@@ -34,7 +55,7 @@ def test_invalid_extract_github_owner() -> None:
 
 def test_check_magic_number() -> None:
     db = {
-        "release": Tag("3.13.0rc1"),
+        "release": Tag("3.14.0rc1"),
         "git_repo": str(Path(__file__).parent / "magicdata"),
     }
     with pytest.raises(
@@ -124,90 +145,6 @@ def test_check_doc_unreleased_version_waived(monkeypatch, tmp_path: Path) -> Non
     }
     with fake_answers(monkeypatch, ["yes"]):
         run_release.check_doc_unreleased_version(cast(ReleaseShelf, db))
-
-
-@pytest.mark.parametrize(
-    ["tag", "expected"],
-    [
-        ("3.14.0a7", "Have you already added the release to "),
-        ("3.13.3", "Have you already removed the release from "),
-    ],
-)
-def test_modify_the_prerelease_page_yes(
-    capsys, monkeypatch, tag: str, expected: str
-) -> None:
-    # Arrange
-    db = {"release": Tag(tag)}
-
-    # Act
-    with fake_answers(monkeypatch, ["yes"]):
-        run_release.modify_the_prereleases_page(cast(ReleaseShelf, db))
-
-    # Assert
-    assert expected in capsys.readouterr().out
-
-
-@pytest.mark.parametrize(
-    ["tag", "expected"],
-    [
-        ("3.14.0a7", "The release has not been added to the pre-releases page"),
-        ("3.13.3", "The release has not been removed from the pre-releases page"),
-    ],
-)
-def test_modify_the_prerelease_page_no(monkeypatch, tag: str, expected: str) -> None:
-    # Arrange
-    db = {"release": Tag(tag)}
-
-    # Act
-    with (
-        fake_answers(monkeypatch, ["no"]),
-        pytest.raises(run_release.ReleaseException, match=expected),
-    ):
-        run_release.modify_the_prereleases_page(cast(ReleaseShelf, db))
-
-
-def test_modify_the_docs_by_version_page_prerelease(capsys) -> None:
-    # Arrange
-    db = {"release": Tag("3.14.0a7")}
-
-    # Act
-    run_release.modify_the_docs_by_version_page(cast(ReleaseShelf, db))
-
-    # Assert
-    assert capsys.readouterr().out == ""
-
-
-def test_modify_the_docs_by_version_page_final_no(capsys, monkeypatch) -> None:
-    # Arrange
-    db = {"release": Tag("3.13.3")}
-
-    # Act
-    with (
-        fake_answers(monkeypatch, ["no"]),
-        pytest.raises(run_release.ReleaseException),
-    ):
-        run_release.modify_the_docs_by_version_page(cast(ReleaseShelf, db))
-
-    # Assert
-    assert (
-        "* `Python 3.13.3 <https://docs.python.org/release/3.13.3/>`_, documentation released on"
-        in capsys.readouterr().out
-    )
-
-
-def test_modify_the_docs_by_version_page_final_yes(capsys, monkeypatch) -> None:
-    # Arrange
-    db = {"release": Tag("3.13.3")}
-
-    # Act
-    with fake_answers(monkeypatch, ["yes"]):
-        run_release.modify_the_docs_by_version_page(cast(ReleaseShelf, db))
-
-    # Assert
-    assert (
-        "* `Python 3.13.3 <https://docs.python.org/release/3.13.3/>`_, documentation released on"
-        in capsys.readouterr().out
-    )
 
 
 def test_update_whatsnew_toctree(tmp_path: Path) -> None:

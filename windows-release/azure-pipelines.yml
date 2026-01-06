@@ -45,17 +45,17 @@ parameters:
 - name: DoJIT
   displayName: "Build the JIT compiler (3.14 and later)"
   type: boolean
-  default: false
+  default: true
 - name: DoGPG
   displayName: "Include GPG signatures (3.13 and earlier)"
   type: boolean
   default: false
 - name: DoFreethreaded
-  displayName: "Include free-threaded builds (3.13 and later)"
+  displayName: "Include free-threaded builds"
   type: boolean
   default: true
 - name: DoARM64
-  displayName: "Publish ARM64 build (3.11 and later)"
+  displayName: "Publish ARM64 build"
   type: boolean
   default: true
 - name: DoPGO
@@ -71,9 +71,9 @@ parameters:
   type: boolean
   default: true
 - name: DoMSIX
-  displayName: "Produce Store packages"
+  displayName: "Produce Store packages (3.13 and earlier)"
   type: boolean
-  default: true
+  default: false
 - name: DoNuget
   displayName: "Produce Nuget packages"
   type: boolean

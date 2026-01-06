@@ -93,13 +93,11 @@ release_to_sigstore_identity_and_oidc_issuer = {
 }
 
 
-def macos_universal2_description(version: tuple[int, int, int]) -> str:
+def macos_description(version: tuple[int, int, int]) -> str:
     if version >= (3, 14):
         return "for macOS 10.15 and later"
-    elif version >= (3, 12, 6):
-        return "for macOS 10.13 and later"
     else:
-        return "for macOS 10.9 and later"
+        return "for macOS 10.13 and later"
 
 
 def get_file_descriptions(
@@ -144,39 +142,12 @@ def get_file_descriptions(
         ),
         (rx(r"\.exe$"), ("Windows installer (32-bit)", "windows", False, "")),
         (
-            rx(r"-macosx10\.5(_rev\d)?\.(dm|pk)g$"),
-            (
-                "macOS 32-bit i386/PPC installer",
-                "macos",
-                False,
-                "for Mac OS X 10.5 and later",
-            ),
-        ),
-        (
-            rx(r"-macosx10\.6(_rev\d)?\.(dm|pk)g$"),
-            (
-                "macOS 64-bit/32-bit Intel installer",
-                "macos",
-                False,
-                "for Mac OS X 10.6 and later",
-            ),
-        ),
-        (
-            rx(r"-macos(x)?10\.9\.(dm|pk)g$"),
-            (
-                "macOS 64-bit Intel-only installer",
-                "macos",
-                False,
-                "for macOS 10.9 and later, deprecated",
-            ),
-        ),
-        (
             rx(r"-macos(x)?1[1-9](\.[0-9]*)?\.pkg$"),
             (
-                "macOS 64-bit universal2 installer",
+                "macOS installer",
                 "macos",
                 True,
-                macos_universal2_description(v),
+                macos_description(v),
             ),
         ),
         (
@@ -206,6 +177,11 @@ def md5sum_for(filename: str) -> str:
     return hashlib.md5(
         open(filename, "rb").read(),
     ).hexdigest()
+
+
+def sha256sum_for(filename: str) -> str:
+    """Returns SHA-256 checksum for filename."""
+    return hashlib.sha256(open(filename, "rb").read()).hexdigest()
 
 
 def filesize_for(filename: str) -> int:
@@ -261,6 +237,7 @@ def build_file_dict(
         "is_source": os_pk == 3,
         "url": download_root + f"{base_version(release)}/{rfile}",
         "md5_sum": md5sum_for(filename),
+        "sha256_sum": sha256sum_for(filename),
         "filesize": filesize_for(filename),
         "download_button": add_download,
     }
@@ -363,32 +340,6 @@ def sign_release_files_with_sigstore(
         return os.path.exists(filename + ".sigstore") or (
             os.path.exists(filename + ".sig") and os.path.exists(filename + ".crt")
         )
-
-    # Ensure that Sigstore CLI installed on the download server is
-    # at least v3.0.0 or later to ensure valid Sigstore bundles are generated.
-    try:
-        sigstore_version_stdout = subprocess.check_output(
-            ["python3", "-m", "sigstore", "--version"]
-        )
-        sigstore_version_match = re.search(
-            r"([0-9][0-9.]*[0-9])", sigstore_version_stdout.decode()
-        )
-        if not sigstore_version_match:
-            error(
-                f"Couldn't determine version of Sigstore CLI: "
-                f"{sigstore_version_stdout.decode()}"
-            )
-        sigstore_version = sigstore_version_match.group(1)
-        sigstore_major_version = int(sigstore_version.partition(".")[0])
-        if sigstore_major_version < 3:
-            error(
-                f"Sigstore v3 or later must be installed "
-                f"(currently {sigstore_version}), "
-                f"run: python -m pip install -r requirements.txt"
-            )
-    except subprocess.CalledProcessError:
-        error("Couldn't determine version of Sigstore CLI")
-    print(f"Sigstore CLI installed is version v{sigstore_version}")
 
     # Skip files that already have a signature (likely source distributions)
     unsigned_files = [

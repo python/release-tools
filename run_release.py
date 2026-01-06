@@ -9,13 +9,13 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
-import datetime as dt
 import functools
 import getpass
 import json
 import os
 import re
 import shelve
+import shlex
 import shutil
 import subprocess
 import sys
@@ -36,7 +36,7 @@ import release as release_mod
 import sbom
 import update_version_next
 from buildbotapi import BuildBotAPI, Builder
-from release import ReleaseShelf, Tag, Task
+from release import ReleaseShelf, Tag, Task, ask_question
 
 API_KEY_REGEXP = re.compile(r"(?P<user>\w+):(?P<key>\w+)")
 RELEASE_REGEXP = re.compile(
@@ -287,20 +287,6 @@ class ReleaseDriver:
         print(f"Congratulations, Python {self.db['release']} is released 🎉🎉🎉")
 
 
-def ask_question(question: str) -> bool:
-    answer = ""
-    print(question)
-    while answer not in ("yes", "no"):
-        answer = input("Enter yes or no: ")
-        if answer == "yes":
-            return True
-        elif answer == "no":
-            return False
-        else:
-            print("Please enter yes or no.")
-    return True
-
-
 @contextlib.contextmanager
 def cd(path: Path) -> Iterator[None]:
     current_path = os.getcwd()
@@ -314,6 +300,7 @@ def check_tool(db: ReleaseShelf, tool: str) -> None:
         raise ReleaseException(f"{tool} is not available")
 
 
+check_gh = functools.partial(check_tool, tool="gh")
 check_git = functools.partial(check_tool, tool="git")
 check_make = functools.partial(check_tool, tool="make")
 check_blurb = functools.partial(check_tool, tool="blurb")
@@ -365,14 +352,21 @@ def check_sigstore_client(db: ReleaseShelf) -> None:
     )
     _, stdout, _ = client.exec_command("python3 -m sigstore --version")
     sigstore_version = stdout.read(1000).decode()
-    sigstore_vermatch = re.match("^sigstore ([0-9.]+)", sigstore_version)
-    if not sigstore_vermatch or tuple(
-        int(part) for part in sigstore_vermatch.group(1).split(".")
-    ) < (3, 5):
-        raise ReleaseException(
-            f"Sigstore version not detected or not valid. "
-            f"Expecting 3.5.x or later: {sigstore_version}"
-        )
+    check_sigstore_version(sigstore_version)
+
+
+def check_sigstore_version(version: str) -> None:
+    version_match = re.match("^sigstore ([0-9.]+)", version)
+    if version_match:
+        version_tuple = tuple(int(part) for part in version_match.group(1).split("."))
+        if (3, 6, 2) <= version_tuple < (4, 0):
+            # good version
+            return
+
+    raise ReleaseException(
+        f"Sigstore version not detected or not valid. "
+        f"Expecting >= 3.6.2 and < 4.0.0, got: {version}"
+    )
 
 
 def check_buildbots(db: ReleaseShelf) -> None:
@@ -913,9 +907,6 @@ def start_build_release(db: ReleaseShelf) -> None:
     print(
         f"Go to https://github.com/{origin_remote_github_owner}/cpython/commit/{commit_sha}"
     )
-    print(
-        "- Ensure that there is no warning that the commit does not belong to this repository."
-    )
     print("- Ensure that the commit diff does not contain any unexpected changes.")
     print(
         "- For the next step, ensure the commit SHA matches the one you verified on GitHub in this step."
@@ -929,20 +920,15 @@ def start_build_release(db: ReleaseShelf) -> None:
     # After visually confirming the release manager can start the build process
     # with the known good commit SHA.
     print()
-    print(
-        "Go to https://github.com/python/release-tools/actions/workflows/build-release.yml"
-    )
-    print("Select 'Run workflow' and enter the following values:")
-    print(f"- Git remote to checkout: {origin_remote_github_owner}")
-    print(f"- Git commit to target for the release: {commit_sha}")
-    print(f"- CPython release number: {db['release']}")
-    print()
-    print("Or using the GitHub CLI run:")
-    print(
-        "  gh workflow run build-release.yml --repo python/release-tools"
+    cmd = (
+        "gh workflow run build-release.yml --repo python/release-tools"
         f" -f git_remote={origin_remote_github_owner}"
         f" -f git_commit={commit_sha}"
         f" -f cpython_release={db['release']}"
+    )
+    subprocess.check_call(shlex.split(cmd))
+    print(
+        "Go to https://github.com/python/release-tools/actions/workflows/build-release.yml"
     )
     print()
 
@@ -1104,38 +1090,6 @@ def purge_the_cdn(db: ReleaseShelf) -> None:
         response = urllib.request.urlopen(req)
         if response.code != 200:
             raise RuntimeError("Failed to purge the python.org/downloads CDN")
-
-
-def modify_the_prereleases_page(db: ReleaseShelf) -> None:
-    if db["release"].is_final:
-        if not ask_question(
-            "Have you already removed the release from https://www.python.org/download/pre-releases/ ?"
-        ):
-            raise ReleaseException(
-                "The release has not been removed from the pre-releases page"
-            )
-    else:
-        if not ask_question(
-            "Have you already added the release to https://www.python.org/download/pre-releases/ ?"
-        ):
-            raise ReleaseException(
-                "The release has not been added to the pre-releases page"
-            )
-
-
-def modify_the_docs_by_version_page(db: ReleaseShelf) -> None:
-    if db["release"].is_final:
-        version = db["release"]
-        date = dt.datetime.now().strftime("%d %B %Y")
-        if not ask_question(
-            "Have you already added the docs to https://www.python.org/doc/versions/ ?\n"
-            "For example:\n"
-            f"* `Python {version} <https://docs.python.org/release/{version}/>`_, "
-            f"documentation released on {date}."
-        ):
-            raise ReleaseException(
-                "The docs have not been added to the docs by version page"
-            )
 
 
 def announce_release(db: ReleaseShelf) -> None:
@@ -1410,8 +1364,10 @@ fix these things in this script so it also supports your platform.
             )
 
     release_tag = release_mod.Tag(args.release)
+    magic = release_tag.as_tuple() >= (3, 14)
     no_gpg = release_tag.as_tuple() >= (3, 14)  # see PEP 761
     tasks = [
+        Task(check_gh, "Checking gh is available"),
         Task(check_git, "Checking Git is available"),
         Task(check_make, "Checking make is available"),
         Task(check_blurb, "Checking blurb is available"),
@@ -1426,7 +1382,11 @@ fix these things in this script so it also supports your platform.
         Task(check_sigstore_client, "Checking Sigstore CLI"),
         Task(check_buildbots, "Check buildbots are good"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
-        Task(check_magic_number, "Checking the magic number is up-to-date"),
+        *(
+            [Task(check_magic_number, "Checking the magic number is up-to-date")]
+            if magic
+            else []
+        ),
         Task(prepare_temporary_branch, "Checking out a temporary release branch"),
         Task(run_blurb_release, "Run blurb release"),
         Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
@@ -1468,8 +1428,6 @@ fix these things in this script so it also supports your platform.
         Task(remove_temporary_branch, "Removing temporary release branch"),
         Task(run_add_to_python_dot_org, "Add files to python.org download page"),
         Task(purge_the_cdn, "Purge the CDN of python.org/downloads"),
-        Task(modify_the_prereleases_page, "Modify the pre-release page"),
-        Task(modify_the_docs_by_version_page, "Update docs by version page"),
         Task(announce_release, "Announce the release"),
     ]
     automata = ReleaseDriver(
