@@ -20,9 +20,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import urllib.request
 from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 from typing import (
     Any,
@@ -475,6 +477,22 @@ def tweak_patchlevel(
     print("done")
 
 
+@cache
+def get_pep_number(version: str) -> str:
+    """Fetch PEP number for a Python version from peps.python.org.
+
+    Returns the PEP number as a string, or "TODO" if not found.
+    """
+    url = "https://peps.python.org/api/release-cycle.json"
+    with urllib.request.urlopen(url, timeout=10) as response:
+        data = json.loads(response.read().decode())
+        if version in data:
+            pep = data[version].get("pep")
+            if pep:
+                return str(pep)
+    return "TODO"
+
+
 def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
     print(f"Updating {filename}...", end=" ")
     readme = Path(filename)
@@ -486,8 +504,37 @@ def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
     underline = "=" * len(this_is)
     lines[0] = this_is
     lines[1] = underline
+    content = "\n".join(lines)
 
-    readme.write_text("\n".join(lines))
+    DOCS_URL = r"https://docs\.python\.org/"
+    X_Y = r"\d+\.\d+"
+
+    # Replace in: 3.14 <https://docs.python.org/3.14/whatsnew/3.14.html>`_
+    content = re.sub(
+        rf"{X_Y} (<{DOCS_URL}){X_Y}(/whatsnew/){X_Y}(\.html>`_)",
+        rf"{tag.basic_version} \g<1>{tag.basic_version}\g<2>{tag.basic_version}\g<3>",
+        content,
+    )
+
+    # Replace in: `Documentation for Python 3.14 <https://docs.python.org/3.14/>`_
+    content = re.sub(
+        rf"(`Documentation for Python ){X_Y}( <{DOCS_URL}){X_Y}(/>`_)",
+        rf"\g<1>{tag.basic_version}\g<2>{tag.basic_version}\g<3>",
+        content,
+    )
+
+    # Get PEP number for this version
+    pep_number = get_pep_number(tag.basic_version)
+    pep_padded = pep_number.zfill(4) if pep_number != "TODO" else "TODO"
+
+    # Replace in: `PEP 745 <https://peps.python.org/pep-0745/>`__ for Python 3.14
+    content = re.sub(
+        rf"(`PEP )\d+( <https://peps\.python\.org/pep-)\d+(/>`__ for Python ){X_Y}",
+        rf"\g<1>{pep_number}\g<2>{pep_padded}\g<3>{tag.basic_version}",
+        content,
+    )
+
+    readme.write_text(content)
     print("done")
 
 
