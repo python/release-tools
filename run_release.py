@@ -1400,7 +1400,7 @@ fix these things in this script so it also supports your platform.
         Task(check_sigstore_client, "Checking Sigstore CLI"),
         Task(check_buildbots, "Check buildbots are good"),
         Task(check_cpython_repo_age, "Checking CPython repository age"),
-        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         *(
             [Task(check_magic_number, "Checking the magic number is up-to-date")]
             if magic
@@ -1408,15 +1408,15 @@ fix these things in this script so it also supports your platform.
         ),
         Task(prepare_temporary_branch, "Checking out a temporary release branch"),
         Task(run_blurb_release, "Run blurb release"),
-        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(bump_version, "Bump version"),
         Task(bump_version_in_docs, "Bump version in docs"),
-        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         Task(run_autoconf, "Running autoconf"),
-        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         Task(check_pyspecific, "Checking pyspecific"),
-        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         Task(create_tag, "Create tag"),
         Task(push_to_local_fork, "Push new tags and branches to private fork"),
         Task(start_build_release, "Start the build-release workflow"),
