@@ -102,6 +102,43 @@ def test_check_cpython_repo_branch(
         run_release.check_cpython_repo_branch(cast(ReleaseShelf, db))
 
 
+@pytest.mark.parametrize(
+    ["age_seconds", "user_continues", "expectation"],
+    [
+        # Recent repo (< 1 day) - no question asked
+        (3600, None, does_not_raise()),
+        # Old repo (> 1 day) + user says yes
+        (90000, True, does_not_raise()),
+        # Old repo (> 1 day) + user says no
+        (90000, False, pytest.raises(ReleaseException, match="repository is old")),
+    ],
+)
+def test_check_cpython_repo_age(
+    monkeypatch, age_seconds: int, user_continues: bool | None, expectation
+) -> None:
+    # Arrange
+    db = {"release": Tag("3.15.0a6"), "git_repo": "/fake/repo"}
+    current_time = 1700000000
+    commit_timestamp = current_time - age_seconds
+
+    def fake_check_output(cmd, **kwargs):
+        cmd_str = " ".join(cmd)
+        if "%ct" in cmd_str:
+            return f"{commit_timestamp}\n"
+        if "%cr" in cmd_str:
+            return "some time ago\n"
+        return ""
+
+    monkeypatch.setattr(run_release.subprocess, "check_output", fake_check_output)
+    monkeypatch.setattr(run_release.time, "time", lambda: current_time)
+    if user_continues is not None:
+        monkeypatch.setattr(run_release, "ask_question", lambda _: user_continues)
+
+    # Act / Assert
+    with expectation:
+        run_release.check_cpython_repo_age(cast(ReleaseShelf, db))
+
+
 def test_check_magic_number() -> None:
     db = {
         "release": Tag("3.14.0rc1"),
