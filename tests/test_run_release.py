@@ -2,6 +2,7 @@ import builtins
 import contextlib
 import io
 import tarfile
+from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from typing import cast
 
@@ -9,6 +10,7 @@ import pytest
 
 import run_release
 from release import ReleaseShelf, Tag
+from run_release import ReleaseException
 
 
 @pytest.mark.parametrize(
@@ -26,8 +28,7 @@ def test_check_sigstore_version_success(version) -> None:
 )
 def test_check_sigstore_version_exception(version) -> None:
     with pytest.raises(
-        run_release.ReleaseException,
-        match="Sigstore version not detected or not valid",
+        ReleaseException, match="Sigstore version not detected or not valid"
     ):
         run_release.check_sigstore_version(version)
 
@@ -46,11 +47,59 @@ def test_extract_github_owner(url: str, expected: str) -> None:
 
 def test_invalid_extract_github_owner() -> None:
     with pytest.raises(
-        run_release.ReleaseException,
+        ReleaseException,
         match="Could not parse GitHub owner from 'origin' remote URL: "
         "https://example.com",
     ):
         run_release.extract_github_owner("https://example.com")
+
+
+@pytest.mark.parametrize(
+    ["release_tag", "git_current_branch", "expectation"],
+    [
+        # Success cases
+        ("3.15.0rc1", "3.15\n", does_not_raise()),
+        ("3.15.0b1", "3.15\n", does_not_raise()),
+        ("3.15.0a6", "main\n", does_not_raise()),
+        ("3.14.3", "3.14\n", does_not_raise()),
+        ("3.13.12", "3.13\n", does_not_raise()),
+        # Failure cases
+        (
+            "3.15.0rc1",
+            "main\n",
+            pytest.raises(ReleaseException, match="on main branch, expected 3.15"),
+        ),
+        (
+            "3.15.0b1",
+            "main\n",
+            pytest.raises(ReleaseException, match="on main branch, expected 3.15"),
+        ),
+        (
+            "3.15.0a6",
+            "3.14\n",
+            pytest.raises(ReleaseException, match="on 3.14 branch, expected main"),
+        ),
+        (
+            "3.14.3",
+            "main\n",
+            pytest.raises(ReleaseException, match="on main branch, expected 3.14"),
+        ),
+    ],
+)
+def test_check_cpython_repo_branch(
+    monkeypatch, release_tag: str, git_current_branch: str, expectation
+) -> None:
+    # Arrange
+    db = {"release": Tag(release_tag), "git_repo": "/fake/repo"}
+    monkeypatch.setattr(
+        run_release.subprocess,
+        "check_output",
+        lambda *args, **kwargs: git_current_branch,
+    )
+
+    # Act / Assert
+    with expectation:
+        run_release.check_cpython_repo_branch(cast(ReleaseShelf, db))
 
 
 def test_check_magic_number() -> None:
@@ -58,9 +107,7 @@ def test_check_magic_number() -> None:
         "release": Tag("3.14.0rc1"),
         "git_repo": str(Path(__file__).parent / "magicdata"),
     }
-    with pytest.raises(
-        run_release.ReleaseException, match="Magic numbers in .* don't match"
-    ):
+    with pytest.raises(ReleaseException, match="Magic numbers in .* don't match"):
         run_release.check_magic_number(cast(ReleaseShelf, db))
 
 
