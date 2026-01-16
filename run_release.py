@@ -424,6 +424,18 @@ def run_blurb_release(db: ReleaseShelf) -> None:
     )
 
 
+def check_cpython_repo_branch(db: ReleaseShelf) -> None:
+    current_branch = subprocess.check_output(
+        shlex.split("git branch --show-current"), text=True, cwd=db["git_repo"]
+    ).strip()
+    expected_branch = db["release"].branch
+    if current_branch != expected_branch:
+        raise ReleaseException(
+            f"CPython repository is on {current_branch} branch, "
+            f"expected {expected_branch}"
+        )
+
+
 def check_cpython_repo_age(db: ReleaseShelf) -> None:
     # %ct = committer date, UNIX timestamp (for example, "1768300016")
     timestamp = subprocess.check_output(
@@ -1399,6 +1411,7 @@ fix these things in this script so it also supports your platform.
         ),
         Task(check_sigstore_client, "Checking Sigstore CLI"),
         Task(check_buildbots, "Check buildbots are good"),
+        Task(check_cpython_repo_branch, "Checking CPython repository branch"),
         Task(check_cpython_repo_age, "Checking CPython repository age"),
         Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         *(
