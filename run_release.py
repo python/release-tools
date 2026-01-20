@@ -489,7 +489,11 @@ def prepare_pydoc_topics(db: ReleaseShelf) -> None:
     subprocess.check_call(["make", "pydoc-topics"], cwd=db["git_repo"] / "Doc")
     shutil.copy2(
         db["git_repo"] / "Doc" / "build" / "pydoc-topics" / "topics.py",
-        db["git_repo"] / "Lib" / "pydoc_data" / "topics.py",
+        db["git_repo"] / "Lib" / "pydoc_data" / "topics.py"
+    )
+    shutil.copy2(
+        db["git_repo"] / "Doc" / "build" / "pydoc-topics" / "module_docs.py",
+        db["git_repo"] / "Lib" / "pydoc_data" / "module_docs.py"
     )
     subprocess.check_call(
         ["git", "commit", "-a", "--amend", "--no-edit"], cwd=db["git_repo"]
