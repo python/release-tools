@@ -6,4 +6,4 @@ python-gnupg
 aiohttp
 blurb>=1.2.1
 # Pending https://github.com/python/release-tools/pull/289
-sigstore>=3,<4
+sigstore>=3,<5
