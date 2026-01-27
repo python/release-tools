@@ -5,4 +5,5 @@ alive_progress>=3.3.0
 python-gnupg
 aiohttp
 blurb>=1.2.1
-sigstore>=3
+# Pending https://github.com/python/release-tools/pull/289
+sigstore>=3,<4
