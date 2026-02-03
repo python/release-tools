@@ -424,6 +424,36 @@ def run_blurb_release(db: ReleaseShelf) -> None:
     )
 
 
+def check_cpython_repo_branch(db: ReleaseShelf) -> None:
+    current_branch = subprocess.check_output(
+        shlex.split("git branch --show-current"), text=True, cwd=db["git_repo"]
+    ).strip()
+    expected_branch = db["release"].branch
+    if current_branch != expected_branch:
+        raise ReleaseException(
+            f"CPython repository is on {current_branch} branch, "
+            f"expected {expected_branch}"
+        )
+
+
+def check_cpython_repo_age(db: ReleaseShelf) -> None:
+    # %ct = committer date, UNIX timestamp (for example, "1768300016")
+    timestamp = subprocess.check_output(
+        shlex.split('git log -1 --format="%ct"'), text=True, cwd=db["git_repo"]
+    ).strip()
+    age_seconds = time.time() - int(timestamp.strip())
+    is_old = age_seconds > 86400  # 1 day
+
+    # cr = committer date, relative (for example, "3 days ago")
+    out = subprocess.check_output(
+        shlex.split('git log -1 --format="%cr"'), text=True, cwd=db["git_repo"]
+    )
+    print(f"Last CPython commit was {out.strip()}")
+
+    if is_old and not ask_question("Continue with old repo?"):
+        raise ReleaseException("CPython repository is old")
+
+
 def check_cpython_repo_is_clean(db: ReleaseShelf) -> None:
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=db["git_repo"]):
         raise ReleaseException("Git repository is not clean")
@@ -1386,7 +1416,9 @@ fix these things in this script so it also supports your platform.
         ),
         Task(check_sigstore_client, "Checking Sigstore CLI"),
         Task(check_buildbots, "Check buildbots are good"),
-        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(check_cpython_repo_branch, "Checking CPython repository branch"),
+        Task(check_cpython_repo_age, "Checking CPython repository age"),
+        Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         *(
             [Task(check_magic_number, "Checking the magic number is up-to-date")]
             if magic
@@ -1394,15 +1426,15 @@ fix these things in this script so it also supports your platform.
         ),
         Task(prepare_temporary_branch, "Checking out a temporary release branch"),
         Task(run_blurb_release, "Run blurb release"),
-        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         Task(prepare_pydoc_topics, "Preparing pydoc topics"),
         Task(bump_version, "Bump version"),
         Task(bump_version_in_docs, "Bump version in docs"),
-        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         Task(run_autoconf, "Running autoconf"),
-        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         Task(check_pyspecific, "Checking pyspecific"),
-        Task(check_cpython_repo_is_clean, "Checking Git repository is clean"),
+        Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         Task(create_tag, "Create tag"),
         Task(push_to_local_fork, "Push new tags and branches to private fork"),
         Task(start_build_release, "Start the build-release workflow"),
