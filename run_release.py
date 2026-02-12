@@ -225,7 +225,7 @@ class ReleaseDriver:
         first_state: Task | None = None,
     ) -> None:
         self.tasks = tasks
-        dbfile = Path.home() / ".python_release"
+        dbfile = Path.home() / f".python_release-{release_tag}"
         self.db: ReleaseShelf = cast(ReleaseShelf, shelve.open(str(dbfile), "c"))
         if not self.db.get("finished"):
             self.db["finished"] = False
