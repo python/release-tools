@@ -590,11 +590,11 @@ def tarball(source: str, clamp_mtime: str) -> None:
     )
     print("Making .tar.xz")
     run_cmd(["tar", "cJf", xz, *repro_options, source])
-    print("Calculating md5 sums")
-    checksum_tgz = hashlib.md5()
+    print("Calculating SHA-256 sums")
+    checksum_tgz = hashlib.sha256()
     with open(tgz, "rb") as data:
         checksum_tgz.update(data.read())
-    checksum_xz = hashlib.md5()
+    checksum_xz = hashlib.sha256()
     with open(xz, "rb") as data:
         checksum_xz.update(data.read())
     print(f"  {checksum_tgz.hexdigest()}  {os.path.getsize(tgz):8}  {tgz}")
