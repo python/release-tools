@@ -678,10 +678,6 @@ def export(tag: Tag, silent: bool = False, skip_docs: bool = False) -> None:
             shutil.rmtree("venv", ignore_errors=True)
             shutil.rmtree("build", ignore_errors=True)
             shutil.rmtree("dist", ignore_errors=True)
-            shutil.rmtree("tools/docutils", ignore_errors=True)
-            shutil.rmtree("tools/jinja2", ignore_errors=True)
-            shutil.rmtree("tools/pygments", ignore_errors=True)
-            shutil.rmtree("tools/sphinx", ignore_errors=True)
 
         with pushd(archivename):
             print("Zapping pycs")
