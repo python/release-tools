@@ -633,7 +633,6 @@ def export(tag: Tag, silent: bool = False, skip_docs: bool = False) -> None:
             # extension, touches should not be needed anymore,
             # but keep it for now as a reminder.
             maybe_touchables = [
-                "Include/Python-ast.h",
                 "Include/internal/pycore_ast.h",
                 "Include/internal/pycore_ast_state.h",
                 "Python/Python-ast.c",
@@ -660,18 +659,7 @@ def export(tag: Tag, silent: bool = False, skip_docs: bool = False) -> None:
 
             # Remove files we don't want to ship in tarballs.
             print("Removing VCS .*ignore, .git*, Misc/NEWS.d, et al")
-            for name in (
-                ".gitattributes",
-                ".gitignore",
-                ".hgignore",
-                ".hgeol",
-                ".hgtags",
-                ".hgtouch",
-                ".bzrignore",
-                ".codecov.yml",
-                ".mention-bot",
-                ".travis.yml",
-            ):
+            for name in (".gitattributes", ".gitignore"):
                 try:
                     os.unlink(name)
                 except OSError:
@@ -679,7 +667,7 @@ def export(tag: Tag, silent: bool = False, skip_docs: bool = False) -> None:
 
             # Remove directories we don't want to ship in tarballs.
             run_cmd(["blurb", "export"], silent=silent)
-            for name in (".azure-pipelines", ".git", ".github", ".hg", "Misc/mypy"):
+            for name in (".azure-pipelines", ".git", ".github", "Misc/mypy"):
                 shutil.rmtree(name, ignore_errors=True)
 
         if not skip_docs and (tag.is_final or tag.level == "rc"):
