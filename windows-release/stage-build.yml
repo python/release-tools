@@ -252,7 +252,7 @@ jobs:
       timeoutInMinutes: 300
 
       pool:
-        vmImage: windows-11-arm
+        name: 'Windows ARM64'
 
       workspace:
         clean: all
