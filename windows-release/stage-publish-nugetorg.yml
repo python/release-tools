@@ -1,4 +1,5 @@
 parameters:
+  pool: windows-latest
   BuildToPublish: current
 
 jobs:
@@ -7,7 +8,11 @@ jobs:
   condition: and(succeeded(), ne(variables['SkipNugetPublish'], 'true'))
 
   pool:
-    vmImage: windows-2022
+    ${{ if containsValue(parameters.pool, name) }}:
+      ${{ each p in parameters.pool }}:
+        ${{ p.key }}: ${{ p.value }}
+    ${{ else }}:
+      vmImage: ${{ parameters.pool }}
 
   workspace:
     clean: all

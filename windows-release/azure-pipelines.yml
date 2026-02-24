@@ -116,6 +116,14 @@ parameters:
   displayName: "Build the JIT compiler for free-threaded builds (not used yet)"
   type: boolean
   default: false
+- name: vmImage
+  displayName: "VM Image"
+  type: object
+  default: windows-2025
+- name: vmImageArm64
+  displayName: "VM Image (ARM64)"
+  type: object
+  default: windows-11-arm
 
 resources:
   pipelines:
@@ -159,6 +167,7 @@ stages:
     jobs:
     - template: stage-build.yml
       parameters:
+        pool: ${{ parameters.vmImage }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
         DoPGO: ${{ parameters.DoPGO }}
         DoPGOARM64: ${{ parameters.DoPGOARM64 }}
@@ -183,6 +192,7 @@ stages:
     jobs:
     - template: stage-sign.yml
       parameters:
+        pool: ${{ parameters.vmImage }}
         SigningCertificate: ${{ parameters.SigningCertificate }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
@@ -197,33 +207,39 @@ stages:
     jobs:
     - template: stage-layout-full.yml
       parameters:
+        pool: ${{ parameters.vmImage }}
         BuildToPackage: ${{ parameters.BuildToPackage }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
         SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - template: stage-layout-symbols.yml
       parameters:
+        pool: ${{ parameters.vmImage }}
         BuildToPackage: ${{ parameters.BuildToPackage }}
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
         SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoEmbed, 'true') }}:
       - template: stage-layout-embed.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           BuildToPackage: ${{ parameters.BuildToPackage }}
           SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-layout-nuget.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           BuildToPackage: ${{ parameters.BuildToPackage }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoMSIX, 'true') }}:
       - template: stage-layout-msix.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           BuildToPackage: ${{ parameters.BuildToPackage }}
           SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoPyManager, 'true') }}:
       - template: stage-layout-pymanager.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           BuildToPackage: ${{ parameters.BuildToPackage }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           DoEmbed: ${{ parameters.DoEmbed }}
@@ -240,6 +256,7 @@ stages:
     - ${{ if eq(parameters.DoMSI, 'true') }}:
       - template: stage-msi.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           BuildToPackage: ${{ parameters.BuildToPackage }}
           DoARM64: ${{ parameters.DoARM64}}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
@@ -247,16 +264,19 @@ stages:
     - ${{ if eq(parameters.DoMSIX, 'true') }}:
       - template: stage-pack-msix.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-pack-nuget.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           ${{ if eq(parameters.SignNuget, 'true') }}:
             SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
     - ${{ if eq(parameters.DoPyManager, 'true') }}:
       - template: stage-pack-pymanager.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           DoEmbed: ${{ parameters.DoEmbed }}
           SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
@@ -266,17 +286,22 @@ stages:
     jobs:
     - ${{ if eq(parameters.DoEmbed, 'true') }}:
       - template: stage-test-embed.yml
+        parameters:
+          pool: ${{ parameters.vmImage }}
     - ${{ if and(eq(parameters.DoMSI, 'true'), eq(parameters.TestMSI, 'true')) }}:
       - template: stage-test-msi.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-test-nuget.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
     - ${{ if eq(parameters.DoPyManager, 'true') }}:
       - template: stage-test-pymanager.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           DoEmbed: ${{ parameters.DoEmbed }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
 
@@ -290,16 +315,19 @@ stages:
     - ${{ if eq(parameters.DoPyManager, 'true') }}:
       - template: stage-publish-pymanager.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           BuildToPublish: ${{ parameters.BuildToPublish }}
           DoEmbed: ${{ parameters.DoEmbed }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
     - ${{ if eq(parameters.DoMSI, 'true') }}:
       - template: stage-publish-pythonorg.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           BuildToPublish: ${{ parameters.BuildToPublish }}
           DoEmbed: ${{ parameters.DoEmbed }}
           IncludeGPG: ${{ parameters.DoGPG }}
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-publish-nugetorg.yml
         parameters:
+          pool: ${{ parameters.vmImage }}
           BuildToPublish: ${{ parameters.BuildToPublish }}

@@ -1,9 +1,12 @@
+parameters:
+  vmImage: windows-latest
+
 jobs:
 - job: Test_Embed
   displayName: Test Embed
 
   pool:
-    vmImage: windows-2022
+    vmImage: ${{ parameters.vmImage }}
 
   workspace:
     clean: all

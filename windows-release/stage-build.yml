@@ -1,4 +1,7 @@
 parameters:
+  pool: windows-latest
+  arm64pool:
+    name: 'Windows ARM64'
   DoPGO: false
   # DoPGOARM64 only applies if DoPGO is also true
   DoPGOARM64: true
@@ -10,8 +13,13 @@ parameters:
 jobs:
 - job: Build_Docs
   displayName: Docs build
+
   pool:
-    vmImage: windows-2022
+    ${{ if containsValue(parameters.pool, name) }}:
+      ${{ each p in parameters.pool }}:
+        ${{ p.key }}: ${{ p.value }}
+    ${{ else }}:
+      vmImage: ${{ parameters.pool }}
 
   workspace:
     clean: all
@@ -41,7 +49,11 @@ jobs:
   displayName: Python build
 
   pool:
-    vmImage: windows-2022
+    ${{ if containsValue(parameters.pool, name) }}:
+      ${{ each p in parameters.pool }}:
+        ${{ p.key }}: ${{ p.value }}
+    ${{ else }}:
+      vmImage: ${{ parameters.pool }}
 
   workspace:
     clean: all
@@ -177,7 +189,11 @@ jobs:
     displayName: Python PGO build
 
     pool:
-      vmImage: windows-2022
+      ${{ if containsValue(parameters.pool, name) }}:
+        ${{ each p in parameters.pool }}:
+          ${{ p.key }}: ${{ p.value }}
+      ${{ else }}:
+        vmImage: ${{ parameters.pool }}
 
     workspace:
       clean: all
@@ -220,7 +236,11 @@ jobs:
       displayName: Python PGO build
 
       pool:
-        vmImage: windows-2022
+        ${{ if containsValue(parameters.pool, name) }}:
+          ${{ each p in parameters.pool }}:
+            ${{ p.key }}: ${{ p.value }}
+        ${{ else }}:
+          vmImage: ${{ parameters.pool }}
 
       workspace:
         clean: all
@@ -263,7 +283,11 @@ jobs:
       timeoutInMinutes: 300
 
       pool:
-        name: 'Windows ARM64'
+        ${{ if containsValue(parameters.arm64pool, name) }}:
+          ${{ each p in parameters.arm64pool }}:
+            ${{ p.key }}: ${{ p.value }}
+        ${{ else }}:
+          vmImage: ${{ parameters.arm64pool }}
 
       workspace:
         clean: all
@@ -300,7 +324,11 @@ jobs:
       dependsOn: Build_Python_PGO_2
 
       pool:
-        vmImage: windows-2022
+        ${{ if containsValue(parameters.pool, name) }}:
+          ${{ each p in parameters.pool }}:
+            ${{ p.key }}: ${{ p.value }}
+        ${{ else }}:
+          vmImage: ${{ parameters.pool }}
 
       workspace:
         clean: all
@@ -340,7 +368,11 @@ jobs:
   displayName: Publish Tcl/Tk Library
 
   pool:
-    vmImage: windows-2022
+    ${{ if containsValue(parameters.pool, name) }}:
+      ${{ each p in parameters.pool }}:
+        ${{ p.key }}: ${{ p.value }}
+    ${{ else }}:
+      vmImage: ${{ parameters.pool }}
 
   variables:
     IncludeLLVM: false
