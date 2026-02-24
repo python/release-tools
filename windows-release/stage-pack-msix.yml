@@ -7,7 +7,7 @@ jobs:
   displayName: Pack MSIX bundles
 
   pool:
-    ${{ if containsValue(parameters.pool, name) }}:
+    ${{ if containsValue(parameters.pool, 'name') }}:
       ${{ each p in parameters.pool }}:
         ${{ p.key }}: ${{ p.value }}
     ${{ else }}:
@@ -101,7 +101,7 @@ jobs:
     - Pack_MSIX
 
     pool:
-      ${{ if containsValue(parameters.pool, name) }}:
+      ${{ if containsValue(parameters.pool, 'name') }}:
         ${{ each p in parameters.pool }}:
           ${{ p.key }}: ${{ p.value }}
       ${{ else }}:

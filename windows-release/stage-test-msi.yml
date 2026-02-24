@@ -1,5 +1,5 @@
 parameters:
-  vmImage: windows-latest
+  pool: windows-latest
   DoFreethreaded: false
 
 jobs:
@@ -7,7 +7,11 @@ jobs:
   displayName: Test MSI
 
   pool:
-    vmImage: ${{ parameters.vmImage }}
+    ${{ if containsValue(parameters.pool, 'name') }}:
+      ${{ each p in parameters.pool }}:
+        ${{ p.key }}: ${{ p.value }}
+    ${{ else }}:
+      vmImage: ${{ parameters.pool }}
 
   workspace:
     clean: all

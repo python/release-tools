@@ -31,7 +31,7 @@ jobs:
   condition: and(succeeded(), ne(variables['SkipPythonOrgPublish'], 'true'))
 
   pool:
-    ${{ if containsValue(parameters.pool, name) }}:
+    ${{ if containsValue(parameters.pool, 'name') }}:
       ${{ each p in parameters.pool }}:
         ${{ p.key }}: ${{ p.value }}
     ${{ else }}:

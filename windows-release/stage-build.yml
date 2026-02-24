@@ -15,7 +15,7 @@ jobs:
   displayName: Docs build
 
   pool:
-    ${{ if containsValue(parameters.pool, name) }}:
+    ${{ if containsValue(parameters.pool, 'name') }}:
       ${{ each p in parameters.pool }}:
         ${{ p.key }}: ${{ p.value }}
     ${{ else }}:
@@ -49,7 +49,7 @@ jobs:
   displayName: Python build
 
   pool:
-    ${{ if containsValue(parameters.pool, name) }}:
+    ${{ if containsValue(parameters.pool, 'name') }}:
       ${{ each p in parameters.pool }}:
         ${{ p.key }}: ${{ p.value }}
     ${{ else }}:
@@ -189,7 +189,7 @@ jobs:
     displayName: Python PGO build
 
     pool:
-      ${{ if containsValue(parameters.pool, name) }}:
+      ${{ if containsValue(parameters.pool, 'name') }}:
         ${{ each p in parameters.pool }}:
           ${{ p.key }}: ${{ p.value }}
       ${{ else }}:
@@ -236,7 +236,7 @@ jobs:
       displayName: Python PGO build
 
       pool:
-        ${{ if containsValue(parameters.pool, name) }}:
+        ${{ if containsValue(parameters.pool, 'name') }}:
           ${{ each p in parameters.pool }}:
             ${{ p.key }}: ${{ p.value }}
         ${{ else }}:
@@ -283,7 +283,7 @@ jobs:
       timeoutInMinutes: 300
 
       pool:
-        ${{ if containsValue(parameters.arm64pool, name) }}:
+        ${{ if containsValue(parameters.arm64pool, 'name') }}:
           ${{ each p in parameters.arm64pool }}:
             ${{ p.key }}: ${{ p.value }}
         ${{ else }}:
@@ -324,7 +324,7 @@ jobs:
       dependsOn: Build_Python_PGO_2
 
       pool:
-        ${{ if containsValue(parameters.pool, name) }}:
+        ${{ if containsValue(parameters.pool, 'name') }}:
           ${{ each p in parameters.pool }}:
             ${{ p.key }}: ${{ p.value }}
         ${{ else }}:
@@ -368,7 +368,7 @@ jobs:
   displayName: Publish Tcl/Tk Library
 
   pool:
-    ${{ if containsValue(parameters.pool, name) }}:
+    ${{ if containsValue(parameters.pool, 'name') }}:
       ${{ each p in parameters.pool }}:
         ${{ p.key }}: ${{ p.value }}
     ${{ else }}:

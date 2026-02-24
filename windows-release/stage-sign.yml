@@ -1,5 +1,5 @@
 parameters:
-  vmImage: windows-latest
+  pool: windows-latest
   Include: '*.exe, *.dll, *.pyd, *.cat, *.ps1'
   Exclude: 'vcruntime*, libffi*, libcrypto*, libssl*'
   SigningCertificate: ''
@@ -11,7 +11,11 @@ jobs:
     displayName: Sign Python binaries
 
     pool:
-      vmImage: ${{ parameters.vmImage }}
+      ${{ if containsValue(parameters.pool, 'name') }}:
+        ${{ each p in parameters.pool }}:
+          ${{ p.key }}: ${{ p.value }}
+      ${{ else }}:
+        vmImage: ${{ parameters.pool }}
 
     workspace:
       clean: all
@@ -82,7 +86,11 @@ jobs:
     displayName: Tag unsigned build
 
     pool:
-      vmImage: ${{ parameters.vmImage }}
+      ${{ if containsValue(parameters.pool, 'name') }}:
+        ${{ each p in parameters.pool }}:
+          ${{ p.key }}: ${{ p.value }}
+      ${{ else }}:
+        vmImage: ${{ parameters.pool }}
 
     steps:
     - checkout: none
