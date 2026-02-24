@@ -1,5 +1,4 @@
 parameters:
-  pool: windows-latest
   BuildToPublish: current
   DoEmbed: true
   IncludeGPG: false
@@ -9,13 +8,6 @@ jobs:
 - job: Publish_Python
   displayName: Publish python.org packages
   condition: and(succeeded(), ne(variables['SkipPythonOrgPublish'], 'true'))
-
-  pool:
-    ${{ if containsValue(parameters.pool, 'name') }}:
-      ${{ each p in parameters.pool }}:
-        ${{ p.key }}: ${{ p.value }}
-    ${{ else }}:
-      vmImage: ${{ parameters.pool }}
 
   variables:
   - group: PythonOrgPublish

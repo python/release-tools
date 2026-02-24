@@ -1,5 +1,4 @@
 parameters:
-  pool: windows-latest
   BuildToPackage: current
   DoARM64: true
   DoFreethreaded: false
@@ -8,13 +7,6 @@ parameters:
 jobs:
 - job: Make_MSI
   displayName: Make MSI
-
-  pool:
-    ${{ if containsValue(parameters.pool, 'name') }}:
-      ${{ each p in parameters.pool }}:
-        ${{ p.key }}: ${{ p.value }}
-    ${{ else }}:
-      vmImage: ${{ parameters.pool }}
 
   variables:
   - ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:

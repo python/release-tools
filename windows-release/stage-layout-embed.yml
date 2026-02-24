@@ -1,18 +1,10 @@
 parameters:
-  pool: windows-latest
   BuildToPackage: current
   SigningCertificate: ''
 
 jobs:
 - job: Make_Embed_Layout
   displayName: Make embeddable layout
-
-  pool:
-    ${{ if containsValue(parameters.pool, 'name') }}:
-      ${{ each p in parameters.pool }}:
-        ${{ p.key }}: ${{ p.value }}
-    ${{ else }}:
-      vmImage: ${{ parameters.pool }}
 
   workspace:
     clean: all

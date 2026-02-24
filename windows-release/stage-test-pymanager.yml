@@ -1,18 +1,10 @@
 parameters:
-  vmImage: windows-latest
   DoEmbed: false
   DoFreethreaded: false
 
 jobs:
 - job: Test_PyManager
   displayName: Test PyManager
-
-  pool:
-    ${{ if containsValue(parameters.pool, 'name') }}:
-      ${{ each p in parameters.pool }}:
-        ${{ p.key }}: ${{ p.value }}
-    ${{ else }}:
-      vmImage: ${{ parameters.pool }}
 
   workspace:
     clean: all

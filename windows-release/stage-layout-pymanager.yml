@@ -1,5 +1,4 @@
 parameters:
-  pool: windows-latest
   BuildToPackage: current
   DoFreethreaded: false
   DoEmbed: false
@@ -9,13 +8,6 @@ parameters:
 jobs:
 - job: Make_PyManager_Layouts
   displayName: Make PyManager layouts
-
-  pool:
-    ${{ if containsValue(parameters.pool, 'name') }}:
-      ${{ each p in parameters.pool }}:
-        ${{ p.key }}: ${{ p.value }}
-    ${{ else }}:
-      vmImage: ${{ parameters.pool }}
 
   workspace:
     clean: all
