@@ -63,7 +63,7 @@ parameters:
   type: boolean
   default: true
 - name: DoPGOARM64
-  displayName: "Run ARM64 PGO (requires custom VM)"
+  displayName: "Run ARM64 PGO"
   type: boolean
   default: true
 - name: DoLayout
