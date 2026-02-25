@@ -163,6 +163,8 @@ stages:
     pool:
       vmImage: ${{ parameters.vmImage }}
     jobs:
+    - template: start-arm64vm.yml
+      - ${{ if eq(parameters.DoPGOARM64, 'true') }}:
     - template: stage-build.yml
       parameters:
         DoFreethreaded: ${{ parameters.DoFreethreaded }}
