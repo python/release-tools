@@ -164,7 +164,9 @@ stages:
       vmImage: ${{ parameters.vmImage }}
     jobs:
     - template: start-arm64vm.yml
-      - ${{ if eq(parameters.DoPGOARM64, 'true') }}:
+      parameters:
+        DoARM64: ${{ parameters.DoARM64 }}
+        DoPGOARM64: ${{ parameters.DoPGOARM64 }}
     - template: stage-build.yml
       parameters:
         DoFreethreaded: ${{ parameters.DoFreethreaded }}

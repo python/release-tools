@@ -1,27 +1,33 @@
-jobs:
-- job: Start_ARM64VM
-  displayName: 'Ensure ARM64 VM is running'
-  dependsOn: []
+parameters:
+  DoARM64: false
+  DoPGOARM64: false
 
-  steps:
-  - task: AzureCLI@2
-    displayName: 'Start pythonarm64 and set auto-shutdown to (UTC now - 1h)'
-    inputs:
-      azureSubscription: "Steve's VM"   # WIF service connection name
-      scriptType: pscore
-      scriptLocation: inlineScript
-      inlineScript: |
-        $ErrorActionPreference = 'Stop'
-  
-        $rg = 'cpythonbuild'
-        $vm = 'pythonarm64'
-  
-        # Compute UTC time minus 1 hour, format HHmm (e.g. 1830)
-        $shutdownTime = (Get-Date).ToUniversalTime().AddHours(-1).ToString('HHmm')
-        Write-Host "Setting auto-shutdown time (UTC HHmm) to: $shutdownTime"
-  
-        # Configure daily auto-shutdown in 23 hours
-        az vm auto-shutdown -g $rg -n $vm --time $shutdownTime
-  
-        # Start VM, but don't fail if it's already running
-        az vm start -g $rg -n $vm
+jobs:
+# Only include the job if we need the VM, which means ARM64 PGO.
+- ${{ if eq(parameters.DoPGOARM64, 'true') }}:
+  - job: Start_ARM64VM
+    displayName: 'Ensure ARM64 VM is running'
+    dependsOn: []
+
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Start pythonarm64 and set auto-shutdown to (UTC now - 1h)'
+      inputs:
+        azureSubscription: "Steve's VM"   # WIF service connection name
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          $ErrorActionPreference = 'Stop'
+
+          $rg = 'cpythonbuild'
+          $vm = 'pythonarm64'
+
+          # Compute UTC time minus 1 hour, format HHmm (e.g. 1830)
+          $shutdownTime = (Get-Date).ToUniversalTime().AddHours(-1).ToString('HHmm')
+          Write-Host "Setting auto-shutdown time to: $shutdownTime UTC"
+
+          # Configure daily auto-shutdown in 23 hours
+          az vm auto-shutdown -g $rg -n $vm --time $shutdownTime
+
+          # Start VM, but don't fail if it's already running
+          az vm start -g $rg -n $vm
