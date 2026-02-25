@@ -4,7 +4,7 @@ parameters:
 
 jobs:
 # Only include the job if we need the VM, which means ARM64 PGO.
-- ${{ if and(eq(parameters.DoARM64, 'true'), eq(parameters.DoPGOARM64, 'true')) }}:
+- ${{ if eq(parameters.DoPGOARM64, 'true') }}:
   - job: Start_ARM64VM
     displayName: 'Ensure ARM64 VM is running'
     dependsOn: []
