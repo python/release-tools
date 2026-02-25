@@ -5,9 +5,6 @@ jobs:
 - job: Test_MSI
   displayName: Test MSI
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 

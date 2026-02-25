@@ -27,9 +27,6 @@ jobs:
 - job: Pack_PyManager
   displayName: Pack PyManager bundle
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 

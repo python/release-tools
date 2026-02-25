@@ -6,9 +6,6 @@ jobs:
 - job: Pack_Nuget
   displayName: Pack Nuget bundles
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 

@@ -7,9 +7,6 @@ jobs:
 - job: Make_Layouts
   displayName: Make layouts
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 

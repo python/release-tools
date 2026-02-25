@@ -6,9 +6,6 @@ jobs:
   displayName: Publish Nuget packages
   condition: and(succeeded(), ne(variables['SkipNugetPublish'], 'true'))
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 

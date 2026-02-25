@@ -22,9 +22,6 @@ jobs:
 - job: Layout_Symbols
   displayName: Make symbols layout
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 

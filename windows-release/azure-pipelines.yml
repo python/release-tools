@@ -116,6 +116,10 @@ parameters:
   displayName: "Build the JIT compiler for free-threaded builds (not used yet)"
   type: boolean
   default: false
+- name: vmImage
+  displayName: "VM Image"
+  type: string
+  default: windows-2025
 
 resources:
   pipelines:
@@ -156,6 +160,8 @@ stages:
 - ${{ if and(eq(parameters.BuildToPublish, 'current'), eq(parameters.BuildToPackage, 'current')) }}:
   - stage: Build
     displayName: Build binaries
+    pool:
+      vmImage: ${{ parameters.vmImage }}
     jobs:
     - template: stage-build.yml
       parameters:
@@ -180,6 +186,8 @@ stages:
   - stage: Sign
     displayName: Sign binaries
     dependsOn: Build
+    pool:
+      vmImage: ${{ parameters.vmImage }}
     jobs:
     - template: stage-sign.yml
       parameters:
@@ -194,6 +202,8 @@ stages:
     ${{ else }}:
       displayName: Generate layouts from prior build
       dependsOn: []
+    pool:
+      vmImage: ${{ parameters.vmImage }}
     jobs:
     - template: stage-layout-full.yml
       parameters:
@@ -232,6 +242,8 @@ stages:
   - stage: Pack
     dependsOn: Layout
     displayName: Pack
+    pool:
+      vmImage: ${{ parameters.vmImage }}
     jobs:
     #- ${{ if eq(parameters.DoEmbed, 'true') }}:
     #  - template: stage-pack-embed.yml
@@ -263,6 +275,8 @@ stages:
 
   - stage: Test
     dependsOn: Pack
+    pool:
+      vmImage: ${{ parameters.vmImage }}
     jobs:
     - ${{ if eq(parameters.DoEmbed, 'true') }}:
       - template: stage-test-embed.yml
@@ -286,6 +300,8 @@ stages:
     dependsOn:
     - ${{ if eq(parameters.BuildToPublish, 'current') }}:
       - Test
+    pool:
+      vmImage: ${{ parameters.vmImage }}
     jobs:
     - ${{ if eq(parameters.DoPyManager, 'true') }}:
       - template: stage-publish-pymanager.yml

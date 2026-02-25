@@ -2,9 +2,6 @@ jobs:
 - job: Test_Embed
   displayName: Test Embed
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 

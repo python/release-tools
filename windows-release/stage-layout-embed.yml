@@ -6,9 +6,6 @@ jobs:
 - job: Make_Embed_Layout
   displayName: Make embeddable layout
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 

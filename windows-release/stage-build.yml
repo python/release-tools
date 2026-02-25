@@ -10,8 +10,6 @@ parameters:
 jobs:
 - job: Build_Docs
   displayName: Docs build
-  pool:
-    vmImage: windows-2022
 
   workspace:
     clean: all
@@ -39,9 +37,6 @@ jobs:
 
 - job: Build_Python
   displayName: Python build
-
-  pool:
-    vmImage: windows-2022
 
   workspace:
     clean: all
@@ -176,9 +171,6 @@ jobs:
   - job: Build_Python_PGO_Native
     displayName: Python PGO build
 
-    pool:
-      vmImage: windows-2022
-
     workspace:
       clean: all
 
@@ -218,9 +210,6 @@ jobs:
   - ${{ if eq(parameters.DoPGOARM64, 'true') }}:
     - job: Build_Python_PGO_1
       displayName: Python PGO build
-
-      pool:
-        vmImage: windows-2022
 
       workspace:
         clean: all
@@ -299,9 +288,6 @@ jobs:
       displayName: Merge PGO profile
       dependsOn: Build_Python_PGO_2
 
-      pool:
-        vmImage: windows-2022
-
       workspace:
         clean: all
 
@@ -338,9 +324,6 @@ jobs:
 
 - job: TclTk_Lib
   displayName: Publish Tcl/Tk Library
-
-  pool:
-    vmImage: windows-2022
 
   variables:
     IncludeLLVM: false
