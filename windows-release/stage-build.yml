@@ -74,8 +74,7 @@ jobs:
           Platform: x64
           Configuration: Release
           _HostPython: .\python
-          ExtraOptions: ${{ parameters.ExtraOptions }}
-          TailcallingOption: ${{ parameters.TailcallingOption }}
+          ExtraOptions: ${{ parameters.ExtraOptions }} ${{ parameters.TailcallingOption }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_amd64
           ${{ else }}:
