@@ -42,6 +42,10 @@ parameters:
   displayName: "Signature description"
   type: string
   default: '(default)'
+- name: DoTailcalling
+  displayName: "Build AMD64 with tailcalling support (3.15 and later)"
+  type: boolean
+  default: false
 - name: DoJIT
   displayName: "Build the JIT compiler (3.14 and later)"
   type: boolean
@@ -161,7 +165,7 @@ stages:
   - stage: Build
     displayName: Build binaries
     pool:
-      vmImage: ${{ parameters.vmImage }}
+      vmImage: ${{ if eq(parameters.DoTailcalling, 'true') }} 'windows-2025-vs2026' ${{ else }} ${{ parameters.vmImage }}
     jobs:
     - template: start-arm64vm.yml
       parameters:
