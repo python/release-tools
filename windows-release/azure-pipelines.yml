@@ -165,7 +165,7 @@ stages:
   - stage: Build
     displayName: Build binaries
     pool:
-      vmImage: ${{ if(eq(parameters.DoTailcalling, 'true'), 'windows-2025-vs2026', parameters.vmImage) }}
+      vmImage: ${{ iif(eq(parameters.DoTailcalling, 'true'), 'windows-2025-vs2026', parameters.vmImage) }}
     jobs:
     - template: start-arm64vm.yml
       parameters:
