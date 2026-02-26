@@ -190,7 +190,10 @@ stages:
           ExtraOptionsFreethreaded: '--disable-gil --experimental-jit-off'
         ${{ else }}:
           ExtraOptionsFreethreaded: '--disable-gil --experimental-jit'
-
+        ${{ if ne(parameters.DoTailcalling, 'true') }}:
+          TailcallingOption: ''
+        ${{ else }}:
+          TailcallingOption: '--tail-call-interp'
   - stage: Sign
     displayName: Sign binaries
     dependsOn: Build

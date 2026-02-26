@@ -22,7 +22,7 @@ steps:
 - ${{ if eq(parameters.PGInstrument, 'true') }}:
   - powershell: |
       $env:SigningCertificate = $null
-      .\PCbuild\build.bat -v -p $(Platform) -c PGInstrument $(ExtraOptions)
+      .\PCbuild\build.bat -v -p $(Platform) -c PGInstrument $(ExtraOptions) $(TailcallingOption)
     displayName: 'Run build'
     env:
       IncludeUwp: true
@@ -100,7 +100,7 @@ steps:
 
   - powershell: |
       $env:SigningCertificate = $null
-      .\PCbuild\build.bat -v -p $(Platform) -c PGUpdate $(ExtraOptions)
+      .\PCbuild\build.bat -v -p $(Platform) -c PGUpdate $(ExtraOptions) $(TailcallingOption)
     displayName: 'Run build with PGO'
     env:
       IncludeUwp: true

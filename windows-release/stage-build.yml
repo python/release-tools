@@ -4,9 +4,9 @@ parameters:
   DoPGOARM64: true
   DoFreethreaded: false
   ToBeSigned: false
-  DoTailcalling: false
   ExtraOptions: ''
   ExtraOptionsFreethreaded: '--disable-gil'
+  TailcallingOption: ''
 
 jobs:
 - job: Build_Docs
@@ -53,6 +53,7 @@ jobs:
         Configuration: Release
         _HostPython: .\python
         ExtraOptions: ${{ parameters.ExtraOptions }}
+        TailcallingOption: ''
         ${{ if eq(parameters.ToBeSigned, 'true') }}:
           Artifact: unsigned_win32
         ${{ else }}:
@@ -64,6 +65,7 @@ jobs:
         Configuration: Debug
         _HostPython: .\python
         ExtraOptions: ${{ parameters.ExtraOptions }}
+        TailcallingOption: ''
         Artifact: bin_win32_d
       ${{ if ne(parameters.DoPGO, 'true') }}:
         amd64:
@@ -72,7 +74,8 @@ jobs:
           Platform: x64
           Configuration: Release
           _HostPython: .\python
-          ExtraOptions: ${{ parameters.ExtraOptions }}${{ if eq(parameters.DoTailcalling, 'true') }} ' --tail-call-interp'
+          ExtraOptions: ${{ parameters.ExtraOptions }}
+          TailcallingOption: ${{ parameters.TailcallingOption }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_amd64
           ${{ else }}:
@@ -84,6 +87,7 @@ jobs:
         Configuration: Debug
         _HostPython: .\python
         ExtraOptions: ${{ parameters.ExtraOptions }}
+        TailcallingOption: ''
         Artifact: bin_amd64_d
       ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
         arm64:
@@ -93,6 +97,7 @@ jobs:
           Configuration: Release
           _HostPython: python
           ExtraOptions: ${{ parameters.ExtraOptions }}
+          TailcallingOption: ''
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_arm64
           ${{ else }}:
@@ -104,6 +109,7 @@ jobs:
         Configuration: Debug
         _HostPython: python
         ExtraOptions: ${{ parameters.ExtraOptions }}
+        TailcallingOption: ''
         Artifact: bin_arm64_d
       ${{ if eq(parameters.DoFreethreaded, 'true') }}:
         win32_t:
@@ -113,6 +119,7 @@ jobs:
           Configuration: Release
           _HostPython: .\python
           ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+          TailcallingOption: ''
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_win32_t
           ${{ else }}:
@@ -124,6 +131,7 @@ jobs:
           Configuration: Debug
           _HostPython: .\python
           ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+          TailcallingOption: ''
           Artifact: bin_win32_td
         ${{ if ne(parameters.DoPGO, 'true') }}:
           amd64_t:
@@ -132,7 +140,8 @@ jobs:
             Platform: x64
             Configuration: Release
             _HostPython: .\python
-            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}${{ if eq(parameters.DoTailcalling, 'true') }} ' --tail-call-interp'
+            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+            TailcallingOption: ${{ parameters.TailcallingOption }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_amd64_t
             ${{ else }}:
@@ -144,6 +153,7 @@ jobs:
           Configuration: Debug
           _HostPython: .\python
           ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+          TailcallingOption: ''
           Artifact: bin_amd64_td
         ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
           arm64_t:
@@ -153,6 +163,7 @@ jobs:
             Configuration: Release
             _HostPython: python
             ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+            TailcallingOption: ''
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_arm64_t
             ${{ else }}:
@@ -164,6 +175,7 @@ jobs:
           Configuration: Debug
           _HostPython: python
           ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+          TailcallingOption: ''
           Artifact: bin_arm64_td
 
   steps:
@@ -186,7 +198,8 @@ jobs:
           Platform: x64
           _HostPython: .\python
           PythonExePattern: python.exe
-          ExtraOptions: ${{ parameters.ExtraOptions }}${{ if eq(parameters.DoTailcalling, 'true') }} ' --tail-call-interp'
+          ExtraOptions: ${{ parameters.ExtraOptions }}
+          TailcallingOption: ${{ parameters.TailcallingOption }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_amd64
           ${{ else }}:
@@ -198,7 +211,8 @@ jobs:
             Platform: x64
             _HostPython: .\python
             PythonExePattern: python3*t.exe
-            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}${{ if eq(parameters.DoTailcalling, 'true') }} ' --tail-call-interp'
+            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+            TailcallingOption: ${{ parameters.TailcallingOption }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_amd64_t
             ${{ else }}:
