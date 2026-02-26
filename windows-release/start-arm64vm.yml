@@ -1,0 +1,46 @@
+parameters:
+  DoARM64: false
+  DoPGOARM64: false
+
+jobs:
+# Only include the job if we need the VM, which means ARM64 PGO.
+- ${{ if eq(parameters.DoPGOARM64, 'true') }}:
+  - job: Start_ARM64VM
+    displayName: 'Ensure ARM64 VM is running'
+    dependsOn: []
+
+    steps:
+    - checkout: none
+
+    - task: AzureCLI@2
+      displayName: 'Start pythonarm64 and set auto-shutdown to (UTC now - 1h)'
+      inputs:
+        azureSubscription: "Steve's VM"   # WIF service connection name
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          $ErrorActionPreference = 'Stop'
+
+          $rg = 'cpythonbuild'
+          $vm = 'pythonarm64'
+
+          # Compute UTC time minus 12 hours, format HHmm (e.g. 1830)
+          $shutdownTime = (Get-Date).ToUniversalTime().AddHours(-12).ToString('HHmm')
+          Write-Host "Setting auto-shutdown time to: $shutdownTime UTC"
+
+          # Configure daily auto-shutdown in 12 hours
+          az vm auto-shutdown -g $rg -n $vm --time $shutdownTime | Out-Null
+          if ($?) {
+            Write-Host "Successfully configured auto-shutdown for ARM64 VM in 12 hours."
+          } else {
+            Write-Host "##[warning]Failed to configure ARM64 VM auto-shutdown."
+          }
+
+          # Start VM, but don't fail if it's already running
+          az vm start -g $rg -n $vm | Out-Null
+          $u = "https://dev.azure.com/Python/cpython/_settings/agentqueues?queueId=24&view=agents"
+          if ($?) {
+            Write-Host "Successfully started ARM64 VM. Check $u for running status."
+          } else {
+            Write-Host "##[warning]Failed to start ARM64 VM. Check $u in case it is already active, or ping Steve."
+          }

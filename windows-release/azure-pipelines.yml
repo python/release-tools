@@ -63,7 +63,7 @@ parameters:
   type: boolean
   default: true
 - name: DoPGOARM64
-  displayName: "Run ARM64 PGO (requires custom VM)"
+  displayName: "Run ARM64 PGO"
   type: boolean
   default: true
 - name: DoLayout
@@ -163,6 +163,10 @@ stages:
     pool:
       vmImage: ${{ parameters.vmImage }}
     jobs:
+    - template: start-arm64vm.yml
+      parameters:
+        DoARM64: ${{ parameters.DoARM64 }}
+        DoPGOARM64: ${{ parameters.DoPGOARM64 }}
     - template: stage-build.yml
       parameters:
         DoFreethreaded: ${{ parameters.DoFreethreaded }}

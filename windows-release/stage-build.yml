@@ -10,6 +10,7 @@ parameters:
 jobs:
 - job: Build_Docs
   displayName: Docs build
+  dependsOn: []
 
   workspace:
     clean: all
@@ -37,6 +38,7 @@ jobs:
 
 - job: Build_Python
   displayName: Python build
+  dependsOn: []
 
   workspace:
     clean: all
@@ -170,6 +172,7 @@ jobs:
 - ${{ if eq(parameters.DoPGO, 'true') }}:
   - job: Build_Python_PGO_Native
     displayName: Python PGO build
+    dependsOn: []
 
     workspace:
       clean: all
@@ -210,6 +213,7 @@ jobs:
   - ${{ if eq(parameters.DoPGOARM64, 'true') }}:
     - job: Build_Python_PGO_1
       displayName: Python PGO build
+      dependsOn: []
 
       workspace:
         clean: all
@@ -324,6 +328,7 @@ jobs:
 
 - job: TclTk_Lib
   displayName: Publish Tcl/Tk Library
+  dependsOn: []
 
   variables:
     IncludeLLVM: false
