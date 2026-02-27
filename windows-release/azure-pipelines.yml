@@ -42,7 +42,7 @@ parameters:
   displayName: "Signature description"
   type: string
   default: '(default)'
-- name: DoTailcalling
+- name: DoTailCalling
   displayName: "Build with tail-calling support (3.15 and later)"
   type: boolean
   default: false
@@ -165,7 +165,7 @@ stages:
   - stage: Build
     displayName: Build binaries
     pool:
-      vmImage: ${{ iif(eq(parameters.DoTailcalling, 'true'), 'windows-2025-vs2026', parameters.vmImage) }}
+      vmImage: ${{ iif(eq(parameters.DoTailCalling, 'true'), 'windows-2025-vs2026', parameters.vmImage) }}
     jobs:
     - template: start-arm64vm.yml
       parameters:
@@ -190,10 +190,10 @@ stages:
           ExtraOptionsFreethreaded: '--disable-gil --experimental-jit-off'
         ${{ else }}:
           ExtraOptionsFreethreaded: '--disable-gil --experimental-jit'
-        ${{ if ne(parameters.DoTailcalling, 'true') }}:
-          TailcallingOption: ''
+        ${{ if ne(parameters.DoTailCalling, 'true') }}:
+          TailCallingOption: ''
         ${{ else }}:
-          TailcallingOption: '--tail-call-interp'
+          TailCallingOption: '--tail-call-interp'
   - stage: Sign
     displayName: Sign binaries
     dependsOn: Build
