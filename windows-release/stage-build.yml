@@ -6,6 +6,7 @@ parameters:
   ToBeSigned: false
   ExtraOptions: ''
   ExtraOptionsFreethreaded: '--disable-gil'
+  TailCallingOption: ''
 
 jobs:
 - job: Build_Docs
@@ -71,7 +72,7 @@ jobs:
           Platform: x64
           Configuration: Release
           _HostPython: .\python
-          ExtraOptions: ${{ parameters.ExtraOptions }}
+          ExtraOptions: ${{ parameters.ExtraOptions }} ${{ parameters.TailCallingOption }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_amd64
           ${{ else }}:
@@ -131,7 +132,7 @@ jobs:
             Platform: x64
             Configuration: Release
             _HostPython: .\python
-            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }} ${{ parameters.TailCallingOption }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_amd64_t
             ${{ else }}:
@@ -185,7 +186,7 @@ jobs:
           Platform: x64
           _HostPython: .\python
           PythonExePattern: python.exe
-          ExtraOptions: ${{ parameters.ExtraOptions }}
+          ExtraOptions: ${{ parameters.ExtraOptions }} ${{ parameters.TailCallingOption }}
           ${{ if eq(parameters.ToBeSigned, 'true') }}:
             Artifact: unsigned_amd64
           ${{ else }}:
@@ -197,7 +198,7 @@ jobs:
             Platform: x64
             _HostPython: .\python
             PythonExePattern: python3*t.exe
-            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
+            ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }} ${{ parameters.TailCallingOption }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_amd64_t
             ${{ else }}:
