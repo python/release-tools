@@ -43,7 +43,7 @@ parameters:
   type: string
   default: '(default)'
 - name: DoTailcalling
-  displayName: "Build AMD64 with tailcalling support (3.15 and later)"
+  displayName: "Build with tail-calling support (3.15 and later)"
   type: boolean
   default: false
 - name: DoJIT
