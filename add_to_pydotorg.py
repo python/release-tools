@@ -172,12 +172,6 @@ def sigfile_for(release: str, rfile: str) -> str:
     return download_root + f"{release}/{rfile}.asc"
 
 
-def md5sum_for(filename: str) -> str:
-    return hashlib.md5(
-        open(filename, "rb").read(),
-    ).hexdigest()
-
-
 def sha256sum_for(filename: str) -> str:
     """Returns SHA-256 checksum for filename."""
     return hashlib.sha256(open(filename, "rb").read()).hexdigest()
@@ -235,7 +229,6 @@ def build_file_dict(
         "description": add_desc,
         "is_source": os_pk == 3,
         "url": download_root + f"{base_version(release)}/{rfile}",
-        "md5_sum": md5sum_for(filename),
         "sha256_sum": sha256sum_for(filename),
         "filesize": filesize_for(filename),
         "download_button": add_download,
