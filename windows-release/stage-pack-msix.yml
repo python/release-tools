@@ -5,9 +5,6 @@ jobs:
 - job: Pack_MSIX
   displayName: Pack MSIX bundles
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 
@@ -94,9 +91,6 @@ jobs:
     displayName: Sign side-loadable MSIX bundles
     dependsOn:
     - Pack_MSIX
-
-    pool:
-      vmImage: windows-2022
 
     workspace:
       clean: all

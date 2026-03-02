@@ -9,9 +9,6 @@ jobs:
   displayName: Publish python.org packages
   condition: and(succeeded(), ne(variables['SkipPythonOrgPublish'], 'true'))
 
-  pool:
-    vmImage: windows-2022
-
   variables:
   - group: PythonOrgPublish
 

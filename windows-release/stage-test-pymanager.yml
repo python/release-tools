@@ -6,9 +6,6 @@ jobs:
 - job: Test_PyManager
   displayName: Test PyManager
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 

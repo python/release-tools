@@ -81,7 +81,6 @@ google_oidc_provider = "https://accounts.google.com"
 
 # Update this list when new release managers are added.
 release_to_sigstore_identity_and_oidc_issuer = {
-    "3.9": ("lukasz@langa.pl", github_oidc_provider),
     "3.10": ("pablogsal@python.org", google_oidc_provider),
     "3.11": ("pablogsal@python.org", google_oidc_provider),
     "3.12": ("thomas@python.org", google_oidc_provider),
@@ -271,7 +270,7 @@ def list_files(
 ) -> Generator[tuple[str, str, str, bool, str], None, None]:
     """List all of the release's download files."""
     reldir = base_version(release)
-    for rfile in os.listdir(path.join(ftp_root, reldir)):
+    for rfile in sorted(os.listdir(path.join(ftp_root, reldir))):
         if not path.isfile(path.join(ftp_root, reldir, rfile)):
             continue
 

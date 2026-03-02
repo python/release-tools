@@ -29,9 +29,6 @@ jobs:
   displayName: Publish PyManager packages to python.org
   condition: and(succeeded(), ne(variables['SkipPythonOrgPublish'], 'true'))
 
-  pool:
-    vmImage: windows-2022
-
   variables:
   - group: PythonOrgPublish
 

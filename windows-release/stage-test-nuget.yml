@@ -2,9 +2,6 @@ jobs:
 - job: Test_Nuget
   displayName: Test Nuget
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 

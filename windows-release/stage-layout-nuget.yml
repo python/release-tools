@@ -7,9 +7,6 @@ jobs:
 - job: Make_Nuget_Layout
   displayName: Make Nuget layout
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 

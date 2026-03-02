@@ -9,9 +9,6 @@ jobs:
   - job: Sign_Files
     displayName: Sign Python binaries
 
-    pool:
-      vmImage: windows-2022
-
     workspace:
       clean: all
 
@@ -79,9 +76,6 @@ jobs:
 - ${{ else }}:
   - job: Mark_Unsigned
     displayName: Tag unsigned build
-
-    pool:
-      vmImage: windows-2022
 
     steps:
     - checkout: none

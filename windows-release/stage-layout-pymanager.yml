@@ -9,9 +9,6 @@ jobs:
 - job: Make_PyManager_Layouts
   displayName: Make PyManager layouts
 
-  pool:
-    vmImage: windows-2022
-
   workspace:
     clean: all
 
