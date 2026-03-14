@@ -111,7 +111,6 @@ def test_fetch_project_metadata_from_pypi(mocker):
                 {
                     "digests": {
                         "blake2b_256": "94596638090c25e9bc4ce0c42817b5a234e183872a1129735a9330c472cc2056",
-                        "md5": "1331aabb4d1a2677f493effeebda3605",
                         "sha256": "ea9bd1a847e8c5774a5777bb398c19e80bcd4e2aa16a4b301b718fe6f593aba2",
                     },
                     "filename": "pip-24.0.tar.gz",
@@ -121,7 +120,6 @@ def test_fetch_project_metadata_from_pypi(mocker):
                 {
                     "digests": {
                         "blake2b_256": "8a6a19e9fe04fca059ccf770861c7d5721ab4c2aebc539889e97c7977528a53b",
-                        "md5": "74e3c5e4082113b1239ca0e9abfd1e82",
                         "sha256": "ba0d021a166865d2265246961bec0152ff124de910c5cc39f1156ce3fa7c69dc",
                     },
                     "filename": "pip-24.0-py3-none-any.whl",
