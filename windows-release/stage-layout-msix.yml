@@ -82,9 +82,9 @@ jobs:
         artifact: cert
         targetPath: $(Pipeline.Workspace)\cert
 
-    - powershell: |
-        copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force
-      displayName: 'Copy signed files into sources'
+  - powershell: |
+      copy "$(Pipeline.Workspace)\bin_$(Name)\Activate.ps1" Lib\venv\scripts\common\Activate.ps1 -Force -Verbose
+    displayName: 'Copy signed files into sources'
 
   - template: ./layout-command.yml
     parameters:
