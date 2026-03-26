@@ -31,10 +31,20 @@ steps:
         ${{ else }}:
           targetPath: $(Pipeline.Workspace)\${{ a.artifact }}
 
-  - ${{ if parameters.SigningCertificate }}:
-    - powershell: |
-        copy $(Py_OutDir)\amd64\Activate.ps1 Lib\venv\scripts\common\Activate.ps1 -Force
-      displayName: 'Copy signed files into sources'
+    # Assuming we'll always run the amd64 build
+    - ${{ if and(parameters.SigningCertificate, eq(a.artifact, 'bin_amd64')) }}:
+      - powershell: >
+          copy
+          "${env:TARGET_PATH}\Activate.ps1"
+          "$(Build.SourcesDirectory)\Lib\venv\scripts\common\Activate.ps1
+          -Force
+          -Verbose
+        displayName: 'Copy signed files into sources'
+        env:
+          ${{ if a.target }}:
+            TARGET_PATH: ${{ a.target }}
+          ${{ else }}:
+            TARGET_PATH: $(Pipeline.Workspace)\${{ a.artifact }}
 
   - script: |
       call PCbuild\find_python.bat "%PYTHON%"
