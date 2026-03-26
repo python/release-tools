@@ -38,7 +38,7 @@ steps:
       - powershell: >
           copy
           "${env:TARGET_PATH}\Activate.ps1"
-          "$(Build.SourcesDirectory)\Lib\venv\scripts\common\Activate.ps1
+          "$(Build.SourcesDirectory)\Lib\venv\scripts\common\Activate.ps1"
           -Force
           -Verbose
         displayName: 'Copy signed files into sources'
