@@ -32,8 +32,6 @@ steps:
           targetPath: $(Pipeline.Workspace)\${{ a.artifact }}
 
     # Assuming we'll always run the amd64 build
-    #- ${{ if and(parameters.SigningCertificate, eq(a.artifact, 'bin_amd64')) }}:
-    # DO NOT MERGE: skipping signing check for testing
     - ${{ if eq(a.artifact, 'bin_amd64') }}:
       - powershell: >
           copy
