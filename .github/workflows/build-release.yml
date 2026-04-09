@@ -269,7 +269,7 @@ jobs:
           if [ ! -e Platforms/Android ]; then
             mkdir -p Platforms/Android
             ln -s ../Android Platforms/Android
-            ln -s ../Android/android.py Platform/Android/__main__.py
+            ln -s ../Android/android.py Platforms/Android/__main__.py
           fi
 
       - name: Build and test
