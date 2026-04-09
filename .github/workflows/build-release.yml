@@ -270,7 +270,20 @@ jobs:
             mkdir -p Platforms/Android
             ln -s ../Android Platforms/Android
             ln -s ../Android/android.py Platforms/Android/__main__.py
+            echo "ADDED SYMLINK"
+          else
+            echo "NO SYMLINK"
           fi
+          ls -la Platforms/Android
+
+      - name: Check persistence
+        run: |
+          echo "PLATFORMS/ANDROID"
+          ls -la Platforms/Android
+          echo "ANDROID"
+          ls -la Android
+          echo "PYTHON"
+          python3 --version
 
       - name: Build and test
         run: python3 Platforms/Android ci --fast-ci "$triplet"
