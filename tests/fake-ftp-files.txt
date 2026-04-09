@@ -522,6 +522,7 @@ python-3.14.0b2t-amd64.zip
 python-3.14.0b2t-arm64.zip
 python-3.14.0b2t-win32.zip
 python-3.14.0b3-aarch64-linux-android.tar.gz
+Python-3.14.0b3-iOS-XCframework.tar.gz
 python-3.14.0b3-amd64.exe
 python-3.14.0b3-amd64.exe.crt
 python-3.14.0b3-amd64.exe.sig

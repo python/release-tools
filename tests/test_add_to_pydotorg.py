@@ -161,6 +161,13 @@ def test_list_files(fs: FakeFilesystem) -> None:
 
     # Assert
     assert files == [
+        (
+            "Python-3.14.0b3-iOS-XCframework.tar.gz",
+            "iOS XCframework",
+            "ios",
+            False,
+            "",
+        ),
         ("Python-3.14.0b3.tar.xz", "XZ compressed source tarball", "source", True, ""),
         ("Python-3.14.0b3.tgz", "Gzipped source tarball", "source", False, ""),
         (

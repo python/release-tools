@@ -53,6 +53,7 @@ jobs:
     outputs:
       build-docs: ${{ steps.select-jobs.outputs.docs }}
       build-android: ${{ steps.select-jobs.outputs.android }}
+      build-ios: ${{ steps.select-jobs.outputs.ios }}
     steps:
       - name: "Workflow run information"
         run: |
@@ -260,11 +261,45 @@ jobs:
           repository: "${{ env.GIT_REMOTE }}/cpython"
           ref: "v${{ env.CPYTHON_RELEASE }}"
 
+      # Python 3.15 moved the build tools to the Platforms directory. Add a
+      # compatibility shim to simplify execution. Can be removed when 3.14
+      # reaches EOL
+      - name: Set up compatibility symlink
+        run: |
+          if [ ! -e Platforms/Android ]; then
+            mkdir -p Platforms/Android
+            ln -s ../Android Platforms/Android
+            ln -s ../Android/android.py Platform/Android/__main__.py
+          fi
+
       - name: Build and test
-        run: ./Android/android.py ci --fast-ci "$triplet"
+        run: python3 Platforms/Android ci --fast-ci "$triplet"
 
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ env.triplet }}
           path: cross-build/${{ env.triplet }}/dist/*
+          if-no-files-found: error
+
+  build-ios:
+    name: build-iOS
+    needs:
+      - verify-input
+    if: fromJSON(needs.verify-input.outputs.build-ios)
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          repository: "${{ env.GIT_REMOTE }}/cpython"
+          ref: "v${{ env.CPYTHON_RELEASE }}"
+
+      - name: Build and test
+        run: python3 Platforms/Apple build ci --slow-ci
+
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          path: cross-build/dist/*
           if-no-files-found: error
