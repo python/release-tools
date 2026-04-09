@@ -269,7 +269,7 @@ jobs:
           if [ ! -e Platforms/Android ]; then
             mkdir -p Platforms/Android
             ln -s ../Android Platforms/Android
-            ln -s ../Android/android.py Platforms/Android/__main__.py
+            ln -s ./android.py Android/__main__.py
             echo "ADDED SYMLINK"
           else
             echo "NO SYMLINK"
