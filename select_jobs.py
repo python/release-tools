@@ -21,6 +21,9 @@ def main() -> None:
     # Android binary releases began in Python 3.14.
     output("android", version.as_tuple() >= (3, 14))
 
+    # iOS binary releases began in Python 3.15.
+    output("ios", version.as_tuple() >= (3, 15))
+
 
 if __name__ == "__main__":
     main()

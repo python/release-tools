@@ -150,12 +150,16 @@ def get_file_descriptions(
             ),
         ),
         (
-            rx(r"aarch64-linux-android.tar.gz$"),
+            rx(r"-aarch64-linux-android.tar.gz$"),
             ("Android embeddable package (aarch64)", "android", False, ""),
         ),
         (
-            rx(r"x86_64-linux-android.tar.gz$"),
+            rx(r"-x86_64-linux-android.tar.gz$"),
             ("Android embeddable package (x86_64)", "android", False, ""),
+        ),
+        (
+            rx(r"-iOS-XCframework.tar.gz$"),
+            ("iOS XCframework", "ios", False, ""),
         ),
     ]
 
