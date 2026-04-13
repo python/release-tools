@@ -20,6 +20,7 @@ UPLOAD_KEYFILE = os.getenv("UPLOAD_KEYFILE", "")
 UPLOAD_USER = os.getenv("UPLOAD_USER", "")
 NO_UPLOAD = os.getenv("NO_UPLOAD", "no")[:1].lower() in "yt1"
 LOCAL_INDEX = os.getenv("LOCAL_INDEX", "no")[:1].lower() in "yt1"
+SIGN_COMMAND = os.getenv("SIGN_COMMAND", "")
 
 
 def find_cmd(env, exe):
@@ -40,6 +41,7 @@ def find_cmd(env, exe):
 
 PLINK = find_cmd("PLINK", "plink.exe")
 PSCP = find_cmd("PSCP", "pscp.exe")
+MAKECAT = find_cmd("MAKECAT", "makecat.exe")
 
 
 def _std_args(cmd):
@@ -193,6 +195,42 @@ def calculate_uploads():
         )
 
 
+def sign_json(cat_file, *files):
+    if not MAKECAT:
+        if not UPLOAD_HOST or NO_UPLOAD:
+            print("makecat.exe not found, but not uploading, so skip signing.")
+            return
+        raise RuntimeError("No makecat.exe found")
+    if not SIGN_COMMAND:
+        if not UPLOAD_HOST or NO_UPLOAD:
+            print("No signing command set, but not uploading, so skip signing.")
+            return
+        raise RuntimeError("No SIGN_COMMAND set")
+
+    cat = Path(cat_file).absolute()
+    cdf = cat.with_suffix(".cdf")
+    cdf.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(cdf, "w", encoding="ansi") as f:
+        print("[CatalogHeader]", file=f)
+        print("Name=", cat.name, sep="", file=f)
+        print("ResultDir=", cat.parent, sep="", file=f)
+        print("PublicVersion=0x00000001", file=f)
+        print("CatalogVersion=2", file=f)
+        print("HashAlgorithms=SHA256", file=f)
+        print("EncodingType=", file=f)
+        print(file=f)
+        print("[CatalogFiles]", file=f)
+        for a in map(Path, files):
+            print("<HASH>", a.name, "=", a.absolute(), sep="", file=f)
+
+    _run(MAKECAT, "-v", cdf)
+    if not cat.is_file():
+        raise FileNotFoundError(cat)
+    _run(SIGN_COMMAND, cat)
+    cdf.unlink()
+
+
 def remove_and_insert(index, new_installs):
     new = {(i["id"].casefold(), i["sort-version"].casefold()) for i in new_installs}
     to_remove = [
@@ -274,7 +312,9 @@ if INDEX_FILE:
         except FileNotFoundError:
             pass
 
+
 print(INDEX_PATH, "mtime =", INDEX_MTIME)
+
 
 
 new_installs = [trim_install(i) for i, *_ in UPLOADS]
@@ -284,9 +324,15 @@ remove_and_insert(index["versions"], new_installs)
 
 if INDEX_FILE:
     INDEX_FILE = Path(INDEX_FILE).absolute()
+    INDEX_CAT_FILE = INDEX_FILE.with_suffix(".cat")
     INDEX_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(INDEX_FILE, "w", encoding="utf-8") as f:
         json.dump(index, f)
+
+    sign_json(INDEX_CAT_FILE, INDEX_FILE)
+else:
+    INDEX_CAT_FILE = None
+
 
 if MANIFEST_FILE:
     # Use the sort-version so that the manifest name includes prerelease marks
@@ -332,6 +378,10 @@ if not NO_UPLOAD:
     if INDEX_FILE:
         print("Uploading", INDEX_FILE, "to", INDEX_URL)
         upload_ssh(INDEX_FILE, INDEX_PATH)
+
+    if INDEX_CAT_FILE:
+        print("Uploading", INDEX_CAT_FILE, "to", f"{INDEX_URL}.cat")
+        upload_ssh(INDEX_CAT_FILE, f"{INDEX_PATH}.cat")
 
     print("Purging", len(UPLOADS), "uploaded files")
     parents = set()

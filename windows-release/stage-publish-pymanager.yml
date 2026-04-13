@@ -3,6 +3,7 @@ parameters:
   DoFreethreaded: false
   DoEmbed: false
   HashAlgorithms: ['SHA256']
+  SigningCertificate: ''
 
   Artifacts:
   - name: win32
@@ -31,6 +32,10 @@ jobs:
 
   variables:
   - group: PythonOrgPublish
+  - ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
+    - group: CPythonSign
+  - ${{ if eq(parameters.SigningCertificate, 'TestSign') }}:
+    - group: CPythonTestSign
 
   workspace:
     clean: all
@@ -64,10 +69,19 @@ jobs:
     displayName: 'Download PuTTY key'
 
   - powershell: |
-      git clone https://github.com/python/cpython-bin-deps --branch putty --single-branch --depth 1 --progress -v "putty"
+      git clone https://github.com/python/cpython-bin-deps --revision 9f9e6fc31a55406ee5ff0198ea47bbb445eeb942 --depth 1 --progress -v "putty"
       "##vso[task.prependpath]$(gi putty)"
     workingDirectory: $(Pipeline.Workspace)
     displayName: 'Download PuTTY binaries'
+
+  # Use the template just to configure the signing tool.
+  - template: sign-files.yml
+    parameters:
+      Include: ""
+      InstallTool: false
+      InstallLegacyTool: true
+      ExportLegacyCommand: SIGN_COMMAND
+      SigningCertificate: ${{ parameters.SigningCertificate }}
 
   - powershell: |
       if ($env:FILENAME) {
@@ -113,6 +127,9 @@ jobs:
       UPLOAD_HOST_KEY: $(PyDotOrgHostKey)
       UPLOAD_USER: $(PyDotOrgUsername)
       UPLOAD_KEYFILE: $(sshkey.secureFilePath)
+      ${{ if variables['SIGN_COMMAND'] }}:
+        MAKECAT: $(MAKECAT)
+        SIGN_COMMAND: $(SIGN_COMMAND)
 
   - ${{ each alg in parameters.HashAlgorithms }}:
     - powershell: |
