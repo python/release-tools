@@ -36,6 +36,10 @@ jobs:
     - group: CPythonSign
   - ${{ if eq(parameters.SigningCertificate, 'TestSign') }}:
     - group: CPythonTestSign
+  # Override the SigningDescription here, since we're only signing the feed
+  # and not the actual binaries.
+  - name: SigningDescription
+    value: "Python $(Build.BuildNumber)"
 
   workspace:
     clean: all
