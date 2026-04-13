@@ -62,11 +62,12 @@ jobs:
           artifact: pymanager_${{ a.name }}
           targetPath: $(Build.BinariesDirectory)\${{ a.name }}
 
-  - task: DownloadSecureFile@1
-    name: sshkey
-    inputs:
-      secureFile: pydotorg-ssh.ppk
-    displayName: 'Download PuTTY key'
+  - ${{ if eq(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
+    - task: DownloadSecureFile@1
+      name: sshkey
+      inputs:
+        secureFile: pydotorg-ssh.ppk
+      displayName: 'Download PuTTY key'
 
   - powershell: |
       git clone https://github.com/python/cpython-bin-deps --revision 9f9e6fc31a55406ee5ff0198ea47bbb445eeb942 --depth 1 --progress -v "putty"
@@ -95,44 +96,44 @@ jobs:
       FILENAME: $(PyManagerIndexFilename)
     displayName: 'Infer index filename'
 
-  - powershell: |
-      "Uploading following packages:"
-      (dir "__install__.*.json").FullName
-      (dir "*\__install__.json").FullName
-      python "$(Build.SourcesDirectory)\windows-release\merge-and-upload.py"
-    workingDirectory: $(Build.BinariesDirectory)
-    condition: and(succeeded(), ne(variables['IsRealSigned'], 'true'))
-    displayName: 'Produce uploadable ZIPs'
-    env:
-      NO_UPLOAD: 1
-      INDEX_URL: '$(PyDotOrgUrlPrefix)python/$(_PyManagerIndexFilename)'
-      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\$(_PyManagerIndexFilename)'
-      MANIFEST_FILE: '$(Build.ArtifactStagingDirectory)\index\windows.json'
-      ${{ if variables['SIGN_COMMAND'] }}:
-        MAKECAT: $(MAKECAT)
-        SIGN_COMMAND: $(SIGN_COMMAND)
+  - ${{ if ne(parameters.SigningCertificate, 'PythonSoftwareFoundation') }}:
+    - powershell: |
+        "Preparing following packages:"
+        (dir "__install__.*.json").FullName
+        (dir "*\__install__.json").FullName
+        python "$(Build.SourcesDirectory)\windows-release\merge-and-upload.py"
+      workingDirectory: $(Build.BinariesDirectory)
+      displayName: 'Produce uploadable ZIPs (no upload)'
+      env:
+        NO_UPLOAD: 1
+        INDEX_URL: '$(PyDotOrgUrlPrefix)python/$(_PyManagerIndexFilename)'
+        INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\$(_PyManagerIndexFilename)'
+        MANIFEST_FILE: '$(Build.ArtifactStagingDirectory)\index\windows.json'
+        ${{ if variables['SIGN_COMMAND'] }}:
+          MAKECAT: $(MAKECAT)
+          SIGN_COMMAND: $(SIGN_COMMAND)
 
-  - powershell: |
-      "Uploading following packages:"
-      (dir "__install__.*.json").FullName
-      (dir "*\__install__.json").FullName
-      python "$(Build.SourcesDirectory)\windows-release\merge-and-upload.py"
-    workingDirectory: $(Build.BinariesDirectory)
-    condition: and(succeeded(), eq(variables['IsRealSigned'], 'true'))
-    displayName: 'Upload ZIPs'
-    env:
-      INDEX_URL: '$(PyDotOrgUrlPrefix)python/$(_PyManagerIndexFilename)'
-      INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\$(_PyManagerIndexFilename)'
-      MANIFEST_FILE: '$(Build.ArtifactStagingDirectory)\index\windows.json'
-      UPLOAD_URL_PREFIX: $(PyDotOrgUrlPrefix)
-      UPLOAD_PATH_PREFIX: $(PyDotOrgUploadPathPrefix)
-      UPLOAD_HOST: $(PyDotOrgServer)
-      UPLOAD_HOST_KEY: $(PyDotOrgHostKey)
-      UPLOAD_USER: $(PyDotOrgUsername)
-      UPLOAD_KEYFILE: $(sshkey.secureFilePath)
-      ${{ if variables['SIGN_COMMAND'] }}:
-        MAKECAT: $(MAKECAT)
-        SIGN_COMMAND: $(SIGN_COMMAND)
+  - ${{ else }}:
+    - powershell: |
+        "Uploading following packages:"
+        (dir "__install__.*.json").FullName
+        (dir "*\__install__.json").FullName
+        python "$(Build.SourcesDirectory)\windows-release\merge-and-upload.py"
+      workingDirectory: $(Build.BinariesDirectory)
+      displayName: 'Upload ZIPs'
+      env:
+        INDEX_URL: '$(PyDotOrgUrlPrefix)python/$(_PyManagerIndexFilename)'
+        INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\$(_PyManagerIndexFilename)'
+        MANIFEST_FILE: '$(Build.ArtifactStagingDirectory)\index\windows.json'
+        UPLOAD_URL_PREFIX: $(PyDotOrgUrlPrefix)
+        UPLOAD_PATH_PREFIX: $(PyDotOrgUploadPathPrefix)
+        UPLOAD_HOST: $(PyDotOrgServer)
+        UPLOAD_HOST_KEY: $(PyDotOrgHostKey)
+        UPLOAD_USER: $(PyDotOrgUsername)
+        UPLOAD_KEYFILE: $(sshkey.secureFilePath)
+        ${{ if variables['SIGN_COMMAND'] }}:
+          MAKECAT: $(MAKECAT)
+          SIGN_COMMAND: $(SIGN_COMMAND)
 
   - ${{ each alg in parameters.HashAlgorithms }}:
     - powershell: |

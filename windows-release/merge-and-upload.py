@@ -26,7 +26,10 @@ SIGN_COMMAND = os.getenv("SIGN_COMMAND", "")
 def find_cmd(env, exe):
     cmd = os.getenv(env)
     if cmd:
-        return Path(cmd)
+        cmd = Path(cmd)
+        if not cmd.is_file():
+            raise RuntimeError(f"Could not find {cmd} to perform upload. Incorrect %{env}% setting.")
+        return cmd
     for p in os.getenv("PATH", "").split(";"):
         if p:
             cmd = Path(p) / exe
