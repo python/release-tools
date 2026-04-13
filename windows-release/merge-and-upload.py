@@ -65,7 +65,9 @@ class RunError(Exception):
     pass
 
 
-def _run(*args):
+def _run(*args, single_cmd=False):
+    if single_cmd:
+        args = args[0]
     with subprocess.Popen(
         args,
         stdout=subprocess.PIPE,
@@ -230,7 +232,8 @@ def sign_json(cat_file, *files):
     _run(MAKECAT, "-v", cdf)
     if not cat.is_file():
         raise FileNotFoundError(cat)
-    _run(SIGN_COMMAND, cat)
+    # Pass as a single arg because the command variable has its own arguments
+    _run(f'{SIGN_COMMAND} "{cat}"', single_cmd=True)
     cdf.unlink()
 
 
