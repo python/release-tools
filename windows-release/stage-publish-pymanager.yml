@@ -108,6 +108,9 @@ jobs:
       INDEX_URL: '$(PyDotOrgUrlPrefix)python/$(_PyManagerIndexFilename)'
       INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\$(_PyManagerIndexFilename)'
       MANIFEST_FILE: '$(Build.ArtifactStagingDirectory)\index\windows.json'
+      ${{ if variables['SIGN_COMMAND'] }}:
+        MAKECAT: $(MAKECAT)
+        SIGN_COMMAND: $(SIGN_COMMAND)
 
   - powershell: |
       "Uploading following packages:"
