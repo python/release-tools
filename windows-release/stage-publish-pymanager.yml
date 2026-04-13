@@ -76,6 +76,7 @@ jobs:
     displayName: 'Download PuTTY binaries'
 
   # Use the template just to configure the signing tool.
+  # This will set MAKECAT and SIGN_COMMAND to be injected into later build steps
   - template: sign-files.yml
     parameters:
       Include: ""
@@ -109,9 +110,6 @@ jobs:
         INDEX_URL: '$(PyDotOrgUrlPrefix)python/$(_PyManagerIndexFilename)'
         INDEX_FILE: '$(Build.ArtifactStagingDirectory)\index\$(_PyManagerIndexFilename)'
         MANIFEST_FILE: '$(Build.ArtifactStagingDirectory)\index\windows.json'
-        ${{ if variables['SIGN_COMMAND'] }}:
-          MAKECAT: $(MAKECAT)
-          SIGN_COMMAND: $(SIGN_COMMAND)
 
   - ${{ else }}:
     - powershell: |
@@ -131,9 +129,6 @@ jobs:
         UPLOAD_HOST_KEY: $(PyDotOrgHostKey)
         UPLOAD_USER: $(PyDotOrgUsername)
         UPLOAD_KEYFILE: $(sshkey.secureFilePath)
-        ${{ if variables['SIGN_COMMAND'] }}:
-          MAKECAT: $(MAKECAT)
-          SIGN_COMMAND: $(SIGN_COMMAND)
 
   - ${{ each alg in parameters.HashAlgorithms }}:
     - powershell: |
