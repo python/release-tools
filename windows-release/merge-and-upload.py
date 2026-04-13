@@ -324,7 +324,6 @@ if INDEX_FILE:
 print(INDEX_PATH, "mtime =", INDEX_MTIME)
 
 
-
 new_installs = [trim_install(i) for i, *_ in UPLOADS]
 validate_new_installs(new_installs)
 new_installs = sorted(new_installs, key=install_sortkey)
