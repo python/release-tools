@@ -320,6 +320,7 @@ stages:
           BuildToPublish: ${{ parameters.BuildToPublish }}
           DoEmbed: ${{ parameters.DoEmbed }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoMSI, 'true') }}:
       - template: stage-publish-pythonorg.yml
         parameters:
