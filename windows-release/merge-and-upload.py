@@ -28,7 +28,9 @@ def find_cmd(env, exe):
     if cmd:
         cmd = Path(cmd)
         if not cmd.is_file():
-            raise RuntimeError(f"Could not find {cmd} to perform upload. Incorrect %{env}% setting.")
+            raise RuntimeError(
+                f"Could not find {cmd} to perform upload. Incorrect %{env}% setting."
+            )
         return cmd
     for p in os.getenv("PATH", "").split(";"):
         if p:
