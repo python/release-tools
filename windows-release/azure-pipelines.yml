@@ -146,6 +146,8 @@ variables:
     IsRealSigned: false
   ${{ if ne(parameters.SigningDescription, '(default)') }}:
     SigningDescription: ${{ parameters.SigningDescription }}
+  ${{ else }}:
+    SigningDescription: ''
   PublishARM64: ${{ parameters.DoARM64 }}
 # QUEUE TIME VARIABLES
 #  OverrideNugetVersion: ''
