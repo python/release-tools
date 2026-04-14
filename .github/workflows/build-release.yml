@@ -61,6 +61,14 @@ jobs:
           echo "git_commit: $GIT_COMMIT"
           echo "cpython_release: $CPYTHON_RELEASE"
 
+          {
+            echo "| Variable        | Value                |"
+            echo "| --------------- | -------------------- |"
+            echo "| git_remote      | \`$GIT_REMOTE\`      |"
+            echo "| git_commit      | \`$GIT_COMMIT\`      |"
+            echo "| cpython_release | \`$CPYTHON_RELEASE\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: "Checkout python/release-tools"
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -89,7 +97,20 @@ jobs:
       - name: "Select jobs"
         id: select-jobs
         run: |
-          ./select_jobs.py "$CPYTHON_RELEASE" | tee -a "$GITHUB_OUTPUT"
+          test_flag=""
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            test_flag="--test"
+          fi
+          output=$(./select_jobs.py $test_flag "$CPYTHON_RELEASE")
+          echo "$output" | tee -a "$GITHUB_OUTPUT"
+
+          {
+            echo "| Job     | Enabled |"
+            echo "| ------- | ------- |"
+            echo "$output" | while IFS='=' read -r key value; do
+              echo "| $key | $value |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
 
   build-source:
     runs-on: ubuntu-24.04
