@@ -20,12 +20,18 @@ UPLOAD_KEYFILE = os.getenv("UPLOAD_KEYFILE", "")
 UPLOAD_USER = os.getenv("UPLOAD_USER", "")
 NO_UPLOAD = os.getenv("NO_UPLOAD", "no")[:1].lower() in "yt1"
 LOCAL_INDEX = os.getenv("LOCAL_INDEX", "no")[:1].lower() in "yt1"
+SIGN_COMMAND = os.getenv("SIGN_COMMAND", "")
 
 
 def find_cmd(env, exe):
     cmd = os.getenv(env)
     if cmd:
-        return Path(cmd)
+        cmd = Path(cmd)
+        if not cmd.is_file():
+            raise RuntimeError(
+                f"Could not find {cmd} to perform upload. Incorrect %{env}% setting."
+            )
+        return cmd
     for p in os.getenv("PATH", "").split(";"):
         if p:
             cmd = Path(p) / exe
@@ -40,6 +46,7 @@ def find_cmd(env, exe):
 
 PLINK = find_cmd("PLINK", "plink.exe")
 PSCP = find_cmd("PSCP", "pscp.exe")
+MAKECAT = find_cmd("MAKECAT", "makecat.exe")
 
 
 def _std_args(cmd):
@@ -60,7 +67,9 @@ class RunError(Exception):
     pass
 
 
-def _run(*args):
+def _run(*args, single_cmd=False):
+    if single_cmd:
+        args = args[0]
     with subprocess.Popen(
         args,
         stdout=subprocess.PIPE,
@@ -193,6 +202,43 @@ def calculate_uploads():
         )
 
 
+def sign_json(cat_file, *files):
+    if not MAKECAT:
+        if not UPLOAD_HOST or NO_UPLOAD:
+            print("makecat.exe not found, but not uploading, so skip signing.")
+            return
+        raise RuntimeError("No makecat.exe found")
+    if not SIGN_COMMAND:
+        if not UPLOAD_HOST or NO_UPLOAD:
+            print("No signing command set, but not uploading, so skip signing.")
+            return
+        raise RuntimeError("No SIGN_COMMAND set")
+
+    cat = Path(cat_file).absolute()
+    cdf = cat.with_suffix(".cdf")
+    cdf.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(cdf, "w", encoding="ansi") as f:
+        print("[CatalogHeader]", file=f)
+        print("Name=", cat.name, sep="", file=f)
+        print("ResultDir=", cat.parent, sep="", file=f)
+        print("PublicVersion=0x00000001", file=f)
+        print("CatalogVersion=2", file=f)
+        print("HashAlgorithms=SHA256", file=f)
+        print("EncodingType=", file=f)
+        print(file=f)
+        print("[CatalogFiles]", file=f)
+        for a in map(Path, files):
+            print("<HASH>", a.name, "=", a.absolute(), sep="", file=f)
+
+    _run(MAKECAT, "-v", cdf)
+    if not cat.is_file():
+        raise FileNotFoundError(cat)
+    # Pass as a single arg because the command variable has its own arguments
+    _run(f'{SIGN_COMMAND} "{cat}"', single_cmd=True)
+    cdf.unlink()
+
+
 def remove_and_insert(index, new_installs):
     new = {(i["id"].casefold(), i["sort-version"].casefold()) for i in new_installs}
     to_remove = [
@@ -274,6 +320,7 @@ if INDEX_FILE:
         except FileNotFoundError:
             pass
 
+
 print(INDEX_PATH, "mtime =", INDEX_MTIME)
 
 
@@ -284,9 +331,19 @@ remove_and_insert(index["versions"], new_installs)
 
 if INDEX_FILE:
     INDEX_FILE = Path(INDEX_FILE).absolute()
+    INDEX_CAT_FILE = INDEX_FILE.with_name(f"{INDEX_FILE.name}.cat")
     INDEX_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(INDEX_FILE, "w", encoding="utf-8") as f:
         json.dump(index, f)
+
+    sign_json(INDEX_CAT_FILE, INDEX_FILE)
+    INDEX_CAT_URL = f"{INDEX_URL}.cat"
+    INDEX_CAT_PATH = f"{INDEX_PATH}.cat"
+else:
+    INDEX_CAT_FILE = None
+    INDEX_CAT_URL = None
+    INDEX_CAT_PATH = None
+
 
 if MANIFEST_FILE:
     # Use the sort-version so that the manifest name includes prerelease marks
@@ -323,33 +380,36 @@ if INDEX_FILE and INDEX_MTIME:
         print("Expecting mtime", INDEX_MTIME, "but saw", mtime)
         sys.exit(1)
 
+TO_PURGE = [i["url"] for i, *_ in UPLOADS]
 
-if not NO_UPLOAD:
-    if MANIFEST_FILE:
-        print("Uploading", MANIFEST_FILE, "to", MANIFEST_URL)
-        upload_ssh(MANIFEST_FILE, MANIFEST_PATH)
+if MANIFEST_FILE:
+    print("Uploading", MANIFEST_FILE, "to", MANIFEST_URL)
+    upload_ssh(MANIFEST_FILE, MANIFEST_PATH)
+    TO_PURGE.append(MANIFEST_URL)
 
-    if INDEX_FILE:
-        print("Uploading", INDEX_FILE, "to", INDEX_URL)
-        upload_ssh(INDEX_FILE, INDEX_PATH)
+if INDEX_FILE:
+    print("Uploading", INDEX_FILE, "to", INDEX_URL)
+    upload_ssh(INDEX_FILE, INDEX_PATH)
+    TO_PURGE.append(INDEX_URL)
 
-    print("Purging", len(UPLOADS), "uploaded files")
-    parents = set()
-    for i, *_ in UPLOADS:
-        purge(i["url"])
-        parents.add(i["url"].rpartition("/")[0] + "/")
-    for i in parents:
-        purge(i)
-    if MANIFEST_URL:
-        purge(MANIFEST_URL)
-        purge(MANIFEST_URL.rpartition("/")[0] + "/")
-    if INDEX_URL:
-        purge(INDEX_URL)
-        purge(INDEX_URL.rpartition("/")[0] + "/")
-        missing = find_missing_from_index(INDEX_URL, [i for i, *_ in UPLOADS])
-        if missing:
-            print("##[error]Lost a race with another publish step!")
-            print("Index at", INDEX_URL, "does not contain installs:")
-            for m in missing:
-                print(m["id"], m["sort-version"])
-            sys.exit(1)
+if INDEX_CAT_FILE:
+    print("Uploading", INDEX_CAT_FILE, "to", INDEX_CAT_URL)
+    upload_ssh(INDEX_CAT_FILE, INDEX_CAT_PATH)
+    TO_PURGE.append(INDEX_CAT_URL)
+
+# Calculate directory parents for all files
+TO_PURGE.extend({i.rpartition("/")[0] + "/" for i in TO_PURGE})
+
+print("Purging", len(TO_PURGE), "uploaded files, indexes and directories")
+
+for i in TO_PURGE:
+    purge(i)
+
+if INDEX_URL:
+    missing = find_missing_from_index(INDEX_URL, [i for i, *_ in UPLOADS])
+    if missing:
+        print("##[error]Lost a race with another publish step!")
+        print("Index at", INDEX_URL, "does not contain installs:")
+        for m in missing:
+            print(m["id"], m["sort-version"])
+        sys.exit(1)
