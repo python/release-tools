@@ -38,3 +38,28 @@ def test_select_jobs(
             ios={ios}
         """
     )
+
+
+@pytest.mark.parametrize(
+    "version",
+    [
+        "3.13.0a1",
+        "3.13.0",
+        "3.14.0b2",
+        "3.15.0a1",
+    ],
+)
+def test_select_jobs_test_mode(
+    version: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(sys, "argv", ["select_jobs.py", "--test", version])
+    select_jobs.main()
+    assert capsys.readouterr().out == dedent(
+        """\
+            docs=true
+            android=true
+            ios=true
+        """
+    )

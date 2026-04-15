@@ -12,8 +12,21 @@ def output(key: str, value: bool) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("version", type=Tag)
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Enable all jobs for testing",
+    )
     args = parser.parse_args()
     version = args.version
+
+    if args.test:
+        # When testing the workflow itself (push/PR),
+        # enable all jobs for full coverage.
+        output("docs", True)
+        output("android", True)
+        output("ios", True)
+        return
 
     # Docs are only built for stable releases or release candidates.
     output("docs", version.level in ["rc", "f"])
