@@ -332,7 +332,7 @@ def check_gpg_keys(db: ReleaseShelf) -> None:
 def check_ssh_connection(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
@@ -346,7 +346,7 @@ def check_ssh_connection(db: ReleaseShelf) -> None:
 def check_sigstore_client(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
@@ -768,7 +768,7 @@ class MySFTPClient(paramiko.SFTPClient):
 def upload_files_to_server(db: ReleaseShelf, server: str) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(server, port=22, username=db["ssh_user"], key_filename=db["ssh_key"])
     transport = client.get_transport()
     assert transport is not None, f"SSH transport to {server} is None"
@@ -813,7 +813,7 @@ def upload_files_to_downloads_server(db: ReleaseShelf) -> None:
 def place_files_in_download_folder(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
@@ -866,7 +866,7 @@ def unpack_docs_in_the_docs_server(db: ReleaseShelf) -> None:
 
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOCS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
@@ -1002,7 +1002,7 @@ def create_release_object_in_db(db: ReleaseShelf) -> None:
 def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
@@ -1053,7 +1053,7 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
 def run_add_to_python_dot_org(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
