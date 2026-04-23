@@ -135,8 +135,10 @@ resources:
 variables:
   ${{ if ne(parameters.GitRemote, '(Other)') }}:
     GitRemote: ${{ parameters.GitRemote }}
+    GitRemoteIsOther: false
   ${{ else }}:
     GitRemote: ${{ parameters.GitRemote_Other }}
+    GitRemoteIsOther: true
   SourceTag: ${{ parameters.SourceTag }}
   ${{ if ne(parameters.SourceCommit, 'empty') }}:
     SourceCommit: ${{ parameters.SourceCommit }}
