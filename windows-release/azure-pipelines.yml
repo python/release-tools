@@ -43,7 +43,7 @@ parameters:
   type: string
   default: '(default)'
 - name: Post315OutputDir
-  displayName: "Separate free-threaded outputs (3.15.0b1 and later)"
+  displayName: "Separate free-threaded outputs (3.15 and later)"
   type: boolean
   default: false
 - name: DoTailCalling
