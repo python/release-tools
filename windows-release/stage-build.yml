@@ -7,6 +7,7 @@ parameters:
   ExtraOptions: ''
   ExtraOptionsFreethreaded: '--disable-gil'
   TailCallingOption: ''
+  ArchSuffix: ''
 
 jobs:
 - job: Build_Docs
@@ -108,7 +109,7 @@ jobs:
       ${{ if eq(parameters.DoFreethreaded, 'true') }}:
         win32_t:
           Name: win32_t
-          Arch: win32
+          Arch: win32${{ parameters.ArchSuffix }}
           Platform: x86
           Configuration: Release
           _HostPython: .\python
@@ -119,7 +120,7 @@ jobs:
             Artifact: bin_win32_t
         win32_td:
           Name: win32_td
-          Arch: win32
+          Arch: win32${{ parameters.ArchSuffix }}
           Platform: x86
           Configuration: Debug
           _HostPython: .\python
@@ -128,7 +129,7 @@ jobs:
         ${{ if ne(parameters.DoPGO, 'true') }}:
           amd64_t:
             Name: amd64_t
-            Arch: amd64
+            Arch: amd64${{ parameters.ArchSuffix }}
             Platform: x64
             Configuration: Release
             _HostPython: .\python
@@ -139,7 +140,7 @@ jobs:
               Artifact: bin_amd64_t
         amd64_td:
           Name: amd64_td
-          Arch: amd64
+          Arch: amd64${{ parameters.ArchSuffix }}
           Platform: x64
           Configuration: Debug
           _HostPython: .\python
@@ -148,7 +149,7 @@ jobs:
         ${{ if or(ne(parameters.DoPGO, 'true'), ne(parameters.DoPGOARM64, 'true')) }}:
           arm64_t:
             Name: arm64_t
-            Arch: arm64
+            Arch: arm64${{ parameters.ArchSuffix }}
             Platform: ARM64
             Configuration: Release
             _HostPython: python
@@ -159,7 +160,7 @@ jobs:
               Artifact: bin_arm64_t
         arm64_td:
           Name: arm64_td
-          Arch: arm64
+          Arch: arm64${{ parameters.ArchSuffix }}
           Platform: ARM64
           Configuration: Debug
           _HostPython: python
@@ -194,7 +195,7 @@ jobs:
         ${{ if eq(parameters.DoFreethreaded, 'true') }}:
           amd64_t:
             Name: amd64_t
-            Arch: amd64
+            Arch: amd64${{ parameters.ArchSuffix }}
             Platform: x64
             _HostPython: .\python
             PythonExePattern: python3*t.exe
@@ -220,7 +221,6 @@ jobs:
         clean: all
 
       variables:
-        Arch: arm64
         Platform: ARM64
         _HostPython: python
 
@@ -228,6 +228,7 @@ jobs:
         matrix:
           arm64:
             Name: arm64
+            Arch: arm64
             PythonExePattern: python.exe
             ExtraOptions: ${{ parameters.ExtraOptions }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
@@ -237,7 +238,8 @@ jobs:
           ${{ if eq(parameters.DoFreethreaded, 'true') }}:
             arm64_t:
               Name: arm64_t
-              PythonExePattern: python3*t.exe
+              Arch: arm64${{ parameters.ArchSuffix }}
+              PythonExePattern314: python3*t.exe
               ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
               ${{ if eq(parameters.ToBeSigned, 'true') }}:
                 Artifact: unsigned_arm64_t
@@ -263,13 +265,13 @@ jobs:
         clean: all
 
       variables:
-        Arch: arm64
         Platform: ARM64
 
       strategy:
         matrix:
           arm64:
             Name: arm64
+            Arch: arm64
             PythonExePattern: python.exe
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_arm64
@@ -278,6 +280,7 @@ jobs:
           ${{ if eq(parameters.DoFreethreaded, 'true') }}:
             arm64_t:
               Name: arm64_t
+              Arch: arm64${{ parameters.ArchSuffix }}
               PythonExePattern: python3*t.exe
               ${{ if eq(parameters.ToBeSigned, 'true') }}:
                 Artifact: unsigned_arm64_t
@@ -297,7 +300,6 @@ jobs:
         clean: all
 
       variables:
-        Arch: arm64
         Platform: ARM64
         _HostPython: python
 
@@ -305,6 +307,7 @@ jobs:
         matrix:
           arm64:
             Name: arm64
+            Arch: arm64
             PythonExePattern: python.exe
             ExtraOptions: ${{ parameters.ExtraOptions }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
@@ -314,6 +317,7 @@ jobs:
           ${{ if eq(parameters.DoFreethreaded, 'true') }}:
             arm64_t:
               Name: arm64_t
+              Arch: arm64${{ parameters.ArchSuffix }}
               PythonExePattern: python3*t.exe
               ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
               ${{ if eq(parameters.ToBeSigned, 'true') }}:

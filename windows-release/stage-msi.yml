@@ -3,6 +3,7 @@ parameters:
   DoARM64: true
   DoFreethreaded: false
   SigningCertificate: ''
+  ArchSuffix: ''
 
 jobs:
 - job: Make_MSI
@@ -52,18 +53,18 @@ jobs:
       # are not overwritten.
       - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
         - artifact: bin_win32_t
-          target: $(Build.BinariesDirectory)\win32
+          target: $(Build.BinariesDirectory)\win32${{parameters.ArchSuffix}}
         - artifact: bin_win32_td
-          target: $(Build.BinariesDirectory)\win32
+          target: $(Build.BinariesDirectory)\win32${{parameters.ArchSuffix}}
         - artifact: bin_amd64_t
-          target: $(Build.BinariesDirectory)\amd64
+          target: $(Build.BinariesDirectory)\amd64${{parameters.ArchSuffix}}
         - artifact: bin_amd64_td
-          target: $(Build.BinariesDirectory)\amd64
+          target: $(Build.BinariesDirectory)\amd64${{parameters.ArchSuffix}}
         - ${{ if eq(parameters.DoARM64, 'true') }}:
           - artifact: bin_arm64_t
-            target: $(Build.BinariesDirectory)\arm64
+            target: $(Build.BinariesDirectory)\arm64${{parameters.ArchSuffix}}
           - artifact: bin_arm64_td
-            target: $(Build.BinariesDirectory)\arm64
+            target: $(Build.BinariesDirectory)\arm64${{parameters.ArchSuffix}}
       Bundles:
       - bundle: win32
         Platform: x86
