@@ -200,7 +200,7 @@ stages:
           TailCallingOption: ''
         ${{ else }}:
           TailCallingOption: '--tail-call-interp'
-        ArchSuffix: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 't', '') }}
+        Post315OutputDir: ${{ parameters.Post315OutputDir }}
 
   - stage: Sign
     displayName: Sign binaries
@@ -275,7 +275,7 @@ stages:
           DoARM64: ${{ parameters.DoARM64}}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
-          ArchSuffix: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 't', '') }}
+          Post315OutputDir: ${{ parameters.Post315OutputDir }}
     - ${{ if eq(parameters.DoMSIX, 'true') }}:
       - template: stage-pack-msix.yml
         parameters:

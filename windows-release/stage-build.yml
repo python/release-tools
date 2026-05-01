@@ -7,7 +7,7 @@ parameters:
   ExtraOptions: ''
   ExtraOptionsFreethreaded: '--disable-gil'
   TailCallingOption: ''
-  ArchSuffix: ''
+  Post315OutputDir: false
 
 jobs:
 - job: Build_Docs
@@ -116,7 +116,7 @@ jobs:
         win32_t:
           Name: win32_t
           Arch: win32
-          ArchDir: win32${{ parameters.ArchSuffix }}
+          ArchDir: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'win32t', 'win32') }}
           Platform: x86
           Configuration: Release
           _HostPython: .\python
@@ -128,7 +128,7 @@ jobs:
         win32_td:
           Name: win32_td
           Arch: win32
-          ArchDir: win32${{ parameters.ArchSuffix }}
+          ArchDir: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'win32t', 'win32') }}
           Platform: x86
           Configuration: Debug
           _HostPython: .\python
@@ -138,7 +138,7 @@ jobs:
           amd64_t:
             Name: amd64_t
             Arch: amd64
-            ArchDir: amd64${{ parameters.ArchSuffix }}
+            ArchDir: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'amd64t', 'amd64') }}
             Platform: x64
             Configuration: Release
             _HostPython: .\python
@@ -150,7 +150,7 @@ jobs:
         amd64_td:
           Name: amd64_td
           Arch: amd64
-          ArchDir: amd64${{ parameters.ArchSuffix }}
+          ArchDir: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'amd64t', 'amd64') }}
           Platform: x64
           Configuration: Debug
           _HostPython: .\python
@@ -160,7 +160,7 @@ jobs:
           arm64_t:
             Name: arm64_t
             Arch: arm64
-            ArchDir: arm64${{ parameters.ArchSuffix }}
+            ArchDir: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'arm64t', 'arm64') }}
             Platform: ARM64
             Configuration: Release
             _HostPython: python
@@ -172,7 +172,7 @@ jobs:
         arm64_td:
           Name: arm64_td
           Arch: arm64
-          ArchDir: arm64${{ parameters.ArchSuffix }}
+          ArchDir: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'arm64t', 'arm64') }}
           Platform: ARM64
           Configuration: Debug
           _HostPython: python
@@ -209,10 +209,10 @@ jobs:
           amd64_t:
             Name: amd64_t
             Arch: amd64
-            ArchDir: amd64${{ parameters.ArchSuffix }}
+            ArchDir: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'amd64t', 'amd64') }}
             Platform: x64
             _HostPython: .\python
-            PythonExePattern: python3*t.exe
+            PythonExePattern: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'python.exe', 'python3*t.exe') }}
             ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }} ${{ parameters.TailCallingOption }}
             ${{ if eq(parameters.ToBeSigned, 'true') }}:
               Artifact: unsigned_amd64_t
@@ -254,8 +254,8 @@ jobs:
             arm64_t:
               Name: arm64_t
               Arch: arm64
-              ArchDir: arm64${{ parameters.ArchSuffix }}
-              PythonExePattern314: python3*t.exe
+              ArchDir: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'arm64t', 'arm64') }}
+              PythonExePattern: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'python.exe', 'python3*t.exe') }}
               ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
               ${{ if eq(parameters.ToBeSigned, 'true') }}:
                 Artifact: unsigned_arm64_t
@@ -298,8 +298,8 @@ jobs:
             arm64_t:
               Name: arm64_t
               Arch: arm64
-              ArchDir: arm64${{ parameters.ArchSuffix }}
-              PythonExePattern: python3*t.exe
+              ArchDir: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'arm64t', 'arm64') }}
+              PythonExePattern: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'python.exe', 'python3*t.exe') }}
               ${{ if eq(parameters.ToBeSigned, 'true') }}:
                 Artifact: unsigned_arm64_t
               ${{ else }}:
@@ -337,8 +337,8 @@ jobs:
             arm64_t:
               Name: arm64_t
               Arch: arm64
-              ArchDir: arm64${{ parameters.ArchSuffix }}
-              PythonExePattern: python3*t.exe
+              ArchDir: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'arm64t', 'arm64') }}
+              PythonExePattern: ${{ iif(eq(parameters.Post315OutputDir, 'true'), 'python.exe', 'python3*t.exe') }}
               ExtraOptions: ${{ parameters.ExtraOptionsFreethreaded }}
               ${{ if eq(parameters.ToBeSigned, 'true') }}:
                 Artifact: unsigned_arm64_t
