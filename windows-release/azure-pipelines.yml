@@ -146,6 +146,8 @@ variables:
     IsRealSigned: false
   ${{ if ne(parameters.SigningDescription, '(default)') }}:
     SigningDescription: ${{ parameters.SigningDescription }}
+  ${{ else }}:
+    SigningDescription: ''
   PublishARM64: ${{ parameters.DoARM64 }}
 # QUEUE TIME VARIABLES
 #  OverrideNugetVersion: ''
@@ -320,6 +322,7 @@ stages:
           BuildToPublish: ${{ parameters.BuildToPublish }}
           DoEmbed: ${{ parameters.DoEmbed }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
+          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoMSI, 'true') }}:
       - template: stage-publish-pythonorg.yml
         parameters:
