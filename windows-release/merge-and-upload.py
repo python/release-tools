@@ -278,6 +278,12 @@ def install_sortkey(install):
 
 
 def find_missing_from_index(url, installs):
+    if not UPLOAD_HOST:
+        print("Skipping check for upload race because UPLOAD_HOST is missing")
+        return []
+    if NO_UPLOAD:
+        print("Skipping check for upload race because NO_UPLOAD is set")
+        return []
     with urlopen(url) as r:
         x = {install_sortkey(i) for i in json.load(r)["versions"]}
     y = {install_sortkey(i) for i in installs} - x
