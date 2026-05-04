@@ -42,6 +42,10 @@ parameters:
   displayName: "Signature description"
   type: string
   default: '(default)'
+- name: Post315OutputDir
+  displayName: "Separate free-threaded outputs (3.15 and later)"
+  type: boolean
+  default: false
 - name: DoTailCalling
   displayName: "Build with tail-calling support (3.15 and later)"
   type: boolean
@@ -196,6 +200,8 @@ stages:
           TailCallingOption: ''
         ${{ else }}:
           TailCallingOption: '--tail-call-interp'
+        Post315OutputDir: ${{ parameters.Post315OutputDir }}
+
   - stage: Sign
     displayName: Sign binaries
     dependsOn: Build
@@ -269,6 +275,7 @@ stages:
           DoARM64: ${{ parameters.DoARM64}}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
+          Post315OutputDir: ${{ parameters.Post315OutputDir }}
     - ${{ if eq(parameters.DoMSIX, 'true') }}:
       - template: stage-pack-msix.yml
         parameters:

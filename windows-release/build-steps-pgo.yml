@@ -31,7 +31,7 @@ steps:
   - ${{ if ne(parameters.PGRun, 'true') }}:
     # Not running in this job, so we publish our entire build and object files
 
-    - publish: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
+    - publish: '$(Build.BinariesDirectory)\bin\$(ArchDir)\instrumented'
       artifact: instrumented_bin_$(Name)
       displayName: 'Publish binaries for profiling'
 
@@ -54,10 +54,10 @@ steps:
       inputs:
         buildType: current
         artifact: instrumented_bin_$(Name)
-        targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
+        targetPath: '$(Build.BinariesDirectory)\bin\$(ArchDir)\instrumented'
 
   - powershell: |
-      $exe = (gci "$(Build.BinariesDirectory)\bin\$(Arch)\instrumented\$(PythonExePattern)" | select -First 1)
+      $exe = (gci "$(Build.BinariesDirectory)\bin\$(ArchDir)\instrumented\$(PythonExePattern)" | select -First 1)
       & $exe -m test --pgo
     ignoreLASTEXITCODE: true
     displayName: 'Collect profile'
@@ -67,7 +67,7 @@ steps:
 
   - ${{ if ne(parameters.PGUpdate, 'true') }}:
     # Not finishing in this job, so publish the binaries
-    - publish: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
+    - publish: '$(Build.BinariesDirectory)\bin\$(ArchDir)\instrumented'
       artifact: profile_bin_$(Name)
       displayName: 'Publish collected data and binaries'
 
@@ -80,7 +80,7 @@ steps:
       inputs:
         buildType: current
         artifact: profile_bin_$(Name)
-        targetPath: '$(Build.BinariesDirectory)\bin\$(Arch)\instrumented'
+        targetPath: '$(Build.BinariesDirectory)\bin\$(ArchDir)\instrumented'
 
     - task: DownloadPipelineArtifact@2
       displayName: 'Download artifact: instrumented_obj_$(Name)'
@@ -125,20 +125,20 @@ steps:
       }
     displayName: 'Generate catalog'
     env:
-      CAT: $(Build.BinariesDirectory)\bin\$(Arch)\python
+      CAT: $(Build.BinariesDirectory)\bin\$(ArchDir)\python
       PYTHON_HEXVERSION: $(VersionHex)
 
   - powershell: |
       del instrumented -r -EA 0
       del *.pgc, *.pgd, *.exp
     displayName: 'Cleanup build'
-    workingDirectory: '$(Build.BinariesDirectory)\bin\$(Arch)'
+    workingDirectory: '$(Build.BinariesDirectory)\bin\$(ArchDir)'
 
   - powershell: |
       copy "$(Build.SourcesDirectory)\Lib\venv\scripts\common\Activate.ps1" .
     displayName: 'Copy Powershell scripts from source'
-    workingDirectory: '$(Build.BinariesDirectory)\bin\$(Arch)'
+    workingDirectory: '$(Build.BinariesDirectory)\bin\$(ArchDir)'
 
-  - publish: '$(Build.BinariesDirectory)\bin\$(Arch)'
+  - publish: '$(Build.BinariesDirectory)\bin\$(ArchDir)'
     artifact: $(Artifact)
     displayName: 'Publish binaries'
