@@ -1130,7 +1130,7 @@ def purge_the_cdn(db: ReleaseShelf) -> None:
 def announce_release(db: ReleaseShelf) -> None:
     if not ask_question(
         "Have you announced the release at https://discuss.python.org/c/core-dev/23 "
-        "and https://www.blogger.com?\n"
+        "and https://blog.python.org?\n"
         "Tip: use the 'release' tag and 'releases' label respectively."
     ):
         raise ReleaseException("The release has not been announced")
