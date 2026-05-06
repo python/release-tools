@@ -1,10 +1,18 @@
 parameters:
-- name: TclSourceTag
-  displayName: 'Tcl Source Tag'
+- name: TclVersion
+  displayName: 'Tcl Version'
   type: string
-- name: TkSourceTag
-  displayName: 'Tk Source Tag'
+- name: TkVersion
+  displayName: 'Tk Version'
   type: string
+- name: TclTagPrefix
+  displayName: 'Tcl source tag prefix'
+  type: string
+  default: 'tcl-'
+- name: TkTagPrefix
+  displayName: 'Tk source tag prefix'
+  type: string
+  default: 'tk-'
 - name: SigningCertificate
   displayName: "Code signing certificate"
   type: string
@@ -19,7 +27,7 @@ parameters:
   default: 'https://github.com/python/cpython-source-deps'
 
 
-name: tcltk$(TkSourceTag)_$(Date:yyyyMMdd)$(Rev:.rr)
+name: tcltk$(TkVersion)_$(Date:yyyyMMdd)$(Rev:.rr)
 
 
 resources:
@@ -44,13 +52,17 @@ variables:
 - name: Configuration
   value: 'Release'
 - name: SigningDescription
-  value: 'Tcl/Tk for Python (${{ parameters.TclSourceTag }})'
+  value: 'Tcl/Tk for Python (${{ parameters.TkVersion }})'
 - name: SourcesRepo
   value: ${{ parameters.SourcesRepo }}
+- name: TclVersion
+  value: ${{ parameters.TclVersion }}
+- name: TkVersion
+  value: ${{ parameters.TkVersion }}
 - name: TclSourceTag
-  value: ${{ parameters.TclSourceTag }}
+  value: ${{ parameters.TclTagPrefix }}${{ parameters.TclVersion }}
 - name: TkSourceTag
-  value: ${{ parameters.TkSourceTag }}
+  value: ${{ parameters.TkTagPrefix }}${{ parameters.TkVersion }}
 
 
 jobs:
@@ -82,6 +94,8 @@ jobs:
         "/p:ExternalsDir=$(ExternalsDir)\" >> msbuild.rsp
         "/p:tclDir=$(ExternalsDir)\$(TclSourceTag)\" >> msbuild.rsp
         "/p:tkDir=$(ExternalsDir)\$(TkSourceTag)\" >> msbuild.rsp
+        "/p:TclVersion=$(TclVersion)" >> msbuild.rsp
+        "/p:TkVersion=$(TkVersion)" >> msbuild.rsp
       displayName: 'Generate msbuild.rsp'
 
     - powershell: |
