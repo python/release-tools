@@ -1245,7 +1245,7 @@ def branch_new_versions(db: ReleaseShelf) -> None:
     subprocess.check_call(["git", "checkout", "main"], cwd=db["git_repo"])
 
     subprocess.check_call(
-        ["git", "checkout", "-b", release_tag.branch],
+        ["git", "checkout", "-b", release_tag.basic_version],
         cwd=db["git_repo"],
     )
 
