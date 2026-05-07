@@ -629,7 +629,7 @@ def wait_for_build_release(db: ReleaseShelf) -> None:
         ]
     if release_tag.as_tuple() >= (3, 15):
         wait_for_paths.append(
-            downloads_path / f"Python-{release_tag}-iOS-XCframework.tar.gz"
+            downloads_path / f"python-{release_tag}-iOS-XCframework.tar.gz"
         )
     if should_wait_for_docs:
         docs_path = release_path / "docs"
