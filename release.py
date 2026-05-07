@@ -549,12 +549,14 @@ def bump(tag: Tag) -> None:
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
         extra_work = True
         other_files += [
+            "configure",
             "configure.ac",
             "Doc/tutorial/interpreter.rst",
             "Doc/tutorial/stdlib.rst",
             "Doc/tutorial/stdlib2.rst",
+            "PC/launcher.c",
+            "PC/pyconfig.h",
             "PC/pyconfig.h.in",
-            "PCbuild/rt.bat",
             ".github/ISSUE_TEMPLATE/bug.yml",
             ".github/ISSUE_TEMPLATE/crash.yml",
         ]
