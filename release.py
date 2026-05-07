@@ -560,7 +560,9 @@ def bump(tag: Tag) -> None:
         ]
 
     if extra_work:
-        print("\n*** configure.ac will be edited; you must re-run autotools afterwards! ***")
+        print(
+            "\n*** configure.ac will be edited; you must re-run autotools afterwards! ***"
+        )
 
     print("\nManual editing time...")
     for filename in other_files:
