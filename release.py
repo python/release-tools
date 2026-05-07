@@ -549,7 +549,6 @@ def bump(tag: Tag) -> None:
     if tag.patch == 0 and tag.level == "a" and tag.serial == 0:
         extra_work = True
         other_files += [
-            "configure",
             "configure.ac",
             "Doc/tutorial/interpreter.rst",
             "Doc/tutorial/stdlib.rst",
@@ -559,6 +558,10 @@ def bump(tag: Tag) -> None:
             ".github/ISSUE_TEMPLATE/bug.yml",
             ".github/ISSUE_TEMPLATE/crash.yml",
         ]
+
+    if extra_work:
+        print("\n*** configure.ac will be edited; you must re-run autotools afterwards! ***")
+
     print("\nManual editing time...")
     for filename in other_files:
         if os.path.exists(filename):
