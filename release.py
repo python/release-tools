@@ -569,7 +569,7 @@ def bump(tag: Tag) -> None:
     print("Bumped revision")
     if extra_work:
         if ask_question("configure.ac has changed; run 'make regen-configure'?"):
-            run_cmd(['make', 'regen-configure'])
+            run_cmd(["make", "regen-configure"])
         else:
             print("configure.ac has changed; re-run autotools!")
     print("Please commit and use --tag")
