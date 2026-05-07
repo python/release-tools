@@ -1168,8 +1168,13 @@ def post_release_tagging(db: ReleaseShelf) -> None:
         cwd=db["git_repo"],
     )
 
+    if release_tag.is_feature_freeze_release:
+        checkout_branch = release_tag.basic_version
+    else:
+        checkout_branch = release_tag.branch
+
     subprocess.check_call(
-        ["git", "checkout", release_tag.branch],
+        ["git", "checkout", checkout_branch],
         cwd=db["git_repo"],
     )
 
