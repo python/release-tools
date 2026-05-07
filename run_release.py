@@ -627,6 +627,10 @@ def wait_for_build_release(db: ReleaseShelf) -> None:
             downloads_path / f"python-{release_tag}-{arch}-linux-android.tar.gz"
             for arch in ["aarch64", "x86_64"]
         ]
+    if release_tag.as_tuple() >= (3, 15):
+        wait_for_paths.append(
+            downloads_path / f"python-{release_tag}-iOS-XCframework.tar.gz"
+        )
     if should_wait_for_docs:
         docs_path = release_path / "docs"
         docs_path.mkdir(parents=True, exist_ok=True)
