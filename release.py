@@ -195,8 +195,7 @@ class Tag:
     def branch(self) -> str:
         if self.is_alpha_release or self.is_feature_freeze_release:
             return "main"
-        else:
-            return f"{self.major}.{self.minor}"
+        return f"{self.major}.{self.minor}"
 
     @property
     def is_alpha_release(self) -> bool:
