@@ -556,7 +556,6 @@ def bump(tag: Tag) -> None:
             "Doc/tutorial/stdlib2.rst",
             "PC/launcher.c",
             "PC/pyconfig.h",
-            "PC/pyconfig.h.in",
             ".github/ISSUE_TEMPLATE/bug.yml",
             ".github/ISSUE_TEMPLATE/crash.yml",
         ]
