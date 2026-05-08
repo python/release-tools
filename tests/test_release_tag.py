@@ -41,26 +41,31 @@ def test_tag_phase() -> None:
     assert alpha.is_feature_freeze_release is False
     assert alpha.is_release_candidate is False
     assert alpha.is_final is False
+    assert alpha.branch == "main"
 
     assert beta1.is_alpha_release is False
     assert beta1.is_feature_freeze_release is True
     assert beta1.is_release_candidate is False
     assert beta1.is_final is False
+    assert beta1.branch == "main"
 
     assert beta4.is_alpha_release is False
     assert beta4.is_feature_freeze_release is False
     assert beta4.is_release_candidate is False
     assert beta4.is_final is False
+    assert beta4.branch == "3.13"
 
     assert rc.is_alpha_release is False
     assert rc.is_feature_freeze_release is False
     assert rc.is_release_candidate is True
     assert rc.is_final is False
+    assert rc.branch == "3.13"
 
     assert final.is_alpha_release is False
     assert final.is_feature_freeze_release is False
     assert final.is_release_candidate is False
     assert final.is_final is True
+    assert final.branch == "3.13"
 
 
 def test_tag_committed_at_not_found() -> None:

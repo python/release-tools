@@ -1172,8 +1172,13 @@ def post_release_tagging(db: ReleaseShelf) -> None:
         cwd=db["git_repo"],
     )
 
+    if release_tag.is_feature_freeze_release:
+        checkout_branch = release_tag.basic_version
+    else:
+        checkout_branch = release_tag.branch
+
     subprocess.check_call(
-        ["git", "checkout", release_tag.branch],
+        ["git", "checkout", checkout_branch],
         cwd=db["git_repo"],
     )
 
@@ -1249,7 +1254,7 @@ def branch_new_versions(db: ReleaseShelf) -> None:
     subprocess.check_call(["git", "checkout", "main"], cwd=db["git_repo"])
 
     subprocess.check_call(
-        ["git", "checkout", "-b", release_tag.branch],
+        ["git", "checkout", "-b", release_tag.basic_version],
         cwd=db["git_repo"],
     )
 
