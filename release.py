@@ -553,6 +553,7 @@ def bump(tag: Tag) -> None:
             "Doc/tutorial/interpreter.rst",
             "Doc/tutorial/stdlib.rst",
             "Doc/tutorial/stdlib2.rst",
+            "Include/internal/pycore_magic_number.h",
             "PC/launcher.c",
             "PC/pyconfig.h",
             ".github/ISSUE_TEMPLATE/bug.yml",
