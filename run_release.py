@@ -45,7 +45,7 @@ RELEASE_REGEXP = re.compile(
 DOWNLOADS_SERVER = "downloads.nyc1.psf.io"
 DOCS_SERVER = "docs.nyc1.psf.io"
 
-WHATS_NEW_TEMPLATE = """\
+WHATS_NEW_TEMPLATE = """
 *****************************
   What's new in Python {version}
 *****************************
