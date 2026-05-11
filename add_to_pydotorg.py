@@ -74,7 +74,10 @@ download_root = "https://www.python.org/ftp/python/"
 
 tag_cre = re.compile(r"(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$")
 
-headers = {"Authorization": f"ApiKey {auth_info}", "Content-Type": "application/json"}
+session = requests.Session()
+session.headers.update(
+    {"Authorization": f"ApiKey {auth_info}", "Content-Type": "application/json"}
+)
 
 github_oidc_provider = "https://github.com/login/oauth"
 google_oidc_provider = "https://accounts.google.com"
@@ -297,7 +300,7 @@ def query_object(base_url: str, objtype: str, **params: Any) -> int:
     """Find an API object by query parameters."""
     uri = base_url + f"downloads/{objtype}/"
     uri += "?" + "&".join(f"{k}={v}" for k, v in params.items())
-    resp = requests.get(uri, headers=headers)
+    resp = session.get(uri)
     if resp.status_code != 200 or not json.loads(resp.text)["objects"]:
         raise RuntimeError(f"no object for {objtype} params={params!r}")
     obj = json.loads(resp.text)["objects"][0]
@@ -306,10 +309,9 @@ def query_object(base_url: str, objtype: str, **params: Any) -> int:
 
 def post_object(base_url: str, objtype: str, datadict: dict[str, Any]) -> int:
     """Create a new API object."""
-    resp = requests.post(
+    resp = session.post(
         base_url + "downloads/" + objtype + "/",
         data=json.dumps(datadict),
-        headers=headers,
     )
     if resp.status_code != 201:
         try:
@@ -472,9 +474,7 @@ def main() -> None:
             raise RuntimeError(f"duplicate slug generated: {key}")
         file_dicts[key] = file_dict
     print("Deleting previous release files")
-    resp = requests.delete(
-        args.base_url + f"downloads/release_file/?release={rel_pk}", headers=headers
-    )
+    resp = session.delete(f"{args.base_url}downloads/release_file/?release={rel_pk}")
     if resp.status_code != 204:
         raise RuntimeError(f"deleting previous releases failed: {resp.status_code}")
     for file_dict in file_dicts.values():
