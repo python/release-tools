@@ -601,6 +601,10 @@ def wait_for_build_release(db: ReleaseShelf) -> None:
             downloads_path / f"python-{release_tag}-{arch}-linux-android.tar.gz"
             for arch in ["aarch64", "x86_64"]
         ]
+    if release_tag.as_tuple() >= (3, 15):
+        wait_for_paths.append(
+            downloads_path / f"python-{release_tag}-iOS-XCframework.tar.gz"
+        )
     if should_wait_for_docs:
         docs_path = release_path / "docs"
         docs_path.mkdir(parents=True, exist_ok=True)
@@ -1142,8 +1146,13 @@ def post_release_tagging(db: ReleaseShelf) -> None:
         cwd=db["git_repo"],
     )
 
+    if release_tag.is_feature_freeze_release:
+        checkout_branch = release_tag.basic_version
+    else:
+        checkout_branch = release_tag.branch
+
     subprocess.check_call(
-        ["git", "checkout", release_tag.branch],
+        ["git", "checkout", checkout_branch],
         cwd=db["git_repo"],
     )
 
@@ -1219,7 +1228,7 @@ def branch_new_versions(db: ReleaseShelf) -> None:
     subprocess.check_call(["git", "checkout", "main"], cwd=db["git_repo"])
 
     subprocess.check_call(
-        ["git", "checkout", "-b", release_tag.branch],
+        ["git", "checkout", "-b", release_tag.basic_version],
         cwd=db["git_repo"],
     )
 
