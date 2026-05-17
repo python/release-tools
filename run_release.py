@@ -46,41 +46,19 @@ DOWNLOADS_SERVER = "downloads.nyc1.psf.io"
 DOCS_SERVER = "docs.nyc1.psf.io"
 
 WHATS_NEW_TEMPLATE = """
-****************************
+*****************************
   What's new in Python {version}
-****************************
+*****************************
 
 :Editor: TBD
 
 .. Rules for maintenance:
 
-   * Anyone can add text to this document.  Do not spend very much time
-   on the wording of your changes, because your text will probably
-   get rewritten to some degree.
-
-   * The maintainer will go through Misc/NEWS periodically and add
-   changes; it's therefore more important to add your changes to
-   Misc/NEWS than to this file.
-
    * This is not a complete list of every single change; completeness
-   is the purpose of Misc/NEWS.  Some changes I consider too small
-   or esoteric to include.  If such a change is added to the text,
-   I'll just remove it.  (This is another reason you shouldn't spend
-   too much time on writing your addition.)
+   is the purpose of Misc/NEWS.  The editor may remove changes they
+   consider too small or esoteric to include.
 
-   * If you want to draw your new text to the attention of the
-   maintainer, add 'XXX' to the beginning of the paragraph or
-   section.
-
-   * It's OK to just add a fragmentary note about a change.  For
-   example: "XXX Describe the transmogrify() function added to the
-   socket module."  The maintainer will research the change and
-   write the necessary text.
-
-   * You can comment out your additions if you like, but it's not
-   necessary (especially when a final release is some months away).
-
-   * Credit the author of a patch or bugfix.   Just the name is
+   * Credit the author of a patch or bugfix.  Just the name is
    sufficient; the e-mail address isn't necessary.
 
    * It's helpful to add the issue number as a comment:
@@ -88,9 +66,6 @@ WHATS_NEW_TEMPLATE = """
    XXX Describe the transmogrify() function added to the socket
    module.
    (Contributed by P.Y. Developer in :gh:`12345`.)
-
-   This saves the maintainer the effort of going through the VCS log
-   when researching a change.
 
 This article explains the new features in Python {version}, compared to {prev_version}.
 
@@ -113,15 +88,12 @@ Summary --- release highlights
 .. PEP-sized items next.
 
 
-
 New features
 ============
 
 
-
 Other language changes
 ======================
-
 
 
 New modules
@@ -140,6 +112,7 @@ module_name
 
 .. Add improved modules above alphabetically, not here at the end.
 
+
 Optimizations
 =============
 
@@ -149,7 +122,6 @@ module_name
 * TODO
 
 
-
 Removed
 =======
 
@@ -157,6 +129,7 @@ module_name
 -----------
 
 * TODO
+
 .. Add removals above alphabetically, not here at the end.
 
 
@@ -165,7 +138,6 @@ Deprecated
 
 * module_name:
   TODO
-
 
 .. Add deprecations above alphabetically, not here at the end.
 
@@ -189,10 +161,12 @@ New features
 
 * TODO
 
+
 Porting to Python {version}
 ----------------------
 
 * TODO
+
 
 Deprecated C APIs
 -----------------
@@ -201,9 +175,9 @@ Deprecated C APIs
 
 .. Add C API deprecations above alphabetically, not here at the end.
 
+
 Removed C APIs
 --------------
-
 """
 
 
