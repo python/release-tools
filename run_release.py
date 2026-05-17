@@ -812,9 +812,18 @@ def place_files_in_download_folder(db: ReleaseShelf) -> None:
     def copy_and_set_permissions(source_glob: str, destination: str) -> None:
         execute_command(f"mkdir -p {destination}")
         execute_command(f"cp {source_glob} {destination}")
-        execute_command(f"chgrp downloads {destination}")
-        execute_command(f"chmod 775 {destination}")
-        execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
+        # Skip chgrp/chmod if already correct: another RM may have created
+        # the directory, and only the owner can change group or permissions.
+        execute_command(
+            f"find {destination} -maxdepth 0 ! -group downloads "
+            f"-exec chgrp downloads {{}} +"
+        )
+        execute_command(
+            f"find {destination} -maxdepth 0 ! -perm 775 -exec chmod 775 {{}} +"
+        )
+        execute_command(
+            f"find {destination} -type f ! -perm 664 -exec chmod 664 {{}} +"
+        )
 
     copy_and_set_permissions(f"{source}/downloads/*", destination)
 
