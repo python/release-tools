@@ -59,7 +59,9 @@ def test_invalid_extract_github_owner() -> None:
     [
         # Success cases
         ("3.15.0rc1", "3.15\n", does_not_raise()),
-        ("3.15.0b1", "3.15\n", does_not_raise()),
+        ("3.15.0b3", "3.15\n", does_not_raise()),
+        ("3.15.0b2", "3.15\n", does_not_raise()),
+        ("3.15.0b1", "main\n", does_not_raise()),
         ("3.15.0a6", "main\n", does_not_raise()),
         ("3.14.3", "3.14\n", does_not_raise()),
         ("3.13.12", "3.13\n", does_not_raise()),
@@ -71,8 +73,8 @@ def test_invalid_extract_github_owner() -> None:
         ),
         (
             "3.15.0b1",
-            "main\n",
-            pytest.raises(ReleaseException, match="on main branch, expected 3.15"),
+            "3.15\n",
+            pytest.raises(ReleaseException, match="on 3.15 branch, expected main"),
         ),
         (
             "3.15.0a6",

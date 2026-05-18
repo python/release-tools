@@ -1,18 +1,18 @@
 parameters:
-- name: TclSourceTag
-  displayName: 'Tcl Source Tag'
+- name: TclVersion
+  displayName: 'Tcl Version'
   type: string
-- name: TkSourceTag
-  displayName: 'Tk Source Tag'
+- name: TkVersion
+  displayName: 'Tk Version'
   type: string
-- name: IncludeTix
-  displayName: 'Include Tix (pre-3.13)'
-  type: boolean
-  default: false
-- name: TixSourceTag
-  displayName: 'Tix Source Tag'
+- name: TclTagPrefix
+  displayName: 'Tcl source tag prefix'
   type: string
-  default: tix-8.4.3.6
+  default: 'tcl-'
+- name: TkTagPrefix
+  displayName: 'Tk source tag prefix'
+  type: string
+  default: 'tk-'
 - name: SigningCertificate
   displayName: "Code signing certificate"
   type: string
@@ -27,7 +27,7 @@ parameters:
   default: 'https://github.com/python/cpython-source-deps'
 
 
-name: tcltk$(TkSourceTag)_$(Date:yyyyMMdd)$(Rev:.rr)
+name: tcltk$(TkVersion)_$(Date:yyyyMMdd)$(Rev:.rr)
 
 
 resources:
@@ -52,15 +52,17 @@ variables:
 - name: Configuration
   value: 'Release'
 - name: SigningDescription
-  value: 'Tcl/Tk for Python (${{ parameters.TclSourceTag }})'
+  value: 'Tcl/Tk for Python (${{ parameters.TkVersion }})'
 - name: SourcesRepo
   value: ${{ parameters.SourcesRepo }}
+- name: TclVersion
+  value: ${{ parameters.TclVersion }}
+- name: TkVersion
+  value: ${{ parameters.TkVersion }}
 - name: TclSourceTag
-  value: ${{ parameters.TclSourceTag }}
+  value: ${{ parameters.TclTagPrefix }}${{ parameters.TclVersion }}
 - name: TkSourceTag
-  value: ${{ parameters.TkSourceTag }}
-- name: TixSourceTag
-  value: ${{ parameters.TixSourceTag }}
+  value: ${{ parameters.TkTagPrefix }}${{ parameters.TkVersion }}
 
 
 jobs:
@@ -85,11 +87,6 @@ jobs:
         git clone $(SourcesRepo) -b $(TkSourceTag) --depth 1 "$(ExternalsDir)\$(TkSourceTag)"
       displayName: 'Check out Tk sources'
 
-    - ${{ if eq(parameters.IncludeTix, 'true') }}:
-      - powershell: |
-          git clone $(SourcesRepo) -b $(TixSourceTag) --depth 1 "$(ExternalsDir)\$(TixSourceTag)"
-        displayName: 'Check out Tix sources'
-
     # This msbuild.rsp file will be used by the build to forcibly override these variables
     - powershell: |
         del -Force -EA 0 msbuild.rsp
@@ -97,7 +94,8 @@ jobs:
         "/p:ExternalsDir=$(ExternalsDir)\" >> msbuild.rsp
         "/p:tclDir=$(ExternalsDir)\$(TclSourceTag)\" >> msbuild.rsp
         "/p:tkDir=$(ExternalsDir)\$(TkSourceTag)\" >> msbuild.rsp
-        "/p:tixDir=$(ExternalsDir)\$(TixSourceTag)\" >> msbuild.rsp
+        "/p:TclVersion=$(TclVersion)" >> msbuild.rsp
+        "/p:TkVersion=$(TkVersion)" >> msbuild.rsp
       displayName: 'Generate msbuild.rsp'
 
     - powershell: |
@@ -114,13 +112,6 @@ jobs:
         & "$(msbuild)" cpython\PCbuild\tcl.vcxproj "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
         & "$(msbuild)" cpython\PCbuild\tk.vcxproj  "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
       displayName: 'Build for arm64'
-
-    - ${{ if eq(parameters.IncludeTix, 'true') }}:
-      - powershell: |
-          & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=Win32 /p:tcltkDir="$(OutDir)\win32"
-          & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=x64 /p:tcltkDir="$(OutDir)\amd64"
-          & "$(msbuild)" cpython\PCbuild\tix.vcxproj "@msbuild.rsp" /p:Platform=ARM64 /p:tcltkDir="$(OutDir)\arm64"
-        displayName: 'Build Tix'
 
     - ${{ if ne(parameters.SigningCertificate, 'Unsigned') }}:
       - template: sign-files.yml
