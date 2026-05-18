@@ -30,6 +30,7 @@ import re
 import subprocess
 import sys
 from collections.abc import Generator
+from functools import cache
 from os import path
 from typing import Any, NoReturn
 
@@ -293,6 +294,7 @@ def list_files(
             continue
 
 
+@cache
 def query_object(base_url: str, objtype: str, **params: Any) -> int:
     """Find an API object by query parameters."""
     uri = base_url + f"downloads/{objtype}/"
