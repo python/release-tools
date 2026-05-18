@@ -945,8 +945,38 @@ def start_build_release(db: ReleaseShelf) -> None:
     )
     print()
 
-    if not ask_question("Have you started the build-release workflow?"):
-        raise ReleaseException("build-release workflow must be started")
+
+def start_windows_build(db: ReleaseShelf) -> None:
+    commit_sha = get_commit_sha(db["release"].gitname, db["git_repo"])
+    origin_remote_url = get_origin_remote_url(db["git_repo"])
+    origin_remote_github_owner = extract_github_owner(origin_remote_url)
+
+    print("Start the Windows build:")
+    print(
+        "Go to\thttps://dev.azure.com/Python/cpython/_build?definitionId=21&_a=summary"
+    )
+    print("Click:\t'Run pipeline'")
+    print()
+    print("Pipeline version")
+    print()
+    print("Select pipeline version by branch/tag:\tleave 'main'")
+    print("Commit:\tleave blank")
+    print()
+    print("Pipeline version")
+    print()
+    print(f"Git remote:\t{origin_remote_github_owner}")
+    print("If Other, specify Git remote:\tleave 'python'")
+    print(f"Git tag:\t{db['release'].gitname}")
+    print(f"Git commit:\t{commit_sha}")
+    print("[x] Publish release")
+    print("Check the version specific boxes")
+    print()
+    print("Click:\t'Next: Resources'")
+    print("Click:\t'Run'")
+    print()
+
+    if not ask_question("Have you started the Windows build?"):
+        raise ReleaseException("Windows build must be started")
 
 
 def send_email_to_platform_release_managers(db: ReleaseShelf) -> None:
@@ -1421,6 +1451,7 @@ fix these things in this script so it also supports your platform.
         Task(create_tag, "Create tag"),
         Task(push_to_local_fork, "Push new tags and branches to private fork"),
         Task(start_build_release, "Start the build-release workflow"),
+        Task(start_windows_build, "Start the Windows build"),
         Task(
             send_email_to_platform_release_managers,
             "Platform release managers have been notified of the commit SHA",
