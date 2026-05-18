@@ -555,11 +555,18 @@ def bump(tag: Tag) -> None:
             "Doc/tutorial/interpreter.rst",
             "Doc/tutorial/stdlib.rst",
             "Doc/tutorial/stdlib2.rst",
-            "PC/pyconfig.h.in",
-            "PCbuild/rt.bat",
+            "Include/internal/pycore_magic_number.h",
+            "PC/launcher.c",
+            "PC/pyconfig.h",
             ".github/ISSUE_TEMPLATE/bug.yml",
             ".github/ISSUE_TEMPLATE/crash.yml",
         ]
+
+    if extra_work:
+        print(
+            "\n*** configure.ac will be edited; you must re-run autotools afterwards! ***"
+        )
+
     print("\nManual editing time...")
     for filename in other_files:
         if os.path.exists(filename):
