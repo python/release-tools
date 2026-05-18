@@ -809,24 +809,31 @@ def place_files_in_download_folder(db: ReleaseShelf) -> None:
         if channel.recv_exit_status() != 0:
             raise ReleaseException(channel.recv_stderr(1000))
 
-    execute_command(f"mkdir -p {destination}")
-    execute_command(f"cp {source}/downloads/* {destination}")
-    execute_command(f"chgrp downloads {destination}")
-    execute_command(f"chmod 775 {destination}")
-    execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
+    def copy_and_set_permissions(source_glob: str, destination: str) -> None:
+        execute_command(f"mkdir -p {destination}")
+        execute_command(f"cp {source_glob} {destination}")
+        # Skip chgrp/chmod if already correct: another RM may have created
+        # the directory, and only the owner can change group or permissions.
+        execute_command(
+            f"find {destination} -maxdepth 0 ! -group downloads "
+            f"-exec chgrp downloads {{}} +"
+        )
+        execute_command(
+            f"find {destination} -maxdepth 0 ! -perm 775 -exec chmod 775 {{}} +"
+        )
+        execute_command(
+            f"find {destination} -type f ! -perm 664 -exec chmod 664 {{}} +"
+        )
+
+    copy_and_set_permissions(f"{source}/downloads/*", destination)
 
     # Docs
-
     release_tag = db["release"]
     if release_tag.is_final or release_tag.is_release_candidate:
-        source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
-        destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
-
-        execute_command(f"mkdir -p {destination}")
-        execute_command(f"cp {source}/docs/* {destination}")
-        execute_command(f"chgrp downloads {destination}")
-        execute_command(f"chmod 775 {destination}")
-        execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
+        copy_and_set_permissions(
+            f"{source}/docs/*",
+            f"/srv/www.python.org/ftp/python/doc/{release_tag}",
+        )
 
 
 def upload_docs_to_the_docs_server(db: ReleaseShelf) -> None:
