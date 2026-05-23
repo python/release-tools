@@ -208,12 +208,6 @@ def minor_version(release: str) -> str:
     return ".".join(m.groups()[:2])
 
 
-def minor_version_tuple(release: str) -> tuple[int, int]:
-    m = tag_cre.match(release)
-    assert m is not None, f"Invalid release: {release}"
-    return int(m.groups()[0]), int(m.groups()[1])
-
-
 def build_file_dict(
     ftp_root: str,
     release: str,
