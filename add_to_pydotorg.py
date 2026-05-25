@@ -366,9 +366,9 @@ def sign_release_files_with_sigstore(
                 ]
             )
 
-            run_cmd(["chmod", "644", sig_file])
-            run_cmd(["chmod", "644", cert_file])
-            run_cmd(["chmod", "644", bundle_file])
+            os.chmod(sig_file, 0o644)
+            os.chmod(cert_file, 0o644)
+            os.chmod(bundle_file, 0o644)
     else:
         print("All release files already signed with Sigstore")
 
