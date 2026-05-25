@@ -298,7 +298,7 @@ def list_files(
 
 def query_object(base_url: str, objtype: str, **params: Any) -> int:
     """Find an API object by query parameters."""
-    uri = base_url + f"downloads/{objtype}/"
+    uri = f"{base_url}downloads/{objtype}/"
     uri += "?" + "&".join(f"{k}={v}" for k, v in params.items())
     resp = session.get(uri)
     if resp.status_code != 200 or not json.loads(resp.text)["objects"]:
@@ -309,10 +309,7 @@ def query_object(base_url: str, objtype: str, **params: Any) -> int:
 
 def post_object(base_url: str, objtype: str, datadict: dict[str, Any]) -> int:
     """Create a new API object."""
-    resp = session.post(
-        base_url + "downloads/" + objtype + "/",
-        data=json.dumps(datadict),
-    )
+    resp = session.post(f"{base_url}downloads/{objtype}/", data=json.dumps(datadict))
     if resp.status_code != 201:
         try:
             info = json.loads(resp.text)
