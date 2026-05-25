@@ -176,7 +176,7 @@ def slug_for(release: str) -> str:
 
 
 def sigfile_for(release: str, rfile: str) -> str:
-    return download_root + f"{release}/{rfile}.asc"
+    return f"{download_root}{release}/{rfile}.asc"
 
 
 def sha256sum_for(filename: str) -> str:
@@ -235,7 +235,7 @@ def build_file_dict(
         "release": f"/api/v1/downloads/release/{rel_pk}/",
         "description": add_desc,
         "is_source": os_pk == 3,
-        "url": download_root + f"{base_version(release)}/{rfile}",
+        "url": f"{download_root}{base_version(release)}/{rfile}",
         "sha256_sum": sha256sum_for(filename),
         "filesize": filesize_for(filename),
         "download_button": add_download,
@@ -246,20 +246,20 @@ def build_file_dict(
     # Upload Sigstore signature
     if os.path.exists(filename + ".sig"):
         d["sigstore_signature_file"] = (
-            download_root + f"{base_version(release)}/{rfile}.sig"
+            f"{download_root}{base_version(release)}/{rfile}.sig"
         )
     # Upload Sigstore certificate
     if os.path.exists(filename + ".crt"):
-        d["sigstore_cert_file"] = download_root + f"{base_version(release)}/{rfile}.crt"
+        d["sigstore_cert_file"] = f"{download_root}{base_version(release)}/{rfile}.crt"
     # Upload Sigstore bundle
     if os.path.exists(filename + ".sigstore"):
         d["sigstore_bundle_file"] = (
-            download_root + f"{base_version(release)}/{rfile}.sigstore"
+            f"{download_root}{base_version(release)}/{rfile}.sigstore"
         )
     # Upload SPDX SBOM file
     if os.path.exists(filename + ".spdx.json"):
         d["sbom_spdx2_file"] = (
-            download_root + f"{base_version(release)}/{rfile}.spdx.json"
+            f"{download_root}{base_version(release)}/{rfile}.spdx.json"
         )
 
     return d
@@ -328,7 +328,7 @@ def sign_release_files_with_sigstore(
     ftp_root: str, release: str, release_files: list[tuple[str, str, str, bool, str]]
 ) -> None:
     filenames = [
-        ftp_root + f"{base_version(release)}/{rfile}" for rfile, *_ in release_files
+        f"{ftp_root}{base_version(release)}/{rfile}" for rfile, *_ in release_files
     ]
 
     def has_sigstore_signature(filename: str) -> bool:
