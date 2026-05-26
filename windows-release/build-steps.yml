@@ -52,19 +52,19 @@ steps:
     }
   displayName: 'Generate catalog'
   env:
-    CAT: $(Build.BinariesDirectory)\bin\$(Arch)\python
+    CAT: $(Build.BinariesDirectory)\bin\$(ArchDir)\python
     PYTHON_HEXVERSION: $(VersionHex)
 
 - powershell: |
     del *.pgc, *.pgd, *.exp
   displayName: 'Cleanup binaries'
-  workingDirectory: '$(Build.BinariesDirectory)\bin\$(Arch)'
+  workingDirectory: '$(Build.BinariesDirectory)\bin\$(ArchDir)'
 
 - powershell: |
     copy "$(Build.SourcesDirectory)\Lib\venv\scripts\common\Activate.ps1" .
   displayName: 'Copy Powershell scripts from source'
-  workingDirectory: '$(Build.BinariesDirectory)\bin\$(Arch)'
+  workingDirectory: '$(Build.BinariesDirectory)\bin\$(ArchDir)'
 
-- publish: '$(Build.BinariesDirectory)\bin\$(Arch)'
+- publish: '$(Build.BinariesDirectory)\bin\$(ArchDir)'
   artifact: $(Artifact)
   displayName: 'Publish binaries'

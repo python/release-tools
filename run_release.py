@@ -46,41 +46,19 @@ DOWNLOADS_SERVER = "downloads.nyc1.psf.io"
 DOCS_SERVER = "docs.nyc1.psf.io"
 
 WHATS_NEW_TEMPLATE = """
-****************************
+*****************************
   What's new in Python {version}
-****************************
+*****************************
 
 :Editor: TBD
 
 .. Rules for maintenance:
 
-   * Anyone can add text to this document.  Do not spend very much time
-   on the wording of your changes, because your text will probably
-   get rewritten to some degree.
-
-   * The maintainer will go through Misc/NEWS periodically and add
-   changes; it's therefore more important to add your changes to
-   Misc/NEWS than to this file.
-
    * This is not a complete list of every single change; completeness
-   is the purpose of Misc/NEWS.  Some changes I consider too small
-   or esoteric to include.  If such a change is added to the text,
-   I'll just remove it.  (This is another reason you shouldn't spend
-   too much time on writing your addition.)
+   is the purpose of Misc/NEWS.  The editor may remove changes they
+   consider too small or esoteric to include.
 
-   * If you want to draw your new text to the attention of the
-   maintainer, add 'XXX' to the beginning of the paragraph or
-   section.
-
-   * It's OK to just add a fragmentary note about a change.  For
-   example: "XXX Describe the transmogrify() function added to the
-   socket module."  The maintainer will research the change and
-   write the necessary text.
-
-   * You can comment out your additions if you like, but it's not
-   necessary (especially when a final release is some months away).
-
-   * Credit the author of a patch or bugfix.   Just the name is
+   * Credit the author of a patch or bugfix.  Just the name is
    sufficient; the e-mail address isn't necessary.
 
    * It's helpful to add the issue number as a comment:
@@ -88,9 +66,6 @@ WHATS_NEW_TEMPLATE = """
    XXX Describe the transmogrify() function added to the socket
    module.
    (Contributed by P.Y. Developer in :gh:`12345`.)
-
-   This saves the maintainer the effort of going through the VCS log
-   when researching a change.
 
 This article explains the new features in Python {version}, compared to {prev_version}.
 
@@ -113,15 +88,12 @@ Summary --- release highlights
 .. PEP-sized items next.
 
 
-
 New features
 ============
 
 
-
 Other language changes
 ======================
-
 
 
 New modules
@@ -140,6 +112,7 @@ module_name
 
 .. Add improved modules above alphabetically, not here at the end.
 
+
 Optimizations
 =============
 
@@ -149,7 +122,6 @@ module_name
 * TODO
 
 
-
 Removed
 =======
 
@@ -157,6 +129,7 @@ module_name
 -----------
 
 * TODO
+
 .. Add removals above alphabetically, not here at the end.
 
 
@@ -165,7 +138,6 @@ Deprecated
 
 * module_name:
   TODO
-
 
 .. Add deprecations above alphabetically, not here at the end.
 
@@ -189,10 +161,12 @@ New features
 
 * TODO
 
+
 Porting to Python {version}
 ----------------------
 
 * TODO
+
 
 Deprecated C APIs
 -----------------
@@ -201,9 +175,9 @@ Deprecated C APIs
 
 .. Add C API deprecations above alphabetically, not here at the end.
 
+
 Removed C APIs
 --------------
-
 """
 
 
@@ -332,7 +306,7 @@ def check_gpg_keys(db: ReleaseShelf) -> None:
 def check_ssh_connection(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
@@ -346,7 +320,7 @@ def check_ssh_connection(db: ReleaseShelf) -> None:
 def check_sigstore_client(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
@@ -627,6 +601,10 @@ def wait_for_build_release(db: ReleaseShelf) -> None:
             downloads_path / f"python-{release_tag}-{arch}-linux-android.tar.gz"
             for arch in ["aarch64", "x86_64"]
         ]
+    if release_tag.as_tuple() >= (3, 15):
+        wait_for_paths.append(
+            downloads_path / f"python-{release_tag}-iOS-XCframework.tar.gz"
+        )
     if should_wait_for_docs:
         docs_path = release_path / "docs"
         docs_path.mkdir(parents=True, exist_ok=True)
@@ -768,7 +746,7 @@ class MySFTPClient(paramiko.SFTPClient):
 def upload_files_to_server(db: ReleaseShelf, server: str) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(server, port=22, username=db["ssh_user"], key_filename=db["ssh_key"])
     transport = client.get_transport()
     assert transport is not None, f"SSH transport to {server} is None"
@@ -813,7 +791,7 @@ def upload_files_to_downloads_server(db: ReleaseShelf) -> None:
 def place_files_in_download_folder(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
@@ -831,24 +809,31 @@ def place_files_in_download_folder(db: ReleaseShelf) -> None:
         if channel.recv_exit_status() != 0:
             raise ReleaseException(channel.recv_stderr(1000))
 
-    execute_command(f"mkdir -p {destination}")
-    execute_command(f"cp {source}/downloads/* {destination}")
-    execute_command(f"chgrp downloads {destination}")
-    execute_command(f"chmod 775 {destination}")
-    execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
+    def copy_and_set_permissions(source_glob: str, destination: str) -> None:
+        execute_command(f"mkdir -p {destination}")
+        execute_command(f"cp {source_glob} {destination}")
+        # Skip chgrp/chmod if already correct: another RM may have created
+        # the directory, and only the owner can change group or permissions.
+        execute_command(
+            f"find {destination} -maxdepth 0 ! -group downloads "
+            f"-exec chgrp downloads {{}} +"
+        )
+        execute_command(
+            f"find {destination} -maxdepth 0 ! -perm 775 -exec chmod 775 {{}} +"
+        )
+        execute_command(
+            f"find {destination} -type f ! -perm 664 -exec chmod 664 {{}} +"
+        )
+
+    copy_and_set_permissions(f"{source}/downloads/*", destination)
 
     # Docs
-
     release_tag = db["release"]
     if release_tag.is_final or release_tag.is_release_candidate:
-        source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
-        destination = f"/srv/www.python.org/ftp/python/doc/{release_tag}"
-
-        execute_command(f"mkdir -p {destination}")
-        execute_command(f"cp {source}/docs/* {destination}")
-        execute_command(f"chgrp downloads {destination}")
-        execute_command(f"chmod 775 {destination}")
-        execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
+        copy_and_set_permissions(
+            f"{source}/docs/*",
+            f"/srv/www.python.org/ftp/python/doc/{release_tag}",
+        )
 
 
 def upload_docs_to_the_docs_server(db: ReleaseShelf) -> None:
@@ -866,7 +851,7 @@ def unpack_docs_in_the_docs_server(db: ReleaseShelf) -> None:
 
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOCS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
@@ -967,8 +952,38 @@ def start_build_release(db: ReleaseShelf) -> None:
     )
     print()
 
-    if not ask_question("Have you started the build-release workflow?"):
-        raise ReleaseException("build-release workflow must be started")
+
+def start_windows_build(db: ReleaseShelf) -> None:
+    commit_sha = get_commit_sha(db["release"].gitname, db["git_repo"])
+    origin_remote_url = get_origin_remote_url(db["git_repo"])
+    origin_remote_github_owner = extract_github_owner(origin_remote_url)
+
+    print("Start the Windows build:")
+    print(
+        "Go to\thttps://dev.azure.com/Python/cpython/_build?definitionId=21&_a=summary"
+    )
+    print("Click:\t'Run pipeline'")
+    print()
+    print("Pipeline version")
+    print()
+    print("Select pipeline version by branch/tag:\tleave 'main'")
+    print("Commit:\tleave blank")
+    print()
+    print("Pipeline version")
+    print()
+    print(f"Git remote:\t{origin_remote_github_owner}")
+    print("If Other, specify Git remote:\tleave 'python'")
+    print(f"Git tag:\t{db['release'].gitname}")
+    print(f"Git commit:\t{commit_sha}")
+    print("[x] Publish release")
+    print("Check the version specific boxes")
+    print()
+    print("Click:\t'Next: Resources'")
+    print("Click:\t'Run'")
+    print()
+
+    if not ask_question("Have you started the Windows build?"):
+        raise ReleaseException("Windows build must be started")
 
 
 def send_email_to_platform_release_managers(db: ReleaseShelf) -> None:
@@ -1002,7 +1017,7 @@ def create_release_object_in_db(db: ReleaseShelf) -> None:
 def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
@@ -1053,7 +1068,7 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
 def run_add_to_python_dot_org(db: ReleaseShelf) -> None:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.WarningPolicy)
+    client.set_missing_host_key_policy(paramiko.RejectPolicy)
     client.connect(
         DOWNLOADS_SERVER, port=22, username=db["ssh_user"], key_filename=db["ssh_key"]
     )
@@ -1130,8 +1145,8 @@ def purge_the_cdn(db: ReleaseShelf) -> None:
 def announce_release(db: ReleaseShelf) -> None:
     if not ask_question(
         "Have you announced the release at https://discuss.python.org/c/core-dev/23 "
-        "and https://www.blogger.com?\n"
-        "Tip: use the 'release' tag and 'releases' label respectively."
+        "and https://blog.python.org?\n"
+        "Tip: use the 'release' and 'releases' tags respectively."
     ):
         raise ReleaseException("The release has not been announced")
 
@@ -1168,8 +1183,13 @@ def post_release_tagging(db: ReleaseShelf) -> None:
         cwd=db["git_repo"],
     )
 
+    if release_tag.is_feature_freeze_release:
+        checkout_branch = release_tag.basic_version
+    else:
+        checkout_branch = release_tag.branch
+
     subprocess.check_call(
-        ["git", "checkout", release_tag.branch],
+        ["git", "checkout", checkout_branch],
         cwd=db["git_repo"],
     )
 
@@ -1245,7 +1265,7 @@ def branch_new_versions(db: ReleaseShelf) -> None:
     subprocess.check_call(["git", "checkout", "main"], cwd=db["git_repo"])
 
     subprocess.check_call(
-        ["git", "checkout", "-b", release_tag.branch],
+        ["git", "checkout", "-b", release_tag.basic_version],
         cwd=db["git_repo"],
     )
 
@@ -1438,6 +1458,7 @@ fix these things in this script so it also supports your platform.
         Task(create_tag, "Create tag"),
         Task(push_to_local_fork, "Push new tags and branches to private fork"),
         Task(start_build_release, "Start the build-release workflow"),
+        Task(start_windows_build, "Start the Windows build"),
         Task(
             send_email_to_platform_release_managers,
             "Platform release managers have been notified of the commit SHA",

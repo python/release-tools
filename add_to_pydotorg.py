@@ -30,6 +30,7 @@ import re
 import subprocess
 import sys
 from collections.abc import Generator
+from functools import cache
 from os import path
 from typing import Any, NoReturn
 
@@ -293,6 +294,7 @@ def list_files(
             continue
 
 
+@cache
 def query_object(base_url: str, objtype: str, **params: Any) -> int:
     """Find an API object by query parameters."""
     uri = base_url + f"downloads/{objtype}/"
@@ -366,9 +368,9 @@ def sign_release_files_with_sigstore(
                 ]
             )
 
-            run_cmd(["chmod", "644", sig_file])
-            run_cmd(["chmod", "644", cert_file])
-            run_cmd(["chmod", "644", bundle_file])
+            os.chmod(sig_file, 0o644)
+            os.chmod(cert_file, 0o644)
+            os.chmod(bundle_file, 0o644)
     else:
         print("All release files already signed with Sigstore")
 

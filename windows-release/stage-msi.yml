@@ -3,6 +3,7 @@ parameters:
   DoARM64: true
   DoFreethreaded: false
   SigningCertificate: ''
+  Post315OutputDir: false
 
 jobs:
 - job: Make_MSI
@@ -51,19 +52,34 @@ jobs:
       # Freethreaded binaries copy into the same target directory, but files
       # are not overwritten.
       - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
-        - artifact: bin_win32_t
-          target: $(Build.BinariesDirectory)\win32
-        - artifact: bin_win32_td
-          target: $(Build.BinariesDirectory)\win32
-        - artifact: bin_amd64_t
-          target: $(Build.BinariesDirectory)\amd64
-        - artifact: bin_amd64_td
-          target: $(Build.BinariesDirectory)\amd64
-        - ${{ if eq(parameters.DoARM64, 'true') }}:
-          - artifact: bin_arm64_t
-            target: $(Build.BinariesDirectory)\arm64
-          - artifact: bin_arm64_td
-            target: $(Build.BinariesDirectory)\arm64
+        - ${{ if eq(parameters.Post315OutputDir, 'true') }}:
+          - artifact: bin_win32_t
+            target: $(Build.BinariesDirectory)\win32t
+          - artifact: bin_win32_td
+            target: $(Build.BinariesDirectory)\win32t
+          - artifact: bin_amd64_t
+            target: $(Build.BinariesDirectory)\amd64t
+          - artifact: bin_amd64_td
+            target: $(Build.BinariesDirectory)\amd64t
+          - ${{ if eq(parameters.DoARM64, 'true') }}:
+            - artifact: bin_arm64_t
+              target: $(Build.BinariesDirectory)\arm64t
+            - artifact: bin_arm64_td
+              target: $(Build.BinariesDirectory)\arm64t
+        - ${{ else }}:
+          - artifact: bin_win32_t
+            target: $(Build.BinariesDirectory)\win32
+          - artifact: bin_win32_td
+            target: $(Build.BinariesDirectory)\win32
+          - artifact: bin_amd64_t
+            target: $(Build.BinariesDirectory)\amd64
+          - artifact: bin_amd64_td
+            target: $(Build.BinariesDirectory)\amd64
+          - ${{ if eq(parameters.DoARM64, 'true') }}:
+            - artifact: bin_arm64_t
+              target: $(Build.BinariesDirectory)\arm64
+            - artifact: bin_arm64_td
+              target: $(Build.BinariesDirectory)\arm64
       Bundles:
       - bundle: win32
         Platform: x86

@@ -193,7 +193,9 @@ class Tag:
 
     @property
     def branch(self) -> str:
-        return "main" if self.is_alpha_release else f"{self.major}.{self.minor}"
+        if self.is_alpha_release or self.is_feature_freeze_release:
+            return "main"
+        return f"{self.major}.{self.minor}"
 
     @property
     def is_alpha_release(self) -> bool:
@@ -553,11 +555,18 @@ def bump(tag: Tag) -> None:
             "Doc/tutorial/interpreter.rst",
             "Doc/tutorial/stdlib.rst",
             "Doc/tutorial/stdlib2.rst",
-            "PC/pyconfig.h.in",
-            "PCbuild/rt.bat",
+            "Include/internal/pycore_magic_number.h",
+            "PC/launcher.c",
+            "PC/pyconfig.h",
             ".github/ISSUE_TEMPLATE/bug.yml",
             ".github/ISSUE_TEMPLATE/crash.yml",
         ]
+
+    if extra_work:
+        print(
+            "\n*** configure.ac will be edited; you must re-run autotools afterwards! ***"
+        )
+
     print("\nManual editing time...")
     for filename in other_files:
         if os.path.exists(filename):
@@ -568,7 +577,12 @@ def bump(tag: Tag) -> None:
 
     print("Bumped revision")
     if extra_work:
-        print("configure.ac has changed; re-run autotools!")
+        if ask_question(
+            "configure.ac has changed; run 'Tools/build/regen-configure.sh'?"
+        ):
+            run_cmd(["Tools/build/regen-configure.sh"])
+        else:
+            print("configure.ac has changed; re-run autotools!")
     print("Please commit and use --tag")
 
 

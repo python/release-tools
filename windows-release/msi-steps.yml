@@ -77,10 +77,8 @@ steps:
         Include: ''
         ExportCommand: SignCommand
         SigningCertificate: ${{ parameters.SigningCertificate }}
-        # WiX is struggling with WIF authentication and sign.exe right now,
-        # so we still rely on the client secret for legacy builds.
-        # We disable the service connection here to skip the login steps.
-        AzureServiceConnectionName: ''
+        # WiX never moved on from signtool.exe, so we'll use that here
+        InstallLegacyTool: true
 
     - powershell: |
         $cmd = $env:SignCommand -replace '"', '\"'
