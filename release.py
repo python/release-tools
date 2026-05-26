@@ -471,8 +471,8 @@ def tweak_patchlevel(
         "f": "PY_RELEASE_LEVEL_FINAL",
     }[tag.level]
     if done:
-        # 3.15+ uses "+dev" for PEP 440 local-version compliance; older
-        # branches keep the bare "+" they were released with.
+        # 3.15+ uses "+dev" for PEP 440 local-version compliance;
+        # 3.14 and earlier keep the bare "+" suffix.
         plus = "+dev" if tag.as_tuple() >= (3, 15) else "+"
     else:
         plus = ""
