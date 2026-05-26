@@ -105,7 +105,7 @@ def test_tweak_patchlevel(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ["test_tag", "expected_py_version"],
     [
-        # 3.14 and earlier keep the bare "+" they were released with.
+        # 3.14 and earlier keep the bare "+" suffix.
         ("3.14.0b2", '#define PY_VERSION              "3.14.0b2+"'),
         # 3.15+ uses "+dev" for PEP 440 local-version compliance.
         ("3.15.0b1", '#define PY_VERSION              "3.15.0b1+dev"'),
