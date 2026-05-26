@@ -470,9 +470,13 @@ def tweak_patchlevel(
         "rc": "PY_RELEASE_LEVEL_GAMMA",
         "f": "PY_RELEASE_LEVEL_FINAL",
     }[tag.level]
-    new_constants = template.format(
-        tag=tag, level_def=level_def, plus=done and "+dev" or ""
-    )
+    if done:
+        # 3.15+ uses "+dev" for PEP 440 local-version compliance; older
+        # branches keep the bare "+" they were released with.
+        plus = "+dev" if tag.as_tuple() >= (3, 15) else "+"
+    else:
+        plus = ""
+    new_constants = template.format(tag=tag, level_def=level_def, plus=plus)
     if tag.as_tuple() >= (3, 7, 0, "a", 3):
         new_constants = new_constants.expandtabs()
     constant_replace(filename, new_constants)

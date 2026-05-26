@@ -102,9 +102,21 @@ def test_tweak_patchlevel(tmp_path: Path) -> None:
         assert expected in new_contents
 
 
-def test_tweak_patchlevel_done(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ["test_tag", "expected_py_version"],
+    [
+        # 3.14 and earlier keep the bare "+" they were released with.
+        ("3.14.0b2", '#define PY_VERSION              "3.14.0b2+"'),
+        # 3.15+ uses "+dev" for PEP 440 local-version compliance.
+        ("3.15.0b1", '#define PY_VERSION              "3.15.0b1+dev"'),
+        ("3.16.0a1", '#define PY_VERSION              "3.16.0a1+dev"'),
+    ],
+)
+def test_tweak_patchlevel_done(
+    tmp_path: Path, test_tag: str, expected_py_version: str
+) -> None:
     # Arrange
-    tag = release.Tag("3.14.0b2")
+    tag = release.Tag(test_tag)
 
     original_patchlevel_file = Path(__file__).parent / "patchlevel.h"
     patchlevel_file = tmp_path / "patchlevel.h"
@@ -115,7 +127,7 @@ def test_tweak_patchlevel_done(tmp_path: Path) -> None:
 
     # Assert
     new_contents = patchlevel_file.read_text()
-    assert '#define PY_VERSION              "3.14.0b2+dev"' in new_contents
+    assert expected_py_version in new_contents
 
 
 @pytest.mark.parametrize(
