@@ -471,7 +471,7 @@ def tweak_patchlevel(
         "f": "PY_RELEASE_LEVEL_FINAL",
     }[tag.level]
     new_constants = template.format(
-        tag=tag, level_def=level_def, plus=done and "+" or ""
+        tag=tag, level_def=level_def, plus=done and "+dev" or ""
     )
     if tag.as_tuple() >= (3, 7, 0, "a", 3):
         new_constants = new_constants.expandtabs()

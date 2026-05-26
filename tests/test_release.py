@@ -102,6 +102,22 @@ def test_tweak_patchlevel(tmp_path: Path) -> None:
         assert expected in new_contents
 
 
+def test_tweak_patchlevel_done(tmp_path: Path) -> None:
+    # Arrange
+    tag = release.Tag("3.14.0b2")
+
+    original_patchlevel_file = Path(__file__).parent / "patchlevel.h"
+    patchlevel_file = tmp_path / "patchlevel.h"
+    patchlevel_file.write_text(original_patchlevel_file.read_text())
+
+    # Act
+    release.tweak_patchlevel(tag, filename=str(patchlevel_file), done=True)
+
+    # Assert
+    new_contents = patchlevel_file.read_text()
+    assert '#define PY_VERSION              "3.14.0b2+dev"' in new_contents
+
+
 @pytest.mark.parametrize(
     [
         "test_tag",
