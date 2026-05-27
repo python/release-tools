@@ -113,18 +113,6 @@ def download_ssh(source, dest):
     _run(*_std_args(PSCP), f"{UPLOAD_USER}@{UPLOAD_HOST}:{source}", dest)
 
 
-def ls_ssh(dest):
-    if not UPLOAD_HOST or LOCAL_INDEX:
-        print("Skipping ls of", dest, "because UPLOAD_HOST is missing")
-        return
-    try:
-        _run(*_std_args(PSCP), "-ls", f"{UPLOAD_USER}@{UPLOAD_HOST}:{dest}")
-    except RunError as ex:
-        if not ex.args[1].rstrip().endswith("No such file or directory"):
-            raise
-        print(dest, "was not found")
-
-
 def url2path(url):
     if not UPLOAD_URL_PREFIX:
         raise ValueError("%UPLOAD_URL_PREFIX% was not set")

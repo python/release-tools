@@ -119,19 +119,6 @@ def test_minor_version(release: str, expected: str) -> None:
 @pytest.mark.parametrize(
     ["release", "expected"],
     [
-        ("3.9.0a0", (3, 9)),
-        ("3.10.0b3", (3, 10)),
-        ("3.11.0rc2", (3, 11)),
-        ("3.12.15", (3, 12)),
-    ],
-)
-def test_minor_version_tuple(release: str, expected: tuple[int, int]) -> None:
-    assert add_to_pydotorg.minor_version_tuple(release) == expected
-
-
-@pytest.mark.parametrize(
-    ["release", "expected"],
-    [
         ((3, 13, 0), "for macOS 10.13 and later"),
         ((3, 14, 0), "for macOS 10.15 and later"),
     ],
