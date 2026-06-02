@@ -150,6 +150,17 @@ def validate_new_installs(installs):
         print("WARNING: Duplicate id fields:", *sorted(set(ids)))
 
 
+def sbom_path_for(src):
+    return src.parent / f"{src.name}.spdx.json"
+
+
+def sibling_upload_path(dest, filename):
+    destdir, separator, _ = dest.rpartition("/")
+    if not separator:
+        return filename
+    return f"{destdir}/{filename}"
+
+
 def purge(url):
     if not UPLOAD_HOST or NO_UPLOAD:
         print("Skipping purge of", url, "because UPLOAD_HOST is missing")
@@ -176,8 +187,8 @@ def calculate_uploads():
         dest = url2path(i["url"])
         if LOCAL_INDEX:
             i["url"] = str(src.relative_to(Path.cwd())).replace("\\", "/")
-        sbom = src.with_suffix(".spdx.json")
-        sbom_dest = dest.rpartition("/")[0] + sbom.name
+        sbom = sbom_path_for(src)
+        sbom_dest = sibling_upload_path(dest, sbom.name)
         if not sbom.is_file():
             sbom = None
             sbom_dest = None
