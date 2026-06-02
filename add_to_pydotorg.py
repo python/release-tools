@@ -129,6 +129,33 @@ def get_file_descriptions(
             ("Windows embeddable package (ARM64)", "windows", False, ""),
         ),
         (
+            rx(r"\dt-amd64\.zip$"),
+            (
+                "Windows free-threaded 64-bit embeddable package",
+                "windows",
+                False,
+                "",
+            ),
+        ),
+        (
+            rx(r"\dt-arm64\.zip$"),
+            (
+                "Windows free-threaded ARM64 embeddable package",
+                "windows",
+                False,
+                "",
+            ),
+        ),
+        (
+            rx(r"\dt-win32\.zip$"),
+            (
+                "Windows free-threaded 32-bit embeddable package",
+                "windows",
+                False,
+                "",
+            ),
+        ),
+        (
             rx(r"-arm64\.exe$"),
             ("Windows installer (ARM64)", "windows", False, "Experimental"),
         ),
@@ -262,6 +289,7 @@ def list_files(
 ) -> Generator[tuple[str, str, str, bool, str], None, None]:
     """List all of the release's download files."""
     reldir = base_version(release)
+    version_prefixes = (release + "-", release + ".", release + "t-")
     for rfile in sorted(os.listdir(path.join(ftp_root, reldir))):
         if not path.isfile(path.join(ftp_root, reldir, rfile)):
             continue
@@ -275,7 +303,7 @@ def list_files(
             print(f"    File {reldir}/{rfile} has wrong prefix")
             continue
 
-        if not rest.startswith((release + "-", release + ".")):
+        if not rest.startswith(version_prefixes):
             print(f"    File {reldir}/{rfile} has a different version")
             continue
 

@@ -214,6 +214,27 @@ def test_list_files(fs: FakeFilesystem) -> None:
         ),
         ("python-3.14.0b3.exe", "Windows installer (32-bit)", "windows", False, ""),
         (
+            "python-3.14.0b3t-amd64.zip",
+            "Windows free-threaded 64-bit embeddable package",
+            "windows",
+            False,
+            "",
+        ),
+        (
+            "python-3.14.0b3t-arm64.zip",
+            "Windows free-threaded ARM64 embeddable package",
+            "windows",
+            False,
+            "",
+        ),
+        (
+            "python-3.14.0b3t-win32.zip",
+            "Windows free-threaded 32-bit embeddable package",
+            "windows",
+            False,
+            "",
+        ),
+        (
             "windows-3.14.0b3.json",
             "Windows release manifest",
             "windows",
@@ -221,3 +242,67 @@ def test_list_files(fs: FakeFilesystem) -> None:
             "Install with 'py install 3.14'",
         ),
     ]
+
+
+def test_list_files_accepts_final_free_threaded_windows_names(
+    fs: FakeFilesystem,
+) -> None:
+    fake_ftp_root = "/fake_ftp_root"
+    release_dir = Path(fake_ftp_root) / "3.14.0"
+    fs.create_dir(release_dir)
+    fs.create_file(release_dir / "python-3.14.0t-amd64.zip")
+
+    files = list(add_to_pydotorg.list_files(fake_ftp_root, "3.14.0"))
+
+    assert files == [
+        (
+            "python-3.14.0t-amd64.zip",
+            "Windows free-threaded 64-bit embeddable package",
+            "windows",
+            False,
+            "",
+        )
+    ]
+
+
+def test_free_threaded_windows_zip_file_dicts_have_unique_metadata(
+    fs: FakeFilesystem,
+) -> None:
+    fake_ftp_root = "/fake_ftp_root"
+    release = "3.14.0b3"
+    release_dir = Path(fake_ftp_root) / "3.14.0"
+    fs.create_dir(release_dir)
+    files = [
+        "python-3.14.0b3t-amd64.zip",
+        "python-3.14.0b3t-arm64.zip",
+        "python-3.14.0b3t-win32.zip",
+    ]
+    for rfile in files:
+        fs.create_file(release_dir / rfile)
+
+    file_dicts = []
+    for (
+        rfile,
+        name,
+        _os_slug,
+        download_button,
+        description,
+    ) in add_to_pydotorg.list_files(
+        fake_ftp_root,
+        release,
+    ):
+        file_dicts.append(
+            add_to_pydotorg.build_file_dict(
+                fake_ftp_root,
+                release,
+                rfile,
+                1,
+                name,
+                2,
+                download_button,
+                description,
+            )
+        )
+
+    assert len({file_dict["slug"] for file_dict in file_dicts}) == len(files)
+    assert {file_dict["download_button"] for file_dict in file_dicts} == {False}
