@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -67,6 +68,10 @@ class RunError(Exception):
     pass
 
 
+def quote_remote_shell(value):
+    return shlex.quote(str(value))
+
+
 def _run(*args, single_cmd=False):
     if single_cmd:
         args = args[0]
@@ -101,8 +106,13 @@ def upload_ssh(source, dest):
     if not UPLOAD_HOST or NO_UPLOAD or LOCAL_INDEX:
         print("Skipping upload of", source, "because UPLOAD_HOST is missing")
         return
-    _run(*_std_args(PSCP), source, f"{UPLOAD_USER}@{UPLOAD_HOST}:{dest}")
-    call_ssh(f"chgrp downloads {dest} && chmod g-x,o+r {dest}")
+    _run(
+        *_std_args(PSCP),
+        source,
+        f"{UPLOAD_USER}@{UPLOAD_HOST}:{quote_remote_shell(dest)}",
+    )
+    quoted_dest = quote_remote_shell(dest)
+    call_ssh(f"chgrp downloads {quoted_dest} && chmod g-x,o+r {quoted_dest}")
 
 
 def download_ssh(source, dest):
@@ -110,7 +120,21 @@ def download_ssh(source, dest):
         print("Skipping download of", source, "because UPLOAD_HOST is missing")
         return
     Path(dest).parent.mkdir(exist_ok=True, parents=True)
-    _run(*_std_args(PSCP), f"{UPLOAD_USER}@{UPLOAD_HOST}:{source}", dest)
+    _run(
+        *_std_args(PSCP),
+        f"{UPLOAD_USER}@{UPLOAD_HOST}:{quote_remote_shell(source)}",
+        dest,
+    )
+
+
+def prepare_upload_dir(dest):
+    destdir = dest.rpartition("/")[0]
+    quoted_destdir = quote_remote_shell(destdir)
+    call_ssh(
+        f"mkdir {quoted_destdir} && "
+        f"chgrp downloads {quoted_destdir} && "
+        f"chmod a+rx {quoted_destdir}"
+    )
 
 
 def url2path(url):
@@ -296,7 +320,9 @@ if INDEX_FILE:
     INDEX_PATH = url2path(INDEX_URL)
 
     try:
-        INDEX_MTIME = int(call_ssh("stat", "-c", "%Y", INDEX_PATH) or "0")
+        INDEX_MTIME = int(
+            call_ssh("stat", "-c", "%Y", quote_remote_shell(INDEX_PATH)) or "0"
+        )
     except ValueError:
         pass
 
@@ -356,8 +382,7 @@ if MANIFEST_FILE:
 # Upload last to ensure we've got a valid index first
 for i, src, dest, sbom, sbom_dest in UPLOADS:
     print("Uploading", src, "to", dest)
-    destdir = dest.rpartition("/")[0]
-    call_ssh(f"mkdir {destdir} && chgrp downloads {destdir} && chmod a+rx {destdir}")
+    prepare_upload_dir(dest)
     upload_ssh(src, dest)
     if sbom and sbom_dest:
         upload_ssh(sbom, sbom_dest)
@@ -366,7 +391,7 @@ for i, src, dest, sbom, sbom_dest in UPLOADS:
 # Check that nobody else has published while we were uploading
 if INDEX_FILE and INDEX_MTIME:
     try:
-        mtime = int(call_ssh("stat", "-c", "%Y", INDEX_PATH) or "0")
+        mtime = int(call_ssh("stat", "-c", "%Y", quote_remote_shell(INDEX_PATH)) or "0")
     except ValueError:
         mtime = 0
     if mtime > INDEX_MTIME:

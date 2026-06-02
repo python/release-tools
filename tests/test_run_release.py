@@ -248,3 +248,196 @@ def test_update_whatsnew_toctree(tmp_path: Path) -> None:
     # Assert
     new_contents = toctree__file.read_text()
     assert "   3.15.rst\n   3.14.rst\n" in new_contents
+
+
+def test_run_add_to_python_dot_org_quotes_remote_environment(monkeypatch) -> None:
+    commands = []
+
+    class FakeSFTPClient:
+        def put(self, source: str, destination: str) -> None:
+            pass
+
+        def close(self) -> None:
+            pass
+
+    class FakeSSHClient:
+        def load_system_host_keys(self) -> None:
+            pass
+
+        def set_missing_host_key_policy(self, policy) -> None:
+            pass
+
+        def connect(self, *args, **kwargs) -> None:
+            pass
+
+        def get_transport(self):
+            return object()
+
+        def exec_command(self, command: str):
+            commands.append(command)
+            return None, io.BytesIO(b"ok"), io.BytesIO()
+
+    class FakeIssuer:
+        def __init__(self, issuer_url: str) -> None:
+            self.issuer_url = issuer_url
+
+        def identity_token(self) -> str:
+            return "token; touch /tmp/pwned"
+
+    monkeypatch.setattr(run_release.paramiko, "SSHClient", FakeSSHClient)
+    monkeypatch.setattr(
+        run_release.MySFTPClient,
+        "from_transport",
+        staticmethod(lambda transport: FakeSFTPClient()),
+    )
+    monkeypatch.setattr(run_release.sigstore.oidc, "Issuer", FakeIssuer)
+
+    db = {
+        "auth_info": "user:key; echo pwned",
+        "release": Tag("3.15.0a1"),
+        "ssh_key": None,
+        "ssh_user": "release-manager",
+    }
+
+    run_release.run_add_to_python_dot_org(cast(ReleaseShelf, db))
+
+    assert commands == [
+        "AUTH_INFO='user:key; echo pwned' "
+        "SIGSTORE_IDENTITY_TOKEN='token; touch /tmp/pwned' "
+        "python3 add_to_pydotorg.py 3.15.0a1"
+    ]
+
+
+def test_upload_files_to_server_quotes_remote_cleanup_path(
+    monkeypatch, tmp_path: Path
+) -> None:
+    commands = []
+
+    class FakeSFTPClient:
+        def mkdir(self, path: str) -> None:
+            pass
+
+        def put_dir(self, source: Path, target: str, progress) -> None:
+            pass
+
+        def close(self) -> None:
+            pass
+
+    class FakeSSHClient:
+        def load_system_host_keys(self) -> None:
+            pass
+
+        def set_missing_host_key_policy(self, policy) -> None:
+            pass
+
+        def connect(self, *args, **kwargs) -> None:
+            pass
+
+        def get_transport(self):
+            return object()
+
+        def exec_command(self, command: str) -> None:
+            commands.append(command)
+
+    @contextlib.contextmanager
+    def fake_alive_bar(total: int):
+        yield lambda *args, **kwargs: None
+
+    release = Tag("3.15.0a1")
+    artifacts_path = tmp_path / str(release)
+    (artifacts_path / "downloads").mkdir(parents=True)
+
+    monkeypatch.setattr(run_release.paramiko, "SSHClient", FakeSSHClient)
+    monkeypatch.setattr(
+        run_release.MySFTPClient,
+        "from_transport",
+        staticmethod(lambda transport: FakeSFTPClient()),
+    )
+    monkeypatch.setattr(run_release, "alive_bar", fake_alive_bar)
+
+    db = {
+        "git_repo": tmp_path,
+        "release": release,
+        "ssh_key": None,
+        "ssh_user": "release-manager; touch /tmp/pwned #",
+    }
+
+    run_release.upload_files_to_server(
+        cast(ReleaseShelf, db), run_release.DOWNLOADS_SERVER
+    )
+
+    assert commands == [
+        "rm -rf '/home/psf-users/release-manager; touch /tmp/pwned #/3.15.0a1'"
+    ]
+
+
+def test_release_file_placement_quotes_remote_paths(monkeypatch) -> None:
+    commands = []
+
+    class FakeChannel:
+        def exec_command(self, command: str) -> None:
+            commands.append(command)
+
+        def recv_exit_status(self) -> int:
+            return 0
+
+        def recv_stderr(self, size: int) -> bytes:
+            return b""
+
+    class FakeTransport:
+        def open_session(self) -> FakeChannel:
+            return FakeChannel()
+
+    class FakeSSHClient:
+        def load_system_host_keys(self) -> None:
+            pass
+
+        def set_missing_host_key_policy(self, policy) -> None:
+            pass
+
+        def connect(self, *args, **kwargs) -> None:
+            pass
+
+        def get_transport(self) -> FakeTransport:
+            return FakeTransport()
+
+    monkeypatch.setattr(run_release.paramiko, "SSHClient", FakeSSHClient)
+
+    db = {
+        "release": Tag("3.15.0rc1"),
+        "ssh_key": None,
+        "ssh_user": "release-manager; touch /tmp/pwned #",
+    }
+
+    run_release.place_files_in_download_folder(cast(ReleaseShelf, db))
+    run_release.unpack_docs_in_the_docs_server(cast(ReleaseShelf, db))
+
+    assert commands == [
+        "mkdir -p /srv/www.python.org/ftp/python/3.15.0",
+        "cp '/home/psf-users/release-manager; touch /tmp/pwned #/3.15.0rc1'/downloads/* "
+        "/srv/www.python.org/ftp/python/3.15.0",
+        "find /srv/www.python.org/ftp/python/3.15.0 -maxdepth 0 ! -group downloads "
+        "-exec chgrp downloads {} +",
+        "find /srv/www.python.org/ftp/python/3.15.0 -maxdepth 0 ! -perm 775 "
+        "-exec chmod 775 {} +",
+        "find /srv/www.python.org/ftp/python/3.15.0 -type f ! -perm 664 "
+        "-exec chmod 664 {} +",
+        "mkdir -p /srv/www.python.org/ftp/python/doc/3.15.0rc1",
+        "cp '/home/psf-users/release-manager; touch /tmp/pwned #/3.15.0rc1'/docs/* "
+        "/srv/www.python.org/ftp/python/doc/3.15.0rc1",
+        "find /srv/www.python.org/ftp/python/doc/3.15.0rc1 -maxdepth 0 ! -group downloads "
+        "-exec chgrp downloads {} +",
+        "find /srv/www.python.org/ftp/python/doc/3.15.0rc1 -maxdepth 0 ! -perm 775 "
+        "-exec chmod 775 {} +",
+        "find /srv/www.python.org/ftp/python/doc/3.15.0rc1 -type f ! -perm 664 "
+        "-exec chmod 664 {} +",
+        "mkdir -p /srv/docs.python.org/release/3.15.0rc1",
+        "unzip '/home/psf-users/release-manager; touch /tmp/pwned #/3.15.0rc1/docs/"
+        "python-3.15.0rc1-docs-html.zip' -d /srv/docs.python.org/release/3.15.0rc1",
+        "mv //srv/docs.python.org/release/3.15.0rc1/python-3.15.0rc1-docs-html/* "
+        "/srv/docs.python.org/release/3.15.0rc1",
+        "rm -rf //srv/docs.python.org/release/3.15.0rc1/python-3.15.0rc1-docs-html",
+        "chgrp -R docs /srv/docs.python.org/release/3.15.0rc1",
+        "chmod -R 775 /srv/docs.python.org/release/3.15.0rc1",
+        "find /srv/docs.python.org/release/3.15.0rc1 -type f -exec chmod 664 {} \\;",
+    ]
