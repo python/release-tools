@@ -998,6 +998,9 @@ def send_email_to_platform_release_managers(db: ReleaseShelf) -> None:
     print(
         "build-release workflow: https://github.com/python/release-tools/actions/runs/[ENTER-RUN-ID-HERE]"
     )
+    print(
+        "Windows build: https://dev.azure.com/Python/cpython/_build/results?buildId=[ENTER-BUILD-ID-HERE]&view=results"
+    )
     print()
 
     if not ask_question(
