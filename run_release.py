@@ -822,7 +822,8 @@ def place_files_in_download_folder(db: ReleaseShelf) -> None:
             f"find {destination} -maxdepth 0 ! -perm 775 -exec chmod 775 {{}} +"
         )
         execute_command(
-            f"find {destination} -type f ! -perm 664 -exec chmod 664 {{}} +"
+            f"find {destination} -maxdepth 1 -type f -user $USER ! -perm 664 "
+            f"-exec chmod 664 {{}} +"
         )
 
     copy_and_set_permissions(f"{source}/downloads/*", destination)
