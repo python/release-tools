@@ -302,8 +302,8 @@ def test_run_add_to_python_dot_org_quotes_remote_environment(monkeypatch) -> Non
     run_release.run_add_to_python_dot_org(cast(ReleaseShelf, db))
 
     assert commands == [
-        "AUTH_INFO='user:key; echo pwned' "
-        "SIGSTORE_IDENTITY_TOKEN='token; touch /tmp/pwned' "
+        "env 'AUTH_INFO=user:key; echo pwned' "
+        "'SIGSTORE_IDENTITY_TOKEN=token; touch /tmp/pwned' "
         "python3 add_to_pydotorg.py 3.15.0a1"
     ]
 
@@ -414,30 +414,34 @@ def test_release_file_placement_quotes_remote_paths(monkeypatch) -> None:
 
     assert commands == [
         "mkdir -p /srv/www.python.org/ftp/python/3.15.0",
-        "cp '/home/psf-users/release-manager; touch /tmp/pwned #/3.15.0rc1'/downloads/* "
+        'sh -c \'cp "$1"/* "$2"\' sh '
+        "'/home/psf-users/release-manager; touch /tmp/pwned #/3.15.0rc1/downloads' "
         "/srv/www.python.org/ftp/python/3.15.0",
-        "find /srv/www.python.org/ftp/python/3.15.0 -maxdepth 0 ! -group downloads "
-        "-exec chgrp downloads {} +",
-        "find /srv/www.python.org/ftp/python/3.15.0 -maxdepth 0 ! -perm 775 "
-        "-exec chmod 775 {} +",
-        "find /srv/www.python.org/ftp/python/3.15.0 -type f ! -perm 664 "
-        "-exec chmod 664 {} +",
+        "find /srv/www.python.org/ftp/python/3.15.0 -maxdepth 0 '!' "
+        "-group downloads -exec chgrp downloads '{}' +",
+        "find /srv/www.python.org/ftp/python/3.15.0 -maxdepth 0 '!' -perm 775 "
+        "-exec chmod 775 '{}' +",
+        "find /srv/www.python.org/ftp/python/3.15.0 -maxdepth 1 -type f -user "
+        "'release-manager; touch /tmp/pwned #' '!' -perm 664 -exec chmod 664 '{}' +",
         "mkdir -p /srv/www.python.org/ftp/python/doc/3.15.0rc1",
-        "cp '/home/psf-users/release-manager; touch /tmp/pwned #/3.15.0rc1'/docs/* "
+        'sh -c \'cp "$1"/* "$2"\' sh '
+        "'/home/psf-users/release-manager; touch /tmp/pwned #/3.15.0rc1/docs' "
         "/srv/www.python.org/ftp/python/doc/3.15.0rc1",
-        "find /srv/www.python.org/ftp/python/doc/3.15.0rc1 -maxdepth 0 ! -group downloads "
-        "-exec chgrp downloads {} +",
-        "find /srv/www.python.org/ftp/python/doc/3.15.0rc1 -maxdepth 0 ! -perm 775 "
-        "-exec chmod 775 {} +",
-        "find /srv/www.python.org/ftp/python/doc/3.15.0rc1 -type f ! -perm 664 "
-        "-exec chmod 664 {} +",
+        "find /srv/www.python.org/ftp/python/doc/3.15.0rc1 -maxdepth 0 '!' "
+        "-group downloads -exec chgrp downloads '{}' +",
+        "find /srv/www.python.org/ftp/python/doc/3.15.0rc1 -maxdepth 0 '!' "
+        "-perm 775 -exec chmod 775 '{}' +",
+        "find /srv/www.python.org/ftp/python/doc/3.15.0rc1 -maxdepth 1 -type f "
+        "-user 'release-manager; touch /tmp/pwned #' '!' -perm 664 "
+        "-exec chmod 664 '{}' +",
         "mkdir -p /srv/docs.python.org/release/3.15.0rc1",
         "unzip '/home/psf-users/release-manager; touch /tmp/pwned #/3.15.0rc1/docs/"
         "python-3.15.0rc1-docs-html.zip' -d /srv/docs.python.org/release/3.15.0rc1",
-        "mv //srv/docs.python.org/release/3.15.0rc1/python-3.15.0rc1-docs-html/* "
+        'sh -c \'mv "$1"/* "$2"\' sh '
+        "//srv/docs.python.org/release/3.15.0rc1/python-3.15.0rc1-docs-html "
         "/srv/docs.python.org/release/3.15.0rc1",
         "rm -rf //srv/docs.python.org/release/3.15.0rc1/python-3.15.0rc1-docs-html",
         "chgrp -R docs /srv/docs.python.org/release/3.15.0rc1",
         "chmod -R 775 /srv/docs.python.org/release/3.15.0rc1",
-        "find /srv/docs.python.org/release/3.15.0rc1 -type f -exec chmod 664 {} \\;",
+        "find /srv/docs.python.org/release/3.15.0rc1 -type f -exec chmod 664 '{}' ';'",
     ]

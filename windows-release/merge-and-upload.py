@@ -68,8 +68,16 @@ class RunError(Exception):
     pass
 
 
-def quote_remote_shell(value):
-    return shlex.quote(str(value))
+def join_remote_command(command):
+    return shlex.join(str(argument) for argument in command)
+
+
+def join_remote_commands(*commands):
+    return " && ".join(join_remote_command(command) for command in commands)
+
+
+def remote_upload_path(path):
+    return f"{UPLOAD_USER}@{UPLOAD_HOST}:{join_remote_command([path])}"
 
 
 def _run(*args, single_cmd=False):
@@ -90,12 +98,32 @@ def _run(*args, single_cmd=False):
         return out
 
 
-def call_ssh(*args, allow_fail=True):
+def call_ssh(command, allow_fail=True):
     if not UPLOAD_HOST or NO_UPLOAD or LOCAL_INDEX:
-        print("Skipping", args, "because UPLOAD_HOST is missing")
+        print("Skipping", command, "because UPLOAD_HOST is missing")
         return ""
     try:
-        return _run(*_std_args(PLINK), f"{UPLOAD_USER}@{UPLOAD_HOST}", *args)
+        return _run(
+            *_std_args(PLINK),
+            f"{UPLOAD_USER}@{UPLOAD_HOST}",
+            join_remote_command(command),
+        )
+    except RunError as ex:
+        if not allow_fail:
+            raise
+        return ex.args[1]
+
+
+def call_ssh_commands(*commands, allow_fail=True):
+    if not UPLOAD_HOST or NO_UPLOAD or LOCAL_INDEX:
+        print("Skipping", commands, "because UPLOAD_HOST is missing")
+        return ""
+    try:
+        return _run(
+            *_std_args(PLINK),
+            f"{UPLOAD_USER}@{UPLOAD_HOST}",
+            join_remote_commands(*commands),
+        )
     except RunError as ex:
         if not allow_fail:
             raise
@@ -109,10 +137,12 @@ def upload_ssh(source, dest):
     _run(
         *_std_args(PSCP),
         source,
-        f"{UPLOAD_USER}@{UPLOAD_HOST}:{quote_remote_shell(dest)}",
+        remote_upload_path(dest),
     )
-    quoted_dest = quote_remote_shell(dest)
-    call_ssh(f"chgrp downloads {quoted_dest} && chmod g-x,o+r {quoted_dest}")
+    call_ssh_commands(
+        ["chgrp", "downloads", dest],
+        ["chmod", "g-x,o+r", dest],
+    )
 
 
 def download_ssh(source, dest):
@@ -122,18 +152,17 @@ def download_ssh(source, dest):
     Path(dest).parent.mkdir(exist_ok=True, parents=True)
     _run(
         *_std_args(PSCP),
-        f"{UPLOAD_USER}@{UPLOAD_HOST}:{quote_remote_shell(source)}",
+        remote_upload_path(source),
         dest,
     )
 
 
 def prepare_upload_dir(dest):
     destdir = dest.rpartition("/")[0]
-    quoted_destdir = quote_remote_shell(destdir)
-    call_ssh(
-        f"mkdir {quoted_destdir} && "
-        f"chgrp downloads {quoted_destdir} && "
-        f"chmod a+rx {quoted_destdir}"
+    call_ssh_commands(
+        ["mkdir", destdir],
+        ["chgrp", "downloads", destdir],
+        ["chmod", "a+rx", destdir],
     )
 
 
@@ -320,9 +349,7 @@ if INDEX_FILE:
     INDEX_PATH = url2path(INDEX_URL)
 
     try:
-        INDEX_MTIME = int(
-            call_ssh("stat", "-c", "%Y", quote_remote_shell(INDEX_PATH)) or "0"
-        )
+        INDEX_MTIME = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]) or "0")
     except ValueError:
         pass
 
@@ -391,7 +418,7 @@ for i, src, dest, sbom, sbom_dest in UPLOADS:
 # Check that nobody else has published while we were uploading
 if INDEX_FILE and INDEX_MTIME:
     try:
-        mtime = int(call_ssh("stat", "-c", "%Y", quote_remote_shell(INDEX_PATH)) or "0")
+        mtime = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]) or "0")
     except ValueError:
         mtime = 0
     if mtime > INDEX_MTIME:
