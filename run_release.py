@@ -538,25 +538,6 @@ def run_autoconf(db: ReleaseShelf) -> None:
     )
 
 
-def check_pyspecific(db: ReleaseShelf) -> None:
-    with open(
-        db["git_repo"] / "Doc" / "tools" / "extensions" / "pyspecific.py"
-    ) as pyspecific:
-        for line in pyspecific:
-            if "SOURCE_URI =" in line:
-                break
-    expected_branch = db["release"].branch
-    expected = (
-        f"SOURCE_URI = 'https://github.com/python/cpython/tree/{expected_branch}/%s'"
-    )
-    if expected != line.strip():
-        raise ReleaseException(
-            f"SOURCE_URI is incorrect (it needs changing before beta 1):\n"
-            f"expected: {expected}\n"
-            f"got     : {line.strip()}"
-        )
-
-
 def bump_version(db: ReleaseShelf) -> None:
     with cd(db["git_repo"]):
         release_mod.bump(db["release"])
@@ -1455,8 +1436,6 @@ fix these things in this script so it also supports your platform.
         Task(bump_version_in_docs, "Bump version in docs"),
         Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         Task(run_autoconf, "Running autoconf"),
-        Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
-        Task(check_pyspecific, "Checking pyspecific"),
         Task(check_cpython_repo_is_clean, "Checking CPython repository is clean"),
         Task(create_tag, "Create tag"),
         Task(push_to_local_fork, "Push new tags and branches to private fork"),
