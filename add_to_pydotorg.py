@@ -75,7 +75,10 @@ download_root = "https://www.python.org/ftp/python/"
 
 tag_cre = re.compile(r"(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$")
 
-headers = {"Authorization": f"ApiKey {auth_info}", "Content-Type": "application/json"}
+session = requests.Session()
+session.headers.update(
+    {"Authorization": f"ApiKey {auth_info}", "Content-Type": "application/json"}
+)
 
 github_oidc_provider = "https://github.com/login/oauth"
 google_oidc_provider = "https://accounts.google.com"
@@ -174,7 +177,7 @@ def slug_for(release: str) -> str:
 
 
 def sigfile_for(release: str, rfile: str) -> str:
-    return download_root + f"{release}/{rfile}.asc"
+    return f"{download_root}{release}/{rfile}.asc"
 
 
 def sha256sum_for(filename: str) -> str:
@@ -227,7 +230,7 @@ def build_file_dict(
         "release": f"/api/v1/downloads/release/{rel_pk}/",
         "description": add_desc,
         "is_source": os_pk == 3,
-        "url": download_root + f"{base_version(release)}/{rfile}",
+        "url": f"{download_root}{base_version(release)}/{rfile}",
         "sha256_sum": sha256sum_for(filename),
         "filesize": filesize_for(filename),
         "download_button": add_download,
@@ -238,20 +241,20 @@ def build_file_dict(
     # Upload Sigstore signature
     if os.path.exists(filename + ".sig"):
         d["sigstore_signature_file"] = (
-            download_root + f"{base_version(release)}/{rfile}.sig"
+            f"{download_root}{base_version(release)}/{rfile}.sig"
         )
     # Upload Sigstore certificate
     if os.path.exists(filename + ".crt"):
-        d["sigstore_cert_file"] = download_root + f"{base_version(release)}/{rfile}.crt"
+        d["sigstore_cert_file"] = f"{download_root}{base_version(release)}/{rfile}.crt"
     # Upload Sigstore bundle
     if os.path.exists(filename + ".sigstore"):
         d["sigstore_bundle_file"] = (
-            download_root + f"{base_version(release)}/{rfile}.sigstore"
+            f"{download_root}{base_version(release)}/{rfile}.sigstore"
         )
     # Upload SPDX SBOM file
     if os.path.exists(filename + ".spdx.json"):
         d["sbom_spdx2_file"] = (
-            download_root + f"{base_version(release)}/{rfile}.spdx.json"
+            f"{download_root}{base_version(release)}/{rfile}.spdx.json"
         )
 
     return d
@@ -291,9 +294,9 @@ def list_files(
 @cache
 def query_object(base_url: str, objtype: str, **params: Any) -> int:
     """Find an API object by query parameters."""
-    uri = base_url + f"downloads/{objtype}/"
+    uri = f"{base_url}downloads/{objtype}/"
     uri += "?" + "&".join(f"{k}={v}" for k, v in params.items())
-    resp = requests.get(uri, headers=headers)
+    resp = session.get(uri)
     if resp.status_code != 200 or not json.loads(resp.text)["objects"]:
         raise RuntimeError(f"no object for {objtype} params={params!r}")
     obj = json.loads(resp.text)["objects"][0]
@@ -302,11 +305,7 @@ def query_object(base_url: str, objtype: str, **params: Any) -> int:
 
 def post_object(base_url: str, objtype: str, datadict: dict[str, Any]) -> int:
     """Create a new API object."""
-    resp = requests.post(
-        base_url + "downloads/" + objtype + "/",
-        data=json.dumps(datadict),
-        headers=headers,
-    )
+    resp = session.post(f"{base_url}downloads/{objtype}/", data=json.dumps(datadict))
     if resp.status_code != 201:
         try:
             info = json.loads(resp.text)
@@ -325,7 +324,7 @@ def sign_release_files_with_sigstore(
     ftp_root: str, release: str, release_files: list[tuple[str, str, str, bool, str]]
 ) -> None:
     filenames = [
-        ftp_root + f"{base_version(release)}/{rfile}" for rfile, *_ in release_files
+        f"{ftp_root}{base_version(release)}/{rfile}" for rfile, *_ in release_files
     ]
 
     def has_sigstore_signature(filename: str) -> bool:
@@ -468,9 +467,7 @@ def main() -> None:
             raise RuntimeError(f"duplicate slug generated: {key}")
         file_dicts[key] = file_dict
     print("Deleting previous release files")
-    resp = requests.delete(
-        args.base_url + f"downloads/release_file/?release={rel_pk}", headers=headers
-    )
+    resp = session.delete(f"{args.base_url}downloads/release_file/?release={rel_pk}")
     if resp.status_code != 204:
         raise RuntimeError(f"deleting previous releases failed: {resp.status_code}")
     for file_dict in file_dicts.values():
