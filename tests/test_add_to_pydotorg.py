@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-import requests
 from pyfakefs.fake_filesystem import FakeFilesystem
 
 os.environ["AUTH_INFO"] = "test_username:test_api_key"
@@ -87,12 +86,31 @@ def test_post_object_raises_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_post(*args: Any, **kwargs: Any) -> Response:
         return Response()
 
-    monkeypatch.setattr(requests, "post", fake_post)
+    monkeypatch.setattr(add_to_pydotorg.session, "post", fake_post)
 
     with pytest.raises(RuntimeError, match="validation failed"):
         add_to_pydotorg.post_object(
             "https://example.invalid/api/v1/", "release_file", {"slug": "bad"}
         )
+
+
+def test_delete_object_uses_session(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Response:
+        status_code = 204
+
+    calls: list[str] = []
+
+    def fake_delete(url: str) -> Response:
+        calls.append(url)
+        return Response()
+
+    monkeypatch.setattr(add_to_pydotorg.session, "delete", fake_delete)
+
+    add_to_pydotorg.delete_object(
+        "https://example.invalid/api/v1/", "release_file", 123
+    )
+
+    assert calls == ["https://example.invalid/api/v1/downloads/release_file/123/"]
 
 
 def test_create_release_files_cleans_up_created_rows(
