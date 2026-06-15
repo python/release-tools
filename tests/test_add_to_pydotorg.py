@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Any
 
 import pytest
 from pyfakefs.fake_filesystem import FakeFilesystem
@@ -75,6 +76,68 @@ def test_build_file_dict(tmp_path: Path) -> None:
         "download_button": True,
         "sigstore_bundle_file": f"{release_url}/test-artifact.txt.sigstore",
     }
+
+
+def test_post_object_raises_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Response:
+        status_code = 500
+        text = '{"error_message": "validation failed", "traceback": "details"}'
+
+    def fake_post(*args: Any, **kwargs: Any) -> Response:
+        return Response()
+
+    monkeypatch.setattr(add_to_pydotorg.session, "post", fake_post)
+
+    with pytest.raises(RuntimeError, match="validation failed"):
+        add_to_pydotorg.post_object(
+            "https://example.invalid/api/v1/", "release_file", {"slug": "bad"}
+        )
+
+
+def test_delete_object_uses_session(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Response:
+        status_code = 204
+
+    calls: list[str] = []
+
+    def fake_delete(url: str) -> Response:
+        calls.append(url)
+        return Response()
+
+    monkeypatch.setattr(add_to_pydotorg.session, "delete", fake_delete)
+
+    add_to_pydotorg.delete_object(
+        "https://example.invalid/api/v1/", "release_file", 123
+    )
+
+    assert calls == ["https://example.invalid/api/v1/downloads/release_file/123/"]
+
+
+def test_create_release_files_cleans_up_created_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events: list[tuple[str, str | int]] = []
+
+    def fake_post_object(base_url: str, objtype: str, datadict: dict[str, Any]) -> int:
+        slug = str(datadict["slug"])
+        events.append(("post", slug))
+        if slug == "bad":
+            raise RuntimeError("create failed")
+        return 101
+
+    def fake_delete_object(base_url: str, objtype: str, pk: int) -> None:
+        events.append(("delete", pk))
+
+    monkeypatch.setattr(add_to_pydotorg, "post_object", fake_post_object)
+    monkeypatch.setattr(add_to_pydotorg, "delete_object", fake_delete_object)
+
+    with pytest.raises(RuntimeError, match="create failed"):
+        add_to_pydotorg.create_release_files(
+            "https://example.invalid/api/v1/",
+            [{"slug": "ok"}, {"slug": "bad"}],
+        )
+
+    assert events == [("post", "ok"), ("post", "bad"), ("delete", 101)]
 
 
 @pytest.mark.parametrize(

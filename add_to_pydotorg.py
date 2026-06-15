@@ -29,7 +29,7 @@ import os
 import re
 import subprocess
 import sys
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from functools import cache
 from os import path
 from typing import Any, NoReturn
@@ -307,17 +307,52 @@ def post_object(base_url: str, objtype: str, datadict: dict[str, Any]) -> int:
     """Create a new API object."""
     resp = session.post(f"{base_url}downloads/{objtype}/", data=json.dumps(datadict))
     if resp.status_code != 201:
+        messages = [f"Creating {objtype} failed: {resp.status_code}"]
         try:
             info = json.loads(resp.text)
-            print(info.get("error_message", "No error message."))
-            print(info.get("traceback", ""))
-        except:  # noqa: E722
+        except json.JSONDecodeError:
             pass
-        print(f"Creating {objtype} failed: {resp.status_code}")
-        return -1
+        else:
+            if isinstance(info, dict):
+                error_message = info.get("error_message")
+                traceback = info.get("traceback")
+                if error_message:
+                    messages.append(str(error_message))
+                if traceback:
+                    messages.append(str(traceback))
+        raise RuntimeError("\n".join(messages))
     newloc = resp.headers["Location"]
     pk = int(newloc.strip("/").split("/")[-1])
     return pk
+
+
+def delete_object(base_url: str, objtype: str, pk: int) -> None:
+    """Delete an existing API object."""
+    resp = session.delete(f"{base_url}downloads/{objtype}/{pk}/")
+    if resp.status_code != 204:
+        raise RuntimeError(f"Deleting {objtype} {pk} failed: {resp.status_code}")
+
+
+def create_release_files(base_url: str, file_dicts: Iterable[dict[str, Any]]) -> int:
+    """Create ReleaseFile objects and clean up this run's rows on failure."""
+    created_pks: list[int] = []
+    try:
+        for file_dict in file_dicts:
+            file_pk = post_object(base_url, "release_file", file_dict)
+            created_pks.append(file_pk)
+            print("Created as id =", file_pk)
+    except Exception as create_error:
+        cleanup_errors = []
+        for file_pk in reversed(created_pks):
+            try:
+                delete_object(base_url, "release_file", file_pk)
+            except Exception as cleanup_error:
+                cleanup_errors.append(f"{file_pk}: {cleanup_error}")
+        if cleanup_errors:
+            message = "Failed to clean up partially created release files:\n"
+            raise RuntimeError(message + "\n".join(cleanup_errors)) from create_error
+        raise
+    return len(created_pks)
 
 
 def sign_release_files_with_sigstore(
@@ -452,7 +487,6 @@ def main() -> None:
 
     release_files = list(list_files(args.ftp_root, rel))
     sign_release_files_with_sigstore(args.ftp_root, rel, release_files)
-    n = 0
     file_dicts = {}
     for rfile, file_desc, os_slug, add_download, add_desc in release_files:
         if not os_slug:
@@ -470,11 +504,7 @@ def main() -> None:
     resp = session.delete(f"{args.base_url}downloads/release_file/?release={rel_pk}")
     if resp.status_code != 204:
         raise RuntimeError(f"deleting previous releases failed: {resp.status_code}")
-    for file_dict in file_dicts.values():
-        file_pk = post_object(args.base_url, "release_file", file_dict)
-        if file_pk >= 0:
-            print("Created as id =", file_pk)
-            n += 1
+    n = create_release_files(args.base_url, file_dicts.values())
     print(f"Done - {n} files added")
 
 
