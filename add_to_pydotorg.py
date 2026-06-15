@@ -328,7 +328,7 @@ def post_object(base_url: str, objtype: str, datadict: dict[str, Any]) -> int:
 
 def delete_object(base_url: str, objtype: str, pk: int) -> None:
     """Delete an existing API object."""
-    resp = requests.delete(base_url + f"downloads/{objtype}/{pk}/", headers=headers)
+    resp = session.delete(f"{base_url}downloads/{objtype}/{pk}/")
     if resp.status_code != 204:
         raise RuntimeError(f"Deleting {objtype} {pk} failed: {resp.status_code}")
 
