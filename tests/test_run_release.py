@@ -54,6 +54,14 @@ def test_invalid_extract_github_owner() -> None:
         run_release.extract_github_owner("https://example.com")
 
 
+def test_join_remote_command_rejects_string_command() -> None:
+    assert (
+        run_release.join_remote_command(("echo", "hello world")) == "echo 'hello world'"
+    )
+    with pytest.raises(TypeError, match="remote command must be a list or tuple"):
+        run_release.join_remote_command("echo hello")
+
+
 @pytest.mark.parametrize(
     ["release_tag", "git_current_branch", "expectation"],
     [

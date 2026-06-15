@@ -38,6 +38,16 @@ def load_merge_upload_module(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     return module
 
 
+def test_join_remote_command_rejects_string_command(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    module = load_merge_upload_module(monkeypatch, tmp_path)
+
+    assert module.join_remote_command(("echo", "hello world")) == "echo 'hello world'"
+    with pytest.raises(TypeError, match="remote command must be a list or tuple"):
+        module.join_remote_command("echo hello")
+
+
 def test_remote_upload_commands_quote_url_derived_paths(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

@@ -46,7 +46,9 @@ DOWNLOADS_SERVER = "downloads.nyc1.psf.io"
 DOCS_SERVER = "docs.nyc1.psf.io"
 
 
-def join_remote_command(command: list[object]) -> str:
+def join_remote_command(command: list[object] | tuple[object, ...]) -> str:
+    if not isinstance(command, list | tuple):
+        raise TypeError("remote command must be a list or tuple of arguments")
     return shlex.join(str(argument) for argument in command)
 
 
