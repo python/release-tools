@@ -136,10 +136,18 @@ module_name
 Deprecated
 ==========
 
+New deprecations
+----------------
+
 * module_name:
   TODO
 
 .. Add deprecations above alphabetically, not here at the end.
+
+
+.. TODO .. include:: ../deprecations/pending-removal-in-3.xx.rst
+
+.. include:: ../deprecations/pending-removal-in-future.rst
 
 
 Porting to Python {version}
