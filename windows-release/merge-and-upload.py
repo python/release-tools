@@ -176,8 +176,8 @@ def calculate_uploads():
         dest = url2path(i["url"])
         if LOCAL_INDEX:
             i["url"] = str(src.relative_to(Path.cwd())).replace("\\", "/")
-        sbom = src.with_suffix(".spdx.json")
-        sbom_dest = dest.rpartition("/")[0] + sbom.name
+        sbom = src.with_name(f"{src.name}.spdx.json")
+        sbom_dest = f"{dest}.spdx.json"
         if not sbom.is_file():
             sbom = None
             sbom_dest = None
