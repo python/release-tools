@@ -1,10 +1,16 @@
 import json
+import time
 from dataclasses import dataclass
 from typing import Any, cast
 
 from aiohttp.client import ClientSession
 
 JSON = dict[str, Any]
+
+# Builders whose most recent build was more than this many days ago
+#  are considered inactive and ignored when checking for failures
+STALE_BUILDER_DAYS = 14
+SECONDS_PER_DAY = 24 * 60 * 60
 
 
 @dataclass
@@ -66,6 +72,10 @@ class BuildBotAPI:
         if not builds:
             return False
         (build,) = builds
+
+        age_days = (time.time() - build["complete_at"]) / SECONDS_PER_DAY
+        if age_days > STALE_BUILDER_DAYS:
+            return False
         if build["results"] == 2:
             return True
         return False
