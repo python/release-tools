@@ -45,6 +45,13 @@ RELEASE_REGEXP = re.compile(
 DOWNLOADS_SERVER = "downloads.nyc1.psf.io"
 DOCS_SERVER = "docs.nyc1.psf.io"
 
+
+def join_remote_command(command: list[object] | tuple[object, ...]) -> str:
+    if not isinstance(command, list | tuple):
+        raise TypeError("remote command must be a list or tuple of arguments")
+    return shlex.join(str(argument) for argument in command)
+
+
 WHATS_NEW_TEMPLATE = """
 *****************************
   What's new in Python {version}
@@ -744,7 +751,7 @@ def upload_files_to_server(db: ReleaseShelf, server: str) -> None:
     ftp_client = MySFTPClient.from_transport(transport)
     assert ftp_client is not None, f"SFTP client to {server} is None"
 
-    client.exec_command(f"rm -rf {destination}")
+    client.exec_command(join_remote_command(["rm", "-rf", destination]))
 
     with contextlib.suppress(OSError):
         ftp_client.mkdir(str(destination))
@@ -792,36 +799,77 @@ def place_files_in_download_folder(db: ReleaseShelf) -> None:
     source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
     destination = f"/srv/www.python.org/ftp/python/{db['release'].normalized()}"
 
-    def execute_command(command: str) -> None:
+    def execute_command(command: list[object]) -> None:
         channel = transport.open_session()
-        channel.exec_command(command)
+        channel.exec_command(join_remote_command(command))
         if channel.recv_exit_status() != 0:
             raise ReleaseException(channel.recv_stderr(1000))
 
-    def copy_and_set_permissions(source_glob: str, destination: str) -> None:
-        execute_command(f"mkdir -p {destination}")
-        execute_command(f"cp {source_glob} {destination}")
+    def copy_and_set_permissions(source: str, destination: str) -> None:
+        execute_command(["mkdir", "-p", destination])
+        execute_command(["sh", "-c", 'cp "$1"/* "$2"', "sh", source, destination])
         # Skip chgrp/chmod if already correct: another RM may have created
         # the directory, and only the owner can change group or permissions.
         execute_command(
-            f"find {destination} -maxdepth 0 ! -group downloads "
-            f"-exec chgrp downloads {{}} +"
+            [
+                "find",
+                destination,
+                "-maxdepth",
+                "0",
+                "!",
+                "-group",
+                "downloads",
+                "-exec",
+                "chgrp",
+                "downloads",
+                "{}",
+                "+",
+            ]
         )
         execute_command(
-            f"find {destination} -maxdepth 0 ! -perm 775 -exec chmod 775 {{}} +"
+            [
+                "find",
+                destination,
+                "-maxdepth",
+                "0",
+                "!",
+                "-perm",
+                "775",
+                "-exec",
+                "chmod",
+                "775",
+                "{}",
+                "+",
+            ]
         )
         execute_command(
-            f"find {destination} -maxdepth 1 -type f -user $USER ! -perm 664 "
-            f"-exec chmod 664 {{}} +"
+            [
+                "find",
+                destination,
+                "-maxdepth",
+                "1",
+                "-type",
+                "f",
+                "-user",
+                db["ssh_user"],
+                "!",
+                "-perm",
+                "664",
+                "-exec",
+                "chmod",
+                "664",
+                "{}",
+                "+",
+            ]
         )
 
-    copy_and_set_permissions(f"{source}/downloads/*", destination)
+    copy_and_set_permissions(f"{source}/downloads", destination)
 
     # Docs
     release_tag = db["release"]
     if release_tag.is_final or release_tag.is_release_candidate:
         copy_and_set_permissions(
-            f"{source}/docs/*",
+            f"{source}/docs",
             f"/srv/www.python.org/ftp/python/doc/{release_tag}",
         )
 
@@ -853,20 +901,31 @@ def unpack_docs_in_the_docs_server(db: ReleaseShelf) -> None:
     source = f"/home/psf-users/{db['ssh_user']}/{db['release']}"
     destination = f"/srv/docs.python.org/release/{release_tag}"
 
-    def execute_command(command: str) -> None:
+    def execute_command(command: list[object]) -> None:
         channel = transport.open_session()
-        channel.exec_command(command)
+        channel.exec_command(join_remote_command(command))
         if channel.recv_exit_status() != 0:
             raise ReleaseException(channel.recv_stderr(1000))
 
     docs_filename = f"python-{release_tag}-docs-html"
-    execute_command(f"mkdir -p {destination}")
-    execute_command(f"unzip {source}/docs/{docs_filename}.zip -d {destination}")
-    execute_command(f"mv /{destination}/{docs_filename}/* {destination}")
-    execute_command(f"rm -rf /{destination}/{docs_filename}")
-    execute_command(f"chgrp -R docs {destination}")
-    execute_command(f"chmod -R 775 {destination}")
-    execute_command(f"find {destination} -type f -exec chmod 664 {{}} \\;")
+    execute_command(["mkdir", "-p", destination])
+    execute_command(["unzip", f"{source}/docs/{docs_filename}.zip", "-d", destination])
+    execute_command(
+        [
+            "sh",
+            "-c",
+            'mv "$1"/* "$2"',
+            "sh",
+            f"/{destination}/{docs_filename}",
+            destination,
+        ]
+    )
+    execute_command(["rm", "-rf", f"/{destination}/{docs_filename}"])
+    execute_command(["chgrp", "-R", "docs", destination])
+    execute_command(["chmod", "-R", "775", destination])
+    execute_command(
+        ["find", destination, "-type", "f", "-exec", "chmod", "664", "{}", ";"]
+    )
 
 
 @functools.cache
@@ -1081,12 +1140,20 @@ def run_add_to_python_dot_org(db: ReleaseShelf) -> None:
 
     # Do the interactive flow to get an identity for Sigstore
     issuer = sigstore.oidc.Issuer(sigstore.oidc.DEFAULT_OAUTH_ISSUER_URL)
-    identity_token = issuer.identity_token()
+    identity_token = str(issuer.identity_token())
 
     print("Adding files to python.org...")
-    stdin, stdout, stderr = client.exec_command(
-        f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add_to_pydotorg.py {db['release']}"
+    command = join_remote_command(
+        [
+            "env",
+            f"AUTH_INFO={auth_info}",
+            f"SIGSTORE_IDENTITY_TOKEN={identity_token}",
+            "python3",
+            "add_to_pydotorg.py",
+            db["release"],
+        ]
     )
+    stdin, stdout, stderr = client.exec_command(command)
     stderr_text = stderr.read().decode()
     if stderr_text:
         raise paramiko.SSHException(f"Failed to execute the command: {stderr_text}")

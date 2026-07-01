@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -67,6 +68,20 @@ class RunError(Exception):
     pass
 
 
+def join_remote_command(command: list[object] | tuple[object, ...]) -> str:
+    if not isinstance(command, list | tuple):
+        raise TypeError("remote command must be a list or tuple of arguments")
+    return shlex.join(str(argument) for argument in command)
+
+
+def join_remote_commands(*commands):
+    return " && ".join(join_remote_command(command) for command in commands)
+
+
+def remote_upload_path(path):
+    return f"{UPLOAD_USER}@{UPLOAD_HOST}:{join_remote_command([path])}"
+
+
 def _run(*args, single_cmd=False):
     if single_cmd:
         args = args[0]
@@ -85,12 +100,32 @@ def _run(*args, single_cmd=False):
         return out
 
 
-def call_ssh(*args, allow_fail=True):
+def call_ssh(command, allow_fail=True):
     if not UPLOAD_HOST or NO_UPLOAD or LOCAL_INDEX:
-        print("Skipping", args, "because UPLOAD_HOST is missing")
+        print("Skipping", command, "because UPLOAD_HOST is missing")
         return ""
     try:
-        return _run(*_std_args(PLINK), f"{UPLOAD_USER}@{UPLOAD_HOST}", *args)
+        return _run(
+            *_std_args(PLINK),
+            f"{UPLOAD_USER}@{UPLOAD_HOST}",
+            join_remote_command(command),
+        )
+    except RunError as ex:
+        if not allow_fail:
+            raise
+        return ex.args[1]
+
+
+def call_ssh_commands(*commands, allow_fail=True):
+    if not UPLOAD_HOST or NO_UPLOAD or LOCAL_INDEX:
+        print("Skipping", commands, "because UPLOAD_HOST is missing")
+        return ""
+    try:
+        return _run(
+            *_std_args(PLINK),
+            f"{UPLOAD_USER}@{UPLOAD_HOST}",
+            join_remote_commands(*commands),
+        )
     except RunError as ex:
         if not allow_fail:
             raise
@@ -101,8 +136,15 @@ def upload_ssh(source, dest):
     if not UPLOAD_HOST or NO_UPLOAD or LOCAL_INDEX:
         print("Skipping upload of", source, "because UPLOAD_HOST is missing")
         return
-    _run(*_std_args(PSCP), source, f"{UPLOAD_USER}@{UPLOAD_HOST}:{dest}")
-    call_ssh(f"chgrp downloads {dest} && chmod g-x,o+r {dest}")
+    _run(
+        *_std_args(PSCP),
+        source,
+        remote_upload_path(dest),
+    )
+    call_ssh_commands(
+        ["chgrp", "downloads", dest],
+        ["chmod", "g-x,o+r", dest],
+    )
 
 
 def download_ssh(source, dest):
@@ -110,7 +152,20 @@ def download_ssh(source, dest):
         print("Skipping download of", source, "because UPLOAD_HOST is missing")
         return
     Path(dest).parent.mkdir(exist_ok=True, parents=True)
-    _run(*_std_args(PSCP), f"{UPLOAD_USER}@{UPLOAD_HOST}:{source}", dest)
+    _run(
+        *_std_args(PSCP),
+        remote_upload_path(source),
+        dest,
+    )
+
+
+def prepare_upload_dir(dest):
+    destdir = dest.rpartition("/")[0]
+    call_ssh_commands(
+        ["mkdir", destdir],
+        ["chgrp", "downloads", destdir],
+        ["chmod", "a+rx", destdir],
+    )
 
 
 def url2path(url):
@@ -296,7 +351,7 @@ if INDEX_FILE:
     INDEX_PATH = url2path(INDEX_URL)
 
     try:
-        INDEX_MTIME = int(call_ssh("stat", "-c", "%Y", INDEX_PATH) or "0")
+        INDEX_MTIME = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]) or "0")
     except ValueError:
         pass
 
@@ -356,8 +411,7 @@ if MANIFEST_FILE:
 # Upload last to ensure we've got a valid index first
 for i, src, dest, sbom, sbom_dest in UPLOADS:
     print("Uploading", src, "to", dest)
-    destdir = dest.rpartition("/")[0]
-    call_ssh(f"mkdir {destdir} && chgrp downloads {destdir} && chmod a+rx {destdir}")
+    prepare_upload_dir(dest)
     upload_ssh(src, dest)
     if sbom and sbom_dest:
         upload_ssh(sbom, sbom_dest)
@@ -366,7 +420,7 @@ for i, src, dest, sbom, sbom_dest in UPLOADS:
 # Check that nobody else has published while we were uploading
 if INDEX_FILE and INDEX_MTIME:
     try:
-        mtime = int(call_ssh("stat", "-c", "%Y", INDEX_PATH) or "0")
+        mtime = int(call_ssh(["stat", "-c", "%Y", INDEX_PATH]) or "0")
     except ValueError:
         mtime = 0
     if mtime > INDEX_MTIME:
