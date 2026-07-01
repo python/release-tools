@@ -70,12 +70,12 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: "Checkout python/release-tools"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
@@ -90,7 +90,7 @@ jobs:
           fi
 
       - name: "Setup Python"
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: 3.12
 
@@ -119,12 +119,12 @@ jobs:
       - verify-input
     steps:
       - name: "Checkout python/release-tools"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
@@ -132,7 +132,7 @@ jobs:
           path: "cpython"
 
       - name: "Setup Python"
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: 3.12
 
@@ -161,14 +161,14 @@ jobs:
     if: fromJSON(needs.verify-input.outputs.build-docs)
     steps:
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
           ref: "v${{ env.CPYTHON_RELEASE }}"
 
       - name: "Setup Python"
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: 3.12
 
@@ -231,7 +231,7 @@ jobs:
           name: docs
 
       - name: "Set up Python"
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.x"
 
@@ -276,7 +276,7 @@ jobs:
       triplet: ${{ matrix.arch }}-linux-android
     steps:
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
@@ -311,7 +311,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
