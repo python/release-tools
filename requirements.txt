@@ -171,9 +171,6 @@ bcrypt==4.2.1 \
     --hash=sha256:e84e0e6f8e40a242b11bce56c313edc2be121cec3e0ec2d76fce01f6af33c07c \
     --hash=sha256:f85b1ffa09240c89aa2e1ae9f3b1c687104f7b2b9d2098da4e923f1b7082d331
     # via paramiko
-betterproto==2.0.0b6 \
-    --hash=sha256:a0839ec165d110a69d0d116f4d0e2bec8d186af4db826257931f0831dab73fcf
-    # via sigstore-protobuf-specs
 blurb==2.0.0 \
     --hash=sha256:f6d0e858dbe94765f6a89b8228217ffdb9c19cff08fc8f2c3153954846d31aa1
     # via -r requirements.in
@@ -518,18 +515,6 @@ frozenlist==1.5.0 \
 graphemeu==0.7.2 \
     --hash=sha256:1444520f6899fd30114fc2a39f297d86d10fa0f23bf7579f772f8bc7efaa2542
     # via alive-progress
-grpclib==0.4.8 \
-    --hash=sha256:a5047733a7acc1c1cee6abf3c841c7c6fab67d2844a45a853b113fa2e6cd2654
-    # via betterproto
-h2==4.3.0 \
-    --hash=sha256:c438f029a25f7945c69e0ccf0fb951dc3f73a5f6412981daee861431b70e2bdd
-    # via grpclib
-hpack==4.1.0 \
-    --hash=sha256:157ac792668d995c657d93111f46b4535ed114f0c9c8d672271bbec7eae1b496
-    # via h2
-hyperframe==6.1.0 \
-    --hash=sha256:b03380493a519fce58ea5af42e4a42317bf9bd425596f7a0835ffce80f1a42e5
-    # via h2
 id==1.5.0 \
     --hash=sha256:f1434e1cef91f2cbb8a4ec64663d5a23b9ed43ef44c4c957d02583d61714c658
     # via sigstore
@@ -642,7 +627,6 @@ multidict==6.1.0 \
     --hash=sha256:ff3827aef427c89a25cc96ded1759271a93603aba9fb977a6d264648ebf989db
     # via
     #   aiohttp
-    #   grpclib
     #   yarl
 paramiko==5.0.0 \
     --hash=sha256:b7044611c30140d9a75261653210e2002977b71a0497ff3ba0d98d7edbf62f7c
@@ -745,6 +729,7 @@ pydantic[email]==2.12.5 \
     --hash=sha256:e561593fccf61e8a20fc46dfc2dfe075b8be7d0188df33f221ad1f0139180f9d
     # via
     #   sigstore
+    #   sigstore-models
     #   sigstore-rekor-types
 pydantic-core==2.41.5 \
     --hash=sha256:0177272f88ab8312479336e1d777f6b124537d47f2123f89cb37e0accea97f90 \
@@ -903,9 +888,6 @@ pynacl==1.6.2 \
 pyopenssl==26.0.0 \
     --hash=sha256:df94d28498848b98cc1c0ffb8ef1e71e40210d3b0a8064c9d29571ed2904bf81
     # via sigstore
-python-dateutil==2.9.0.post0 \
-    --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
-    # via betterproto
 python-gnupg==0.5.6 \
     --hash=sha256:b5050a55663d8ab9fcc8d97556d229af337a87a3ebebd7054cbd8b7e2043394a
     # via -r requirements.in
@@ -943,18 +925,15 @@ rich==13.9.4 \
 securesystemslib==1.2.0 \
     --hash=sha256:fa63abcb1cf4dba4f2df964f623baa45bc39029980d7a0a2119d90731942afc6
     # via tuf
-sigstore==3.6.7 \
-    --hash=sha256:85d7512499eded0ffc310462d8be81731a631320751e390d74370d6458864df9
+sigstore==4.0.0 \
+    --hash=sha256:922840fcd184ffa88806d76c78c88f9403b5af0c6cb8815f2af997a00d9280c3
     # via -r requirements.in
-sigstore-protobuf-specs==0.3.2 \
-    --hash=sha256:50c99fa6747a3a9c5c562a43602cf76df0b199af28f0e9d4319b6775630425ea
+sigstore-models==0.0.5 \
+    --hash=sha256:ac3ca1554d5dd509a6710699d83a035a09ba112d1fa180959cbfcdd5d97633b7
     # via sigstore
 sigstore-rekor-types==0.0.18 \
     --hash=sha256:b62bf38c5b1a62bc0d7fe0ee51a0709e49311d137c7880c329882a8f4b2d1d78
     # via sigstore
-six==1.17.0 \
-    --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274
-    # via python-dateutil
 tuf==6.0.0 \
     --hash=sha256:458f663a233d95cc76dde0e1a3d01796516a05ce2781fefafebe037f7729601a
     # via sigstore
@@ -965,6 +944,7 @@ typing-extensions==4.15.0 \
     #   pydantic
     #   pydantic-core
     #   pyopenssl
+    #   sigstore-models
     #   typing-inspection
 typing-inspection==0.4.2 \
     --hash=sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7
