@@ -924,11 +924,11 @@ rich==13.9.4 \
 securesystemslib==1.2.0 \
     --hash=sha256:fa63abcb1cf4dba4f2df964f623baa45bc39029980d7a0a2119d90731942afc6
     # via tuf
-sigstore==4.0.0 \
-    --hash=sha256:922840fcd184ffa88806d76c78c88f9403b5af0c6cb8815f2af997a00d9280c3
+sigstore==4.2.0 \
+    --hash=sha256:ed2e0f50aae85148a8aa4fc0f57c298927fce430ad1f988f38611ce90c85829f
     # via -r requirements.in
-sigstore-models==0.0.5 \
-    --hash=sha256:ac3ca1554d5dd509a6710699d83a035a09ba112d1fa180959cbfcdd5d97633b7
+sigstore-models==0.0.6 \
+    --hash=sha256:5201a68f4d7d0f8bec1e2f4378eb646b084c52609a4e31db8c385095fff68b2e
     # via sigstore
 sigstore-rekor-types==0.0.18 \
     --hash=sha256:b62bf38c5b1a62bc0d7fe0ee51a0709e49311d137c7880c329882a8f4b2d1d78
