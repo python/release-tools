@@ -78,10 +78,10 @@ parameters:
   displayName: "Produce full layout artifact"
   type: boolean
   default: true
-- name: DoMSIX
-  displayName: "Produce Store packages (3.13 and earlier)"
+- name: DoPyManager
+  displayName: "Produce PyManager package"
   type: boolean
-  default: false
+  default: true
 - name: DoNuget
   displayName: "Produce Nuget packages"
   type: boolean
@@ -91,17 +91,17 @@ parameters:
   type: boolean
   default: true
 - name: DoMSI
-  displayName: "Produce EXE/MSI installer"
+  displayName: "Produce EXE/MSI installer (3.15 and earlier)"
   type: boolean
   default: true
 - name: TestMSI
-  displayName: "Run EXE/MSI installer tests"
+  displayName: "Run EXE/MSI installer tests (if built)"
   type: boolean
   default: true
-- name: DoPyManager
-  displayName: "Produce PyManager package"
+- name: DoMSIX
+  displayName: "Produce Store packages (3.13 and earlier)"
   type: boolean
-  default: true
+  default: false
 - name: BuildToPublish
   displayName: "Republish a build (select in Resources)"
   type: string
