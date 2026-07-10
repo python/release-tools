@@ -45,6 +45,9 @@ jobs:
   workspace:
     clean: all
 
+  variables:
+    PreferredToolArchitecture: x64
+
   strategy:
     matrix:
       win32:
@@ -191,6 +194,9 @@ jobs:
     workspace:
       clean: all
 
+    variables:
+      PreferredToolArchitecture: x64
+
     strategy:
       matrix:
         amd64:
@@ -320,6 +326,7 @@ jobs:
       variables:
         Platform: ARM64
         _HostPython: python
+        PreferredToolArchitecture: x64
 
       strategy:
         matrix:
