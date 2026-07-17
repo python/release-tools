@@ -1,6 +1,8 @@
 name: Release_$(SourceTag)_$(Date:yyyyMMdd)$(Rev:.rr)
 
 parameters:
+
+# Source selection parameters
 - name: GitRemote
   displayName: "Git remote"
   type: string
@@ -26,6 +28,8 @@ parameters:
   displayName: "Git commit ('empty' to disable commit SHA check)"
   type: string
   default: 'empty'
+
+# Key publish options
 - name: DoPublish
   displayName: "Publish release"
   type: boolean
@@ -38,10 +42,12 @@ parameters:
   - 'PythonSoftwareFoundation'
   - 'TestSign'
   - 'Unsigned'
-- name: SigningDescription
-  displayName: "Signature description"
-  type: string
-  default: '(default)'
+
+# Version-specific build options
+# These often need to be changed by the person queuing the build, and should be
+# clearly labelled with the version range they apply to.
+# When a version becomes EOL, its options can either move to the next section or
+# be removed if its impact is entirely absent from the source tree.
 - name: Post315OutputDir
   displayName: "Separate free-threaded outputs (3.15 and later)"
   type: boolean
@@ -50,6 +56,10 @@ parameters:
   displayName: "Build with tail-calling support (3.15 and later)"
   type: boolean
   default: false
+- name: DoMSI
+  displayName: "Produce EXE/MSI installer (3.15 and earlier)"
+  type: boolean
+  default: true
 - name: DoJIT
   displayName: "Build the JIT compiler (3.14 and later)"
   type: boolean
@@ -58,6 +68,13 @@ parameters:
   displayName: "Include GPG signatures (3.13 and earlier)"
   type: boolean
   default: false
+- name: DoMSIX
+  displayName: "Produce Store packages (3.13 and earlier)"
+  type: boolean
+  default: false
+
+# Stable version options
+# The default option matches what we use for all currently releasing versions.
 - name: DoFreethreaded
   displayName: "Include free-threaded builds"
   type: boolean
@@ -90,18 +107,14 @@ parameters:
   displayName: "Produce embeddable package (w/ PyManager or MSI options)"
   type: boolean
   default: true
-- name: DoMSI
-  displayName: "Produce EXE/MSI installer (3.15 and earlier)"
-  type: boolean
-  default: true
 - name: TestMSI
   displayName: "Run EXE/MSI installer tests (if built)"
   type: boolean
   default: true
-- name: DoMSIX
-  displayName: "Produce Store packages (3.13 and earlier)"
-  type: boolean
-  default: false
+
+# Build selection options
+# These skip the build and will repackage installers, or just republish them,
+# using files from an earlier build.
 - name: BuildToPublish
   displayName: "Republish a build (select in Resources)"
   type: string
@@ -112,6 +125,21 @@ parameters:
   type: string
   default: current
   values: ['current', 'build_to_package']
+
+# Overrides
+# These allow overriding certain specialised strings. Should only be rarely used
+- name: SigningDescription
+  displayName: "Signature description override"
+  type: string
+  default: '(default)'
+- name: vmImage
+  displayName: "VM Image override"
+  type: string
+  default: windows-2025
+
+# Unsupported flags
+# These flags are either deprecated but still present, or not-yet-supported but
+# are intended to become genuine options when possible.
 - name: SignNuget
   displayName: "Enable Nuget signing (not recommended right now)"
   type: boolean
@@ -124,10 +152,6 @@ parameters:
   displayName: "Build the JIT compiler for free-threaded builds (not used yet)"
   type: boolean
   default: false
-- name: vmImage
-  displayName: "VM Image"
-  type: string
-  default: windows-2025
 
 resources:
   pipelines:
