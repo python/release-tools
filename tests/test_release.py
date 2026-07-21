@@ -204,3 +204,34 @@ def test_tweak_readme(
     assert expected_pep_line in new_contents
     assert original_contents.endswith("\n")
     assert new_contents.endswith("\n")
+
+
+@pytest.mark.parametrize(
+    ["test_tag", "expected_version"],
+    [
+        # 3.14 and earlier keep the bare "+" suffix.
+        ("3.14.2", "This is Python version 3.14.2+"),
+        ("3.14.0b2", "This is Python version 3.14.0 beta 2+"),
+        # 3.15+ uses "+dev" for PEP 440 local-version compliance.
+        ("3.15.1", "This is Python version 3.15.1+dev"),
+        ("3.15.0b1", "This is Python version 3.15.0 beta 1+dev"),
+        ("3.16.0a1", "This is Python version 3.16.0 alpha 1+dev"),
+    ],
+)
+def test_tweak_readme_done(
+    tmp_path: Path, test_tag: str, expected_version: str
+) -> None:
+    # Arrange
+    tag = release.Tag(test_tag)
+
+    original_readme_file = Path(__file__).parent / "README.rst"
+    readme_file = tmp_path / "README.rst"
+    readme_file.write_text(original_readme_file.read_text())
+
+    # Act
+    release.tweak_readme(tag, filename=str(readme_file), done=True)
+
+    # Assert
+    new_lines = readme_file.read_text().split("\n")
+    assert new_lines[0] == expected_version
+    assert new_lines[1] == "=" * len(expected_version)
