@@ -519,6 +519,13 @@ def tweak_readme(tag: Tag, filename: str = "README.rst", done: bool = False) -> 
     lines[1] = underline
     content = "\n".join(lines)
 
+    if done:
+        # Post-release only changes the version line; the substitutions below
+        # already ran at bump time, and skipping them avoids the PEP fetch.
+        readme.write_text(content)
+        print("done")
+        return
+
     DOCS_URL = r"https://docs\.python\.org/"
     X_Y = r"\d+\.\d+"
 
