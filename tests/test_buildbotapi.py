@@ -124,6 +124,8 @@ DAY = buildbotapi.SECONDS_PER_DAY
         ("tests/buildbotapi/no-builds.json", FAILURE_COMPLETE_AT + DAY, False),
         # Just inside the staleness cutoff: failure still counts
         ("tests/buildbotapi/failure.json", FAILURE_COMPLETE_AT + 13 * DAY, True),
+        # At the staleness cutoff: failure still counts
+        ("tests/buildbotapi/failure.json", FAILURE_COMPLETE_AT + 14 * DAY, True),
         # Stale build (last run > 14 days ago): builder ignored
         ("tests/buildbotapi/failure.json", FAILURE_COMPLETE_AT + 15 * DAY, False),
     ],
