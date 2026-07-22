@@ -34,7 +34,7 @@ jobs:
         InstallAllUsers: 1
 
   steps:
-  - checkout: none
+  - checkout: self
 
   - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: msi'
@@ -49,90 +49,19 @@ jobs:
     displayName: 'Find installer executable'
     workingDirectory: $(Build.BinariesDirectory)\msi
 
-  - script: >
-      "$(SetupExe)"
-      /passive
-      /log "$(Logs)\install\log.txt"
-      TargetDir="$(Build.BinariesDirectory)\Python"
-      Include_debug=1
-      Include_symbols=1
-      InstallAllUsers=$(InstallAllUsers)
-      $(IncludeFreethreadedOpt)
-    displayName: 'Install Python'
-
-  - powershell: |
-      gci "$(Build.BinariesDirectory)\python"
-    displayName: 'List installed files'
-
-  - powershell: |
-      $p = gi "$(Build.BinariesDirectory)\Python\python.exe"
-      Write-Host "##vso[task.prependpath]$(Split-Path -Parent $p)"
-    displayName: 'Add test Python to PATH'
-
-  - script: |
-      python -c "import sys; print(sys.version)"
-    displayName: 'Collect version number'
-    condition: and(succeeded(), not(variables['SkipTests']))
-
-  - script: |
-      python -m site
-    displayName: 'Collect site'
-    condition: and(succeeded(), not(variables['SkipTests']))
-
-  - ${{ if eq(parameters.DoFreethreaded, 'true') }}:
-    - powershell: |
-        $p = (gci "$(Build.BinariesDirectory)\Python\python3*t.exe" | select -First 1)
-        Write-Host "Found $p"
-        if (-not $p) {
-            Write-Host "Did not find python3*t.exe in:"
-            dir "$(Build.BinariesDirectory)\Python"
-            throw "Free-threaded binaries were not installed"
-        } else {
-            & $p -c "import sys; print(sys.version)"
-        }
-      displayName: 'Collect free-threaded version number'
-      condition: and(succeeded(), not(variables['SkipTests']))
-
-  - powershell: |
-      gci -r "${env:PROGRAMDATA}\Microsoft\Windows\Start Menu\Programs\Python*"
-    displayName: 'Capture per-machine Start Menu items'
-  - powershell: |
-      gci -r "${env:APPDATA}\Microsoft\Windows\Start Menu\Programs\Python*"
-    displayName: 'Capture per-user Start Menu items'
-
-  - powershell: |
-      gci -r "HKLM:\Software\WOW6432Node\Python"
-    displayName: 'Capture per-machine 32-bit registry'
-  - powershell: |
-      gci -r "HKLM:\Software\Python"
-    displayName: 'Capture per-machine native registry'
-  - powershell: |
-      gci -r "HKCU:\Software\Python"
-    displayName: 'Capture current-user registry'
-
-  - script: |
-      python -m pip install "azure<0.10"
-      python -m pip uninstall -y azure python-dateutil six
-    displayName: 'Test (un)install package'
-    condition: and(succeeded(), not(variables['SkipTests']))
-
-  - powershell: |
-      if (Test-Path -Type Container "$(Build.BinariesDirectory)\Python\Lib\test\test_ttk") {
-        # New set of tests (3.12 and later)
-        python -m test -uall -v test_ttk test_tkinter test_idle
-      } else {
-        # Old set of tests
-        python -m test -uall -v test_ttk_guionly test_tk test_idle
-      }
-    displayName: 'Test Tkinter and Idle'
-    condition: and(succeeded(), not(variables['SkipTests']), not(variables['SkipTkTests']))
-
-  - script: >
-      "$(SetupExe)"
-      /passive
-      /uninstall
-      /log "$(Logs)\uninstall\log.txt"
-    displayName: 'Uninstall Python'
+  - powershell: >
+      docker run --rm
+      -v ('{0}:C:\msi' -f (Split-Path -Parent "$(SetupExe)"))
+      -v ('{0}:C:\scripts' -f (gi windows-release))
+      -v ('{0}:C:\Python' -f (mkdir "$(Build.BinariesDirectory)\tmp" -Force))
+      -v ('{0}:C:\logs' -f (mkdir "$(Logs)" -Force))
+      -e InstallAllUsers
+      -e IncludeFreethreadedOpt
+      -e SkipTests
+      -e SkipTkTests
+      mcr.microsoft.com/windows/server:ltsc2022
+      powershell C:\scripts\test-msi.ps1 "C:\msi\$(SetupExeName)"
+    displayName: 'Run installer tests'
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: logs'
