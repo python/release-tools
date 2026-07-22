@@ -450,6 +450,16 @@ def constant_replace(
     os.rename(filename + ".new", filename)
 
 
+def get_version_suffix(tag: Tag, done: bool = False) -> str:
+    # 3.15+ uses "+dev" for PEP 440 local-version compliance;
+    # 3.14 and earlier keep the bare "+" suffix.
+    if done:
+        suffix = "+dev" if tag.as_tuple() >= (3, 15) else "+"
+    else:
+        suffix = ""
+    return suffix
+
+
 def tweak_patchlevel(
     tag: Tag, filename: str = "Include/patchlevel.h", done: bool = False
 ) -> None:
@@ -470,12 +480,7 @@ def tweak_patchlevel(
         "rc": "PY_RELEASE_LEVEL_GAMMA",
         "f": "PY_RELEASE_LEVEL_FINAL",
     }[tag.level]
-    if done:
-        # 3.15+ uses "+dev" for PEP 440 local-version compliance;
-        # 3.14 and earlier keep the bare "+" suffix.
-        plus = "+dev" if tag.as_tuple() >= (3, 15) else "+"
-    else:
-        plus = ""
+    plus = get_version_suffix(tag, done=done)
     new_constants = template.format(tag=tag, level_def=level_def, plus=plus)
     if tag.as_tuple() >= (3, 7, 0, "a", 3):
         new_constants = new_constants.expandtabs()
@@ -499,18 +504,27 @@ def get_pep_number(version: str) -> str:
     return "TODO"
 
 
-def tweak_readme(tag: Tag, filename: str = "README.rst") -> None:
+def tweak_readme(tag: Tag, filename: str = "README.rst", done: bool = False) -> None:
     print(f"Updating {filename}...", end=" ")
     readme = Path(filename)
 
     # Update first line: "This is Python version X.Y.Z {release_level} N"
     # and update length of underline in second line to match.
     lines = readme.read_text().split("\n")
-    this_is = f"This is Python version {tag.long_name}"
+    this_is = (
+        f"This is Python version {tag.long_name}{get_version_suffix(tag, done=done)}"
+    )
     underline = "=" * len(this_is)
     lines[0] = this_is
     lines[1] = underline
     content = "\n".join(lines)
+
+    if done:
+        # Post-release only changes the version line; the substitutions below
+        # already ran at bump time, and skipping them avoids the PEP fetch.
+        readme.write_text(content)
+        print("done")
+        return
 
     DOCS_URL = r"https://docs\.python\.org/"
     X_Y = r"\d+\.\d+"
@@ -858,6 +872,7 @@ def make_tag(tag: Tag, *, sign_gpg: bool = True) -> bool:
 
 
 def done(tag: Tag) -> None:
+    tweak_readme(tag, done=True)
     tweak_patchlevel(tag, done=True)
 
 
