@@ -62,7 +62,10 @@ class BuildBotAPI:
         }
         return all_builders
 
-    async def is_builder_failing_currently(self, builder: Builder) -> bool:
+    async def is_builder_failing_currently(self, builder: Builder) -> bool | None:
+        """Return whether the most recent build failed, or None if the
+        builder is stale (ignored because its most recent build is older
+        than STALE_BUILDER_DAYS)."""
         builds_: dict[str, Any] = await self._fetch_json(
             f"https://buildbot.python.org/all/api/v2/builds?complete__eq=true"
             f"&&builderid__eq={builder.builderid}&&order=-complete_at"
@@ -75,7 +78,7 @@ class BuildBotAPI:
 
         age_days = (time.time() - build["complete_at"]) / SECONDS_PER_DAY
         if age_days > STALE_BUILDER_DAYS:
-            return False
+            return None
         if build["results"] == 2:
             return True
         return False

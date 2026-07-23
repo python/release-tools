@@ -127,11 +127,14 @@ DAY = buildbotapi.SECONDS_PER_DAY
         # At the staleness cutoff: failure still counts
         ("tests/buildbotapi/failure.json", FAILURE_COMPLETE_AT + 14 * DAY, True),
         # Stale build (last run > 14 days ago): builder ignored
-        ("tests/buildbotapi/failure.json", FAILURE_COMPLETE_AT + 15 * DAY, False),
+        ("tests/buildbotapi/failure.json", FAILURE_COMPLETE_AT + 15 * DAY, None),
     ],
 )
 async def test_buildbotapi_is_builder_failing_currently(
-    monkeypatch: pytest.MonkeyPatch, json_data: str, now: int, expected: bool
+    monkeypatch: pytest.MonkeyPatch,
+    json_data: str,
+    now: int,
+    expected: bool | None,
 ) -> None:
     # Arrange
     mock_session = AsyncMock(aiohttp.ClientSession)
