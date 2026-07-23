@@ -36,7 +36,7 @@ from alive_progress import alive_bar
 import release as release_mod
 import sbom
 import update_version_next
-from buildbotapi import BuildBotAPI, Builder
+from buildbotapi import STALE_BUILDER_DAYS, BuildBotAPI, Builder
 from release import ReleaseShelf, Tag, Task, ask_question
 
 API_KEY_REGEXP = re.compile(r"(?P<user>\w+):(?P<key>\w+)")
@@ -353,10 +353,10 @@ def check_sigstore_version(version: str) -> None:
 
 
 def check_buildbots(db: ReleaseShelf) -> None:
-    async def _check() -> set[Builder]:
+    async def _check() -> tuple[set[Builder], int]:
         async def _get_builder_status(
             buildbot_api: BuildBotAPI, the_builder: Builder
-        ) -> tuple[Builder, bool]:
+        ) -> tuple[Builder, bool | None]:
             return the_builder, await buildbot_api.is_builder_failing_currently(
                 the_builder
             )
@@ -379,11 +379,21 @@ def check_buildbots(db: ReleaseShelf) -> None:
                     for the_builder in stable_builders.values()
                 ]
             )
-            return {the_builder for (the_builder, is_failing) in builders if is_failing}
+            stale_count = sum(is_failing is None for _, is_failing in builders)
+            return {
+                the_builder for (the_builder, is_failing) in builders if is_failing
+            }, stale_count
 
-    failing_builders = asyncio.run(_check())
+    failing_builders, stale_count = asyncio.run(_check())
+    if stale_count:
+        print(
+            f"Ignoring {stale_count} stale builder{'' if stale_count == 1 else 's'}"
+            f" (no builds in the last {STALE_BUILDER_DAYS} days)"
+        )
+
     if not failing_builders:
         return
+
     print()
     print("The following buildbots are failing:")
     for builder in failing_builders:
