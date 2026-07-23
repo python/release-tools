@@ -8,7 +8,7 @@ from aiohttp.client import ClientSession
 JSON = dict[str, Any]
 
 # Builders whose most recent build was more than this many days ago
-#  are considered inactive and ignored when checking for failures
+# are considered inactive and ignored when checking for failures
 STALE_BUILDER_DAYS = 14
 SECONDS_PER_DAY = 24 * 60 * 60
 
