@@ -718,8 +718,8 @@ propcache==0.2.1 \
     # via
     #   aiohttp
     #   yarl
-pyasn1==0.6.3 \
-    --hash=sha256:a80184d120f0864a52a073acc6fc642847d0be408e7c7252f31390c0f4eadcde
+pyasn1==0.6.4 \
+    --hash=sha256:deda9277cfd454080ec40b207fb6df82206a3a2688735233cdcd8d3d565f088b
     # via sigstore
 pycparser==2.22 \
     --hash=sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc
