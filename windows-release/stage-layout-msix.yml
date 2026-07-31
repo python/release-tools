@@ -63,7 +63,16 @@ jobs:
       targetPath: $(Pipeline.Workspace)\$(TclLibrary)
 
   - powershell: |
-      Write-Host "##vso[task.setvariable variable=TCL_LIBRARY]$(Pipeline.Workspace)\$(TclLibrary)\tcl8"
+      # PC\layout copies the *parent* of TCL_LIBRARY into the layout, so it only
+      # needs to name a directory that exists inside the artifact: tcl8 for
+      # Tcl 8.6, tk9.0 for Tcl 9 (which embeds its scripts in the DLL).
+      $tcl = Get-ChildItem "$(Pipeline.Workspace)\$(TclLibrary)" -Directory |
+          Where-Object { $_.Name -match '^t(cl|k)\d' } | Select-Object -First 1
+      if (-not $tcl) {
+          Write-Host "##[error]No Tcl/Tk library directory found in $(Pipeline.Workspace)\$(TclLibrary)"
+          exit 1
+      }
+      Write-Host "##vso[task.setvariable variable=TCL_LIBRARY]$($tcl.FullName)"
     displayName: 'Update TCL_LIBRARY'
     condition: and(succeeded(), variables['TclLibrary'])
 
@@ -94,8 +103,6 @@ jobs:
      Remove-Item "$(Build.ArtifactStagingDirectory)\appx-store" -Recurse -Force -EA 0
       $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\appx-store" --preset-appx $(ExtraOptions)
     displayName: 'Generate store APPX layout'
-    env:
-      TCL_LIBRARY: $(TclLibrary)
 
   - ${{ if parameters.SigningCertificate }}:
     # The dotnet sign tool shouldn't need this, but we do because of the sccd file
@@ -110,8 +117,6 @@ jobs:
       Remove-Item "$(Build.ArtifactStagingDirectory)\appx" -Recurse -Force -EA 0
       $(LayoutCmd) --copy "$(Build.ArtifactStagingDirectory)\appx" --preset-appx --include-symbols --include-tests $(ExtraOptions)
     displayName: 'Generate sideloading APPX layout'
-    env:
-      TCL_LIBRARY: $(TclLibrary)
 
   - publish: '$(Build.ArtifactStagingDirectory)\appx-store'
     artifact: layout_appxstore_$(Name)
