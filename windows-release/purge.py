@@ -73,6 +73,6 @@ PATHS = PATHS + [p + ".asc" for p in PATHS]
 print("Purged:")
 for n in PATHS:
     u = URL + n
-    with urlopen(Request(u, method="PURGE", headers={"Fastly-Soft-Purge": 1})) as r:
+    with urlopen(Request(u, method="PURGE", headers={"Fastly-Soft-Purge": "1"})) as r:
         r.read()
     print("  ", u)

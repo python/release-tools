@@ -2,9 +2,10 @@ import builtins
 import contextlib
 import io
 import tarfile
+from collections.abc import Iterator
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import pytest
 
@@ -17,7 +18,7 @@ from run_release import ReleaseException
     "version",
     ["sigstore 4.0.0", "sigstore 4.1.0"],
 )
-def test_check_sigstore_version_success(version) -> None:
+def test_check_sigstore_version_success(version: str) -> None:
     # Verify runs with no exceptions
     run_release.check_sigstore_version(version)
 
@@ -26,7 +27,7 @@ def test_check_sigstore_version_success(version) -> None:
     "version",
     ["sigstore 3.4.0", "sigstore 3.6.2", "sigstore 3.6.6", ""],
 )
-def test_check_sigstore_version_exception(version) -> None:
+def test_check_sigstore_version_exception(version: str) -> None:
     with pytest.raises(
         ReleaseException, match="Sigstore version not detected or not valid"
     ):
@@ -89,13 +90,15 @@ def test_invalid_extract_github_owner() -> None:
     ],
 )
 def test_check_cpython_repo_branch(
-    monkeypatch, release_tag: str, git_current_branch: str, expectation
+    monkeypatch: pytest.MonkeyPatch,
+    release_tag: str,
+    git_current_branch: str,
+    expectation: contextlib.AbstractContextManager[object],
 ) -> None:
     # Arrange
     db = {"release": Tag(release_tag), "git_repo": "/fake/repo"}
     monkeypatch.setattr(
-        run_release.subprocess,
-        "check_output",
+        "run_release.subprocess.check_output",
         lambda *args, **kwargs: git_current_branch,
     )
 
@@ -116,14 +119,17 @@ def test_check_cpython_repo_branch(
     ],
 )
 def test_check_cpython_repo_age(
-    monkeypatch, age_seconds: int, user_continues: bool | None, expectation
+    monkeypatch: pytest.MonkeyPatch,
+    age_seconds: int,
+    user_continues: bool | None,
+    expectation: contextlib.AbstractContextManager[object],
 ) -> None:
     # Arrange
     db = {"release": Tag("3.15.0a6"), "git_repo": "/fake/repo"}
     current_time = 1700000000
     commit_timestamp = current_time - age_seconds
 
-    def fake_check_output(cmd, **kwargs):
+    def fake_check_output(cmd: list[str], **kwargs: Any) -> str:
         cmd_str = " ".join(cmd)
         if "%ct" in cmd_str:
             return f"{commit_timestamp}\n"
@@ -131,8 +137,8 @@ def test_check_cpython_repo_age(
             return "some time ago\n"
         return ""
 
-    monkeypatch.setattr(run_release.subprocess, "check_output", fake_check_output)
-    monkeypatch.setattr(run_release.time, "time", lambda: current_time)
+    monkeypatch.setattr("run_release.subprocess.check_output", fake_check_output)
+    monkeypatch.setattr("run_release.time.time", lambda: current_time)
     if user_continues is not None:
         monkeypatch.setattr(run_release, "ask_question", lambda _: user_continues)
 
@@ -161,12 +167,12 @@ def prepare_fake_docs(tmp_path: Path, content: str) -> None:
 
 
 @contextlib.contextmanager
-def fake_answers(monkeypatch: pytest.MonkeyPatch, answers: list[str]) -> None:
+def fake_answers(monkeypatch: pytest.MonkeyPatch, answers: list[str]) -> Iterator[None]:
     """Monkey-patch input() to give the given answers. All must be consumed."""
 
     answers_left = list(answers)
 
-    def fake_input(question):
+    def fake_input(question: str) -> str:
         print(question, "--", answers_left[0])
         return answers_left.pop(0)
 
@@ -207,7 +213,9 @@ def test_check_doc_unreleased_version_ok(tmp_path: Path) -> None:
     run_release.check_doc_unreleased_version(cast(ReleaseShelf, db))
 
 
-def test_check_doc_unreleased_version_not_ok(monkeypatch, tmp_path: Path) -> None:
+def test_check_doc_unreleased_version_not_ok(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     prepare_fake_docs(
         tmp_path,
         "<div>New in 3.13.0rc1 (unreleased)</div>",
@@ -220,7 +228,9 @@ def test_check_doc_unreleased_version_not_ok(monkeypatch, tmp_path: Path) -> Non
         run_release.check_doc_unreleased_version(cast(ReleaseShelf, db))
 
 
-def test_check_doc_unreleased_version_waived(monkeypatch, tmp_path: Path) -> None:
+def test_check_doc_unreleased_version_waived(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     prepare_fake_docs(
         tmp_path,
         "<div>New in 3.13.0rc1 (unreleased)</div>",
