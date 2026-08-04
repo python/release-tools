@@ -1090,12 +1090,18 @@ def run_add_to_python_dot_org(db: ReleaseShelf) -> None:
     stdin, stdout, stderr = client.exec_command(
         f"AUTH_INFO={auth_info} SIGSTORE_IDENTITY_TOKEN={identity_token} python3 add_to_pydotorg.py {db['release']}"
     )
-    stderr_text = stderr.read().decode()
-    if stderr_text:
-        raise paramiko.SSHException(f"Failed to execute the command: {stderr_text}")
     stdout_text = stdout.read().decode()
+    stderr_text = stderr.read().decode()
+    exit_status = stdout.channel.recv_exit_status()
+    if exit_status != 0:
+        raise paramiko.SSHException(
+            f"Failed to execute the command (exit code {exit_status}): {stderr_text}"
+        )
     print("-- Command output --")
     print(stdout_text)
+    if stderr_text:
+        print("-- Command stderr --")
+        print(stderr_text)
     print("-- End of command output --")
 
 
