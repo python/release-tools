@@ -18,6 +18,8 @@ Here, all occurrences of NEXT (lowercase) should be changed:
 
 .. deprecated-removed:: next 4.0
 
+.. soft-deprecated:: next
+
 whitespace:
 
 ..   versionchanged:: next
