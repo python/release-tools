@@ -21,7 +21,7 @@ DIRECTIVE_RE = re.compile(
     r"""
         (?P<before>
             \s*\.\.\s+
-            (version(added|changed|removed)|deprecated(-removed)?)
+            (version(added|changed|removed)|deprecated(-removed)?|soft-deprecated)
             \s*::\s*
         )
         next
