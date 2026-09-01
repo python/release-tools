@@ -5,8 +5,10 @@ import random
 import re
 import unittest.mock
 from pathlib import Path
+from typing import Any
 
 import pytest
+from pytest_mock import MockerFixture
 
 import sbom
 
@@ -27,7 +29,7 @@ def test_spdx_id(value: str, expected: str) -> None:
     assert sbom.spdx_id(value) == expected
 
 
-def test_spdx_id_collisions():
+def test_spdx_id_collisions() -> None:
     sbom._SPDX_IDS_TO_VALUES = {}  # Reset the cache.
     assert (
         sbom.spdx_id("SPDXRef-FILE-Lib/collections.py")
@@ -53,11 +55,13 @@ def test_spdx_id_collisions():
         ),
     ],
 )
-def test_calculate_package_verification_code(package_sha1s, package_verification_code):
+def test_calculate_package_verification_code(
+    package_sha1s: list[str], package_verification_code: str
+) -> None:
     # Randomize because PackageVerificationCode is deterministic.
     random.shuffle(package_sha1s)
 
-    input_sbom = {
+    input_sbom: Any = {
         "files": [
             {
                 "SPDXID": f"SPDXRef-FILE-{package_sha1}",
@@ -83,11 +87,11 @@ def test_calculate_package_verification_code(package_sha1s, package_verification
     }
 
 
-def test_normalization():
+def test_normalization() -> None:
     # Test that arbitrary JSON data can be normalized.
     # Normalization doesn't have to make too much sense,
     # only needs to be reproducible.
-    data = {
+    data: Any = {
         "a": [1, 2, 3, {"b": [4, "c", [7, True, "2", {}]]}],
         # This line tests that inner structures are sorted first.
         "b": [[1, 2, "b"], [2, 1, "a"]],
@@ -99,7 +103,7 @@ def test_normalization():
     }
 
 
-def test_fetch_project_metadata_from_pypi(mocker):
+def test_fetch_project_metadata_from_pypi(mocker: MockerFixture) -> None:
     mock_urlopen = mocker.patch("sbom.urlopen")
     mock_urlopen.return_value = unittest.mock.Mock()
 
@@ -173,8 +177,8 @@ def test_remove_pip_from_sbom() -> None:
     assert sbom_data == expected
 
 
-def test_create_cpython_sbom():
-    sbom_data = {"packages": []}
+def test_create_cpython_sbom() -> None:
+    sbom_data: Any = {"packages": []}
 
     artifact_path = str(pathlib.Path(__file__).parent / "fake-artifact.txt")
     sbom.create_cpython_sbom(
@@ -240,9 +244,9 @@ def test_create_cpython_sbom():
     ],
 )
 def test_create_cpython_sbom_pre_release_download_location(
-    cpython_version, download_location
-):
-    sbom_data = {"packages": []}
+    cpython_version: str, download_location: str
+) -> None:
+    sbom_data: Any = {"packages": []}
 
     artifact_path = str(pathlib.Path(__file__).parent / "fake-artifact.txt")
     sbom.create_cpython_sbom(

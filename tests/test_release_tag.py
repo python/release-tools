@@ -74,15 +74,14 @@ def test_tag_committed_at_not_found() -> None:
 
     # Act / Assert
     with pytest.raises(SystemExit):
-        tag.committed_at()
+        tag.committed_at
 
 
 def test_tag_committed(mocker: MockerFixture) -> None:
     # Arrange
     tag = release.Tag("3.12.2")
 
-    proc = CompletedProcess([], 0)
-    proc.stdout = b"1707250784"
+    proc = CompletedProcess([], 0, stdout=b"1707250784")
     mocker.patch("subprocess.run", return_value=proc)
 
     # Act / Assert
@@ -156,7 +155,7 @@ def test_tag_long_name() -> None:
     ],
 )
 def test_tag_is_security_release(
-    version: str, expected: str, mocker: MockerFixture
+    version: str, expected: bool, mocker: MockerFixture
 ) -> None:
     # Arrange
     mock_response = b"""
