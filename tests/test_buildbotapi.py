@@ -108,17 +108,33 @@ async def test_buildbotapi_stable_builders() -> None:
     assert "stable" in all_builders[3].tags
 
 
+# The most recent builds in success.json and failure.json
+SUCCESS_COMPLETE_AT = 1728312495
+FAILURE_COMPLETE_AT = 1734198808
+DAY = buildbotapi.SECONDS_PER_DAY
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ["json_data", "expected"],
+    ["json_data", "now", "expected"],
     [
-        ("tests/buildbotapi/success.json", False),
-        ("tests/buildbotapi/failure.json", True),
-        ("tests/buildbotapi/no-builds.json", False),
+        # Recent builds: judged on their result
+        ("tests/buildbotapi/success.json", SUCCESS_COMPLETE_AT + DAY, False),
+        ("tests/buildbotapi/failure.json", FAILURE_COMPLETE_AT + DAY, True),
+        ("tests/buildbotapi/no-builds.json", FAILURE_COMPLETE_AT + DAY, False),
+        # Just inside the staleness cutoff: failure still counts
+        ("tests/buildbotapi/failure.json", FAILURE_COMPLETE_AT + 13 * DAY, True),
+        # At the staleness cutoff: failure still counts
+        ("tests/buildbotapi/failure.json", FAILURE_COMPLETE_AT + 14 * DAY, True),
+        # Stale build (last run > 14 days ago): builder ignored
+        ("tests/buildbotapi/failure.json", FAILURE_COMPLETE_AT + 15 * DAY, None),
     ],
 )
-async def test_buildbotapi_is_builder_failing_currently_yes(
-    json_data: str, expected: bool
+async def test_buildbotapi_is_builder_failing_currently(
+    monkeypatch: pytest.MonkeyPatch,
+    json_data: str,
+    now: int,
+    expected: bool | None,
 ) -> None:
     # Arrange
     mock_session = AsyncMock(aiohttp.ClientSession)
@@ -126,6 +142,7 @@ async def test_buildbotapi_is_builder_failing_currently_yes(
     mock_session.get.return_value.__aenter__.return_value.text.return_value = load(
         json_data
     )
+    monkeypatch.setattr("buildbotapi.time.time", lambda: now)
     api = buildbotapi.BuildBotAPI(mock_session)
     builder = buildbotapi.Builder(builderid=3)
 
