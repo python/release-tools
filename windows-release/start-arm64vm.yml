@@ -21,7 +21,7 @@ jobs:
         inlineScript: |
           $ErrorActionPreference = 'Stop'
 
-          $rg = 'cpythonbuild'
+          $rg = 'pythonarm64'
           $vm = 'pythonarm64'
 
           # Compute UTC time minus 12 hours, format HHmm (e.g. 1830)
