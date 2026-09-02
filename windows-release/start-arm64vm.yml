@@ -1,6 +1,9 @@
 parameters:
   DoARM64: false
   DoPGOARM64: false
+  ServiceConnection: "Steve's VM"
+  ResourceGroup: 'pythonarm64'
+  VMName: 'pythonarm64'
 
 jobs:
 # Only include the job if we need the VM, which means ARM64 PGO.
@@ -13,25 +16,25 @@ jobs:
     - checkout: none
 
     - task: AzureCLI@2
-      displayName: 'Start pythonarm64 and set auto-shutdown to (UTC now - 1h)'
+      displayName: 'Start ARM64 VM and set auto-shutdown to (UTC now + 8h)'
       inputs:
-        azureSubscription: "Steve's VM"   # WIF service connection name
+        azureSubscription: ${{ parameters.ServiceConnection }}
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
           $ErrorActionPreference = 'Stop'
 
-          $rg = 'cpythonbuild'
-          $vm = 'pythonarm64'
+          $rg = '${{ parameters.ResourceGroup }}'
+          $vm = '${{ parameters.VMName }}'
 
-          # Compute UTC time minus 12 hours, format HHmm (e.g. 1830)
-          $shutdownTime = (Get-Date).ToUniversalTime().AddHours(-12).ToString('HHmm')
+          # Compute UTC time plus 8 hours, format HHmm (e.g. 1830)
+          $shutdownTime = (Get-Date).ToUniversalTime().AddHours(8).ToString('HHmm')
           Write-Host "Setting auto-shutdown time to: $shutdownTime UTC"
 
-          # Configure daily auto-shutdown in 12 hours
+          # Configure daily auto-shutdown in 8 hours
           az vm auto-shutdown -g $rg -n $vm --time $shutdownTime | Out-Null
           if ($?) {
-            Write-Host "Successfully configured auto-shutdown for ARM64 VM in 12 hours."
+            Write-Host "Successfully configured auto-shutdown for ARM64 VM in 8 hours."
           } else {
             Write-Host "##[warning]Failed to configure ARM64 VM auto-shutdown."
           }

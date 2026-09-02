@@ -73,4 +73,79 @@ Note that regular signing checks (such as `signtool.exe verify /pa python.exe`)
 and malware scans will treat the files as correctly signed.
 It's only more complicated to verify that it was signed _specifically_ with our cert.
 
+## Auto-start ARM64 VM
+
+Until Azure Pipelines offers ARM64 machines as standard, we use a custom VM to run PGO profiling.
+This VM is hosted on Steve's subscription and is automatically launched by the start-arm64vm.yml stage.
+
+To replicate the configuration for a new subscription or VM, here are the steps:
+
+* Visit https://dev.azure.com/Python/cpython/_settings/adminservices to update/create an
+  Azure Resource Manager connection using Workload Identity Federation (a.k.a. OIDC).
+* Create two custom roles in your Azure Subscription. The full JSON for each role is below,
+  and can be uploaded to the Azure Portal as a starting point for the role.
+* Assign the "VM Restarter" role to the service principal/account used for WIF *on the resource group*
+* Assign the "VM Updater" role to the service principal *on the VM*. This allows the VM to be updated,
+  but does not allow the workflow permission to create new VMs.
+* Visit https://dev.azure.com/Python/cpython/_settings/agentqueues?queueId=24&view=agents and click
+  "New agent" to get the download URL for the Azure Pipelines agent. Extract onto the VM an run `config.cmd`.
+  Give `https://dev.azure.com/Python` as the server URL.
+* Visit https://dev.azure.com/Python/_usersSettings/tokens to create a PAT with "Agent Pools (Read & manage)"
+  scope and paste it into the VM's config script when prompted.
+* Give "Windows ARM64" as the pool name; any (unique) agent name is okay.
+* Ensure Git is installed on the VM and you're ready to run.
+
+The VM Restarter role (manually set the assignable scopes to your subscription after uploading to the portal):
+
+```json
+{
+    "properties": {
+        "roleName": "VM Restarter",
+        "description": "Allows starting, stopping, and scheduling of VMs.",
+        "assignableScopes": [],
+        "permissions": [
+            {
+                "actions": [
+                    "Microsoft.Compute/virtualMachines/read",
+                    "Microsoft.Compute/virtualMachines/start/action",
+                    "Microsoft.Compute/virtualMachines/powerOff/action",
+                    "Microsoft.Compute/virtualMachines/restart/action",
+                    "Microsoft.Compute/virtualMachines/deallocate/action",
+                    "Microsoft.DevTestLab/schedules/delete",
+                    "Microsoft.DevTestLab/schedules/read",
+                    "Microsoft.DevTestLab/schedules/write",
+                    "Microsoft.DevTestLab/schedules/Execute/action",
+                    "Microsoft.DevTestLab/schedules/Retarget/action"
+                ],
+                "notActions": [],
+                "dataActions": [],
+                "notDataActions": []
+            }
+        ]
+    }
+}
+```
+
+The VM Updater role:
+
+```json
+{
+    "properties": {
+        "roleName": "VM Updater",
+        "description": "Allows creating or modifying VMs.",
+        "assignableScopes": [],
+        "permissions": [
+            {
+                "actions": [
+                    "Microsoft.Compute/virtualMachines/write"
+                ],
+                "notActions": [],
+                "dataActions": [],
+                "notDataActions": []
+            }
+        ]
+    }
+}
+```
+
 (Further documentation to be added as we find out what ought to be documented.)
