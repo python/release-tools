@@ -168,7 +168,7 @@ def test_tag_is_security_release(
         }
     }
     """
-    mocker.patch("urllib.request.urlopen", return_value=io.BytesIO(mock_response))
+    mocker.patch("release.urlopen", return_value=io.BytesIO(mock_response))
 
     # Act
     tag = release.Tag(version)
