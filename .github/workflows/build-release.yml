@@ -308,7 +308,7 @@ jobs:
     needs:
       - verify-input
     if: fromJSON(needs.verify-input.outputs.build-ios)
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 60
     steps:
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
