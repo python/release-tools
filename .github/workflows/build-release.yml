@@ -1,6 +1,6 @@
 on:
   push:
-    paths-ignore:
+    paths-ignore: &paths-ignore
       - ".github/dependabot.yml"
       - ".github/workflows/lint.yml"
       - ".github/workflows/test.yml"
@@ -9,14 +9,7 @@ on:
       - "README.md"
       - "tests/**"
   pull_request:
-    paths-ignore:
-      - ".github/dependabot.yml"
-      - ".github/workflows/lint.yml"
-      - ".github/workflows/test.yml"
-      - ".pre-commit-config.yaml"
-      - ".ruff.toml"
-      - "README.md"
-      - "tests/**"
+    paths-ignore: *paths-ignore
   workflow_dispatch:
     inputs:
       git_remote:
