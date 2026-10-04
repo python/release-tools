@@ -85,8 +85,9 @@ jobs:
 
       - name: "Verify CPython commit matches tag"
         run: |
-          if [[ "$GIT_COMMIT" != "$(cd cpython && git rev-parse HEAD)" ]]; then
-            echo "expected git commit ('$GIT_COMMIT') didn't match tagged commit ('$(git rev-parse HEAD)')"
+          tagged_commit="$(cd cpython && git rev-parse HEAD)"
+          if [[ "$GIT_COMMIT" != "$tagged_commit" ]]; then
+            echo "expected git commit ('$GIT_COMMIT') didn't match tagged commit ('$tagged_commit')"
             exit 1
           fi
 
