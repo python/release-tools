@@ -44,7 +44,7 @@ env:
   FORCE_COLOR: 1
   # Set from inputs for workflow_dispatch, or set defaults to test push/PR events
   GIT_REMOTE: ${{ github.event.inputs.git_remote || 'python' }}
-  GIT_COMMIT: ${{ github.event.inputs.git_commit || '869733cf848340059ff567f4ccbe9a6b08bc35cf' }}
+  GIT_COMMIT: ${{ github.event.inputs.git_commit || '8a8eb0b90d40f0e03f8252e9f73cad156e1caca8' }}
   CPYTHON_RELEASE: ${{ github.event.inputs.cpython_release || '3.15.0rc3' }}
 
 jobs:
