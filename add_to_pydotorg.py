@@ -103,6 +103,13 @@ def macos_description(version: tuple[int, int, int]) -> str:
         return "for macOS 10.13 and later"
 
 
+def winarm64_experimental(version: tuple[int, int, int]) -> str:
+    if version >= (3, 15):
+        return ""
+    else:
+        return "Experimental"
+
+
 def get_file_descriptions(
     release: str,
 ) -> list[tuple[re.Pattern[str], tuple[str, str, bool, str]]]:
@@ -133,7 +140,12 @@ def get_file_descriptions(
         ),
         (
             rx(r"-arm64\.exe$"),
-            ("Windows installer (ARM64)", "windows", False, "Experimental"),
+            (
+                "Windows installer (ARM64)",
+                "windows",
+                False,
+                winarm64_experimental(v),
+            ),
         ),
         (
             rx(r"-amd64\.exe$"),
