@@ -170,8 +170,8 @@ bcrypt==4.2.1 \
     --hash=sha256:e84e0e6f8e40a242b11bce56c313edc2be121cec3e0ec2d76fce01f6af33c07c \
     --hash=sha256:f85b1ffa09240c89aa2e1ae9f3b1c687104f7b2b9d2098da4e923f1b7082d331
     # via paramiko
-blurb==2.1.0 \
-    --hash=sha256:dfc96f59f2431a245df96f601df5b7b9a96e39e6887430046fa774fb61c910bb
+blurb==2.2.0 \
+    --hash=sha256:d6b329c9cdfbb5abe18b28c095ff64f59078cfaf43318f59b7db7a1e9075791d
     # via -r requirements.in
 certifi==2024.12.14 \
     --hash=sha256:1275f7a45be9464efc1173084eaa30f866fe2e47d389406136d332ed4967ec56
