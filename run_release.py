@@ -1039,7 +1039,7 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
             raise FileNotFoundError(
                 f"The release folder in {destination} has not been created"
             ) from None
-        if (db["release"].major, db["release"].minor) >= (3, 16):
+        if db["release"].as_tuple() >= (3, 16):
             are_windows_files_there = f"windows-{release}.json" in all_files
         else:
             are_windows_files_there = f"python-{release}.exe" in all_files
