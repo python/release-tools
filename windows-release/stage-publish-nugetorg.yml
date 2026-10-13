@@ -1,5 +1,6 @@
 parameters:
   BuildToPublish: current
+  SkipNugetPackages: '(none)'
 
 jobs:
 - job: Publish_Nuget
@@ -31,6 +32,24 @@ jobs:
     workingDirectory: '$(Build.BinariesDirectory)\nuget'
     condition: and(succeeded(), ne(variables['PublishARM64'], 'true'))
 
+  - ${{ if ne(parameters.SkipNugetPackages, '(none)') }}:
+    - powershell: |
+        $patterns = ($env:SKIP_NUGET_PACKAGES -split ';').Trim() |
+            Where-Object { $_ }
+        if (-not $patterns) {
+            throw 'No NuGet package patterns were provided'
+        }
+        Get-ChildItem -Path $patterns -File -ErrorAction Stop |
+            Sort-Object -Property FullName -Unique |
+            ForEach-Object {
+                Write-Host "Not publishing: $($_.Name)"
+                Remove-Item -LiteralPath $_.FullName
+            }
+      displayName: 'Skip already published NuGet packages'
+      workingDirectory: '$(Build.BinariesDirectory)\nuget'
+      env:
+        SKIP_NUGET_PACKAGES: ${{ parameters.SkipNugetPackages }}
+
   - task: NuGetCommand@2
     displayName: Push packages
     condition: and(succeeded(), eq(variables['IsRealSigned'], 'true'))
@@ -39,3 +58,4 @@ jobs:
       packagesToPush: '$(Build.BinariesDirectory)\nuget\*.nupkg'
       nuGetFeedType: external
       publishFeedCredentials: 'Python on Nuget'
+      requestTimeout: 600
