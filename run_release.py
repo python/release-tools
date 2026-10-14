@@ -339,7 +339,7 @@ def check_sigstore_client(db: ReleaseShelf) -> None:
     _, stdout, _ = client.exec_command("python3 -m sigstore --version")
     sigstore_version = stdout.read(1000).decode()
     check_tool_version(
-        "Sigstore", sigstore_version, SIGSTORE_VERSION_PATTERN, SIGSTORE_MIN_VERSION
+        "sigstore", sigstore_version, SIGSTORE_VERSION_PATTERN, SIGSTORE_MIN_VERSION
     )
 
 
