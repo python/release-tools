@@ -103,6 +103,10 @@ parameters:
   displayName: "Produce Nuget packages"
   type: boolean
   default: true
+- name: SkipNugetPackages
+  displayName: "NuGet packages to skip on retry (semicolon-separated)"
+  type: string
+  default: '(none)'
 - name: DoEmbed
   displayName: "Produce embeddable package (w/ PyManager or MSI options)"
   type: boolean
@@ -364,3 +368,4 @@ stages:
       - template: stage-publish-nugetorg.yml
         parameters:
           BuildToPublish: ${{ parameters.BuildToPublish }}
+          SkipNugetPackages: ${{ parameters.SkipNugetPackages }}
