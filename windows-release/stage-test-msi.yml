@@ -116,14 +116,8 @@ jobs:
     displayName: 'Test (un)install package'
     condition: and(succeeded(), not(variables['SkipTests']))
 
-  - powershell: |
-      if (Test-Path -Type Container "$(Build.BinariesDirectory)\Python\Lib\test\test_ttk") {
-        # New set of tests (3.12 and later)
-        python -m test -uall -v test_ttk test_tkinter test_idle
-      } else {
-        # Old set of tests
-        python -m test -uall -v test_ttk_guionly test_tk test_idle
-      }
+  - script: |
+      python -m test -uall -v test_ttk test_tkinter test_idle
     displayName: 'Test Tkinter and Idle'
     condition: and(succeeded(), not(variables['SkipTests']), not(variables['SkipTkTests']))
 

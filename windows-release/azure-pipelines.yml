@@ -57,7 +57,7 @@ parameters:
   type: boolean
   default: false
 - name: DoMSI
-  displayName: "Produce EXE/MSI installer (3.15 and earlier)"
+  displayName: "Produce EXE/MSI installer (only up to 3.15)"
   type: boolean
   default: true
 - name: DoJIT
@@ -65,11 +65,11 @@ parameters:
   type: boolean
   default: true
 - name: DoGPG
-  displayName: "Include GPG signatures (3.13 and earlier)"
+  displayName: "Include GPG signatures (only up to 3.13)"
   type: boolean
   default: false
 - name: DoMSIX
-  displayName: "Produce Store packages (3.13 and earlier)"
+  displayName: "Produce Store packages (only up to 3.13)"
   type: boolean
   default: false
 

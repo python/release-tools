@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from typing import Any, cast
+from unittest.mock import Mock
 
 import pytest
 
@@ -282,3 +283,33 @@ def test_skip_platform_tasks_for_security_release(
 
     # Assert
     assert "Skipping: security releases are source-only" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("version", "windows_file"),
+    [
+        ("3.15.0a1", "python-3.15.0a1.exe"),
+        ("3.16.0a1", "windows-3.16.0a1.json"),
+    ],
+)
+def test_wait_until_all_files_are_in_folder_windows(
+    monkeypatch: pytest.MonkeyPatch, version: str, windows_file: str
+) -> None:
+    files = [f"Python-{version}.tgz", f"python-{version}-macos11.pkg"]
+    client = Mock()
+    ftp_client = client.open_sftp.return_value
+    ftp_client.listdir.side_effect = [files, [*files, windows_file]]
+    monkeypatch.setattr("run_release.paramiko.SSHClient", lambda: client)
+    sleep = Mock()
+    monkeypatch.setattr("run_release.time.sleep", sleep)
+    db = {
+        "release": Tag(version),
+        "security_release": False,
+        "ssh_user": "release-manager",
+        "ssh_key": None,
+    }
+
+    run_release.wait_until_all_files_are_in_folder(cast(ReleaseShelf, db))
+
+    assert ftp_client.listdir.call_count == 2
+    sleep.assert_called_once_with(1)
