@@ -61,17 +61,9 @@ parameters:
   type: boolean
   default: true
 - name: DoJIT
-  displayName: "Build the JIT compiler (3.14 and later)"
+  displayName: "Build the JIT compiler"
   type: boolean
   default: true
-- name: DoGPG
-  displayName: "Include GPG signatures (only up to 3.13)"
-  type: boolean
-  default: false
-- name: DoMSIX
-  displayName: "Produce Store packages (only up to 3.13)"
-  type: boolean
-  default: false
 
 # Stable version options
 # The default option matches what we use for all currently releasing versions.
@@ -269,11 +261,6 @@ stages:
           BuildToPackage: ${{ parameters.BuildToPackage }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
-    - ${{ if eq(parameters.DoMSIX, 'true') }}:
-      - template: stage-layout-msix.yml
-        parameters:
-          BuildToPackage: ${{ parameters.BuildToPackage }}
-          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoPyManager, 'true') }}:
       - template: stage-layout-pymanager.yml
         parameters:
@@ -300,10 +287,6 @@ stages:
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
           Post315OutputDir: ${{ parameters.Post315OutputDir }}
-    - ${{ if eq(parameters.DoMSIX, 'true') }}:
-      - template: stage-pack-msix.yml
-        parameters:
-          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-pack-nuget.yml
         parameters:
@@ -359,7 +342,6 @@ stages:
         parameters:
           BuildToPublish: ${{ parameters.BuildToPublish }}
           DoEmbed: ${{ parameters.DoEmbed }}
-          IncludeGPG: ${{ parameters.DoGPG }}
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-publish-nugetorg.yml
         parameters:
