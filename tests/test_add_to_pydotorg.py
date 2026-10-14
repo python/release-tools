@@ -284,3 +284,28 @@ def test_list_files(fs: FakeFilesystem) -> None:
             "Install with 'py install 3.14'",
         ),
     ]
+
+
+@pytest.mark.parametrize(
+    ("release", "expected_download_button"),
+    [
+        ("3.15.0a1", False),
+        ("3.16.0a1", True),
+    ],
+)
+def test_windows_manifest_download_button(
+    fs: FakeFilesystem, release: str, expected_download_button: bool
+) -> None:
+    ftp_root = "/fake_ftp_root"
+    filename = f"windows-{release}.json"
+    fs.create_file(Path(ftp_root) / add_to_pydotorg.base_version(release) / filename)
+
+    assert list(add_to_pydotorg.list_files(ftp_root, release)) == [
+        (
+            filename,
+            "Windows release manifest",
+            "windows",
+            expected_download_button,
+            f"Install with 'py install {add_to_pydotorg.minor_version(release)}'",
+        )
+    ]

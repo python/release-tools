@@ -126,7 +126,7 @@ def get_file_descriptions(
             (
                 "Windows release manifest",
                 "windows",
-                False,
+                v >= (3, 16),
                 f"Install with 'py install {v[0]}.{v[1]}'",
             ),
         ),
