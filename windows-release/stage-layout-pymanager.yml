@@ -86,6 +86,28 @@ jobs:
           TclLibrary: tcltk_lib_arm64
           LayoutOptions: '--preset-pymanager --include-freethreaded'
           IncludeDoc: true
+        win32_t_test:
+          Name: win32_t_test
+          BinArtifact: bin_win32_t
+          Arch: win32
+          TclLibrary: tcltk_lib_win32
+          LayoutOptions: '--preset-pymanager-test --include-freethreaded'
+          IncludeDoc: true
+        amd64_t_test:
+          Name: amd64_t_test
+          BinArtifact: bin_amd64_t
+          Arch: amd64
+          TclLibrary: tcltk_lib_amd64
+          LayoutOptions: '--preset-pymanager-test --include-freethreaded'
+          IncludeDoc: true
+        arm64_t_test:
+          Name: arm64_t_test
+          BinArtifact: bin_arm64_t
+          Arch: arm64
+          HostArch: amd64
+          TclLibrary: tcltk_lib_arm64
+          LayoutOptions: '--preset-pymanager-test --include-freethreaded'
+          IncludeDoc: true
       ${{ if eq(parameters.DoEmbed, 'true') }}:
         win32_embed:
           Name: win32_embed
@@ -105,6 +127,25 @@ jobs:
           Arch: arm64
           HostArch: amd64
           LayoutOptions: '--preset-embed --include-install-embed-json'
+        ${{ if eq(parameters.DoFreethreaded, 'true') }}:
+          win32_t_embed:
+            Name: win32_t_embed
+            BinArtifact: bin_win32_t
+            Arch: win32
+            HostArch: win32
+            LayoutOptions: '--preset-embed --include-install-embed-json --include-freethreaded'
+          amd64_t_embed:
+            Name: amd64_t_embed
+            BinArtifact: bin_amd64_t
+            Arch: amd64
+            HostArch: amd64
+            LayoutOptions: '--preset-embed --include-install-embed-json --include-freethreaded'
+          arm64_t_embed:
+            Name: arm64_t_embed
+            BinArtifact: bin_arm64_t
+            Arch: arm64
+            HostArch: amd64
+            LayoutOptions: '--preset-embed --include-install-embed-json --include-freethreaded'
 
   steps:
   - template: ./checkout.yml
