@@ -955,6 +955,12 @@ def start_build_release(db: ReleaseShelf) -> None:
 
 
 def start_windows_build(db: ReleaseShelf) -> None:
+    # Security releases are source-only: no installers are built for Windows
+    # or macOS, so there is no Windows build to start.
+    if db["security_release"]:
+        print("Skipping: security releases are source-only, no Windows build needed")
+        return
+
     commit_sha = get_commit_sha(db["release"].gitname, db["git_repo"])
     origin_remote_url = get_origin_remote_url(db["git_repo"])
     origin_remote_github_owner = extract_github_owner(origin_remote_url)
@@ -988,6 +994,15 @@ def start_windows_build(db: ReleaseShelf) -> None:
 
 
 def send_email_to_platform_release_managers(db: ReleaseShelf) -> None:
+    # Security releases are source-only: no installers are built for Windows
+    # or macOS, so the platform release managers don't need the commit SHA.
+    if db["security_release"]:
+        print(
+            "Skipping: security releases are source-only, "
+            "no platform release managers to notify"
+        )
+        return
+
     commit_sha = get_commit_sha(db["release"].gitname, db["git_repo"])
     origin_remote_url = get_origin_remote_url(db["git_repo"])
     origin_remote_github_owner = extract_github_owner(origin_remote_url)
