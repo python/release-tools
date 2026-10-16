@@ -18,12 +18,27 @@ parameters:
     freethreaded: true
   - name: arm64_t
     freethreaded: true
+  - name: win32_t_test
+    freethreaded: true
+  - name: amd64_t_test
+    freethreaded: true
+  - name: arm64_t_test
+    freethreaded: true
   - name: win32_embed
     embed: true
   - name: amd64_embed
     embed: true
   - name: arm64_embed
     embed: true
+  - name: win32_t_embed
+    embed: true
+    freethreaded: true
+  - name: amd64_t_embed
+    embed: true
+    freethreaded: true
+  - name: arm64_t_embed
+    embed: true
+    freethreaded: true
 
 jobs:
 - job: Publish_PyManager
