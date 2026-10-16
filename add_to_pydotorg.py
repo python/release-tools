@@ -85,7 +85,6 @@ google_oidc_provider = "https://accounts.google.com"
 
 # Update this list when new release managers are added.
 release_to_sigstore_identity_and_oidc_issuer = {
-    "3.10": ("pablogsal@python.org", google_oidc_provider),
     "3.11": ("pablogsal@python.org", google_oidc_provider),
     "3.12": ("thomas@python.org", google_oidc_provider),
     "3.13": ("thomas@python.org", google_oidc_provider),
