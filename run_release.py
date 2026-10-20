@@ -39,7 +39,7 @@ import update_version_next
 from buildbotapi import STALE_BUILDER_DAYS, BuildBotAPI, Builder
 from release import ReleaseShelf, Tag, Task, ask_question
 
-BLURB_MIN_VERSION = (2, 2)
+BLURB_MIN_VERSION = (2, 3)
 SIGSTORE_MIN_VERSION = (4, 0)
 BLURB_VERSION_PATTERN = r"^blurb version ([0-9.]+)"
 SIGSTORE_VERSION_PATTERN = r"^sigstore ([0-9.]+)"
