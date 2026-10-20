@@ -12,9 +12,7 @@ import pytest
 import run_release
 from release import ReleaseShelf, Tag
 from run_release import (
-    BLURB_MIN_VERSION,
     BLURB_VERSION_PATTERN,
-    SIGSTORE_MIN_VERSION,
     SIGSTORE_VERSION_PATTERN,
     ReleaseException,
 )
@@ -23,12 +21,12 @@ from run_release import (
 @pytest.mark.parametrize(
     ["version", "pattern", "minimum"],
     [
-        ("blurb version 2.2.0", BLURB_VERSION_PATTERN, BLURB_MIN_VERSION),
-        ("blurb version 2.10.0", BLURB_VERSION_PATTERN, BLURB_MIN_VERSION),
-        ("blurb version 3.0.0", BLURB_VERSION_PATTERN, BLURB_MIN_VERSION),
-        ("sigstore 4.0", SIGSTORE_VERSION_PATTERN, SIGSTORE_MIN_VERSION),
-        ("sigstore 4.0.0", SIGSTORE_VERSION_PATTERN, SIGSTORE_MIN_VERSION),
-        ("sigstore 4.1.0", SIGSTORE_VERSION_PATTERN, SIGSTORE_MIN_VERSION),
+        ("blurb version 2.2.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("blurb version 2.10.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("blurb version 3.0.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("sigstore 4.0", SIGSTORE_VERSION_PATTERN, (4, 0)),
+        ("sigstore 4.0.0", SIGSTORE_VERSION_PATTERN, (4, 0)),
+        ("sigstore 4.1.0", SIGSTORE_VERSION_PATTERN, (4, 0)),
     ],
 )
 def test_check_tool_version_success(
@@ -41,11 +39,11 @@ def test_check_tool_version_success(
 @pytest.mark.parametrize(
     ["version", "pattern", "minimum"],
     [
-        ("blurb version 1.3.0", BLURB_VERSION_PATTERN, BLURB_MIN_VERSION),
-        ("blurb version 2.1.0", BLURB_VERSION_PATTERN, BLURB_MIN_VERSION),
-        ("sigstore 3.6.6", SIGSTORE_VERSION_PATTERN, SIGSTORE_MIN_VERSION),
-        ("sigstore 4.0.0", BLURB_VERSION_PATTERN, BLURB_MIN_VERSION),
-        ("", BLURB_VERSION_PATTERN, BLURB_MIN_VERSION),
+        ("blurb version 1.3.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("blurb version 2.1.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("sigstore 3.6.6", SIGSTORE_VERSION_PATTERN, (4, 0)),
+        ("sigstore 4.0.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("", BLURB_VERSION_PATTERN, (2, 2)),
     ],
 )
 def test_check_tool_version_exception(
