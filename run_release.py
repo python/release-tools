@@ -412,7 +412,7 @@ def check_buildbots(db: ReleaseShelf) -> None:
     for builder in failing_builders:
         print(f"- {builder.name}")
     print()
-    print("Check https://buildbot.python.org/all/#/release_status for more information")
+    print("Check https://buildbot.python.org/release_status for more information")
     print()
     if not ask_question("Do you want to continue even if these builders are failing?"):
         raise ReleaseException("Buildbots are failing!")
