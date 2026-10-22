@@ -90,6 +90,7 @@ jobs:
           Name: win32_t_test
           BinArtifact: bin_win32_t
           Arch: win32
+          HostArch: win32
           TclLibrary: tcltk_lib_win32
           LayoutOptions: '--preset-pymanager-test --include-freethreaded'
           IncludeDoc: true
@@ -97,6 +98,7 @@ jobs:
           Name: amd64_t_test
           BinArtifact: bin_amd64_t
           Arch: amd64
+          HostArch: amd64
           TclLibrary: tcltk_lib_amd64
           LayoutOptions: '--preset-pymanager-test --include-freethreaded'
           IncludeDoc: true
