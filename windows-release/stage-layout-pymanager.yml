@@ -159,21 +159,11 @@ jobs:
         --progress
         -v
         --depth 1
-        --branch gh-159494
+        --branch ${{ parameters.LayoutScriptBranch }}
         --single-branch
-        https://github.com/zooba/cpython.git
+        https://github.com/$(GitRemote)/cpython.git
         "$(Build.SourcesDirectory)\layout-script"
-      displayName: 'HACK: Clone PC/layout script from dev branch'
-#     - powershell: >
-#         git clone
-#         --progress
-#         -v
-#         --depth 1
-#         --branch ${{ parameters.LayoutScriptBranch }}
-#         --single-branch
-#         https://github.com/$(GitRemote)/cpython.git
-#         "$(Build.SourcesDirectory)\layout-script"
-#       displayName: 'Clone PC/layout script from main'
+      displayName: 'Clone PC/layout script from main'
 
   - task: DownloadPipelineArtifact@2
     displayName: 'Download artifact: $(BinArtifact)'
