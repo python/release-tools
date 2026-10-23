@@ -6,32 +6,56 @@ from collections.abc import Iterator
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from typing import Any, cast
+from unittest.mock import Mock
 
 import pytest
 
 import run_release
 from release import ReleaseShelf, Tag
-from run_release import ReleaseException
+from run_release import (
+    BLURB_VERSION_PATTERN,
+    SIGSTORE_VERSION_PATTERN,
+    ReleaseException,
+)
 
 
 @pytest.mark.parametrize(
-    "version",
-    ["sigstore 4.0.0", "sigstore 4.1.0"],
+    ["version", "pattern", "minimum"],
+    [
+        ("blurb version 2.2.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("blurb version 2.10.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("blurb version 3.0.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("sigstore 4.0", SIGSTORE_VERSION_PATTERN, (4, 0)),
+        ("sigstore 4.0.0", SIGSTORE_VERSION_PATTERN, (4, 0)),
+        ("sigstore 4.1.0", SIGSTORE_VERSION_PATTERN, (4, 0)),
+    ],
 )
-def test_check_sigstore_version_success(version: str) -> None:
+def test_check_tool_version_success(
+    version: str, pattern: str, minimum: tuple[int, ...]
+) -> None:
     # Verify runs with no exceptions
-    run_release.check_sigstore_version(version)
+    run_release.check_tool_version("tool", version, pattern, minimum)
 
 
 @pytest.mark.parametrize(
-    "version",
-    ["sigstore 3.4.0", "sigstore 3.6.2", "sigstore 3.6.6", ""],
+    ["version", "pattern", "minimum"],
+    [
+        ("blurb version 1.3.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("blurb version 2.1.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("sigstore 3.6.6", SIGSTORE_VERSION_PATTERN, (4, 0)),
+        ("sigstore 4.0.0", BLURB_VERSION_PATTERN, (2, 2)),
+        ("", BLURB_VERSION_PATTERN, (2, 2)),
+    ],
 )
-def test_check_sigstore_version_exception(version: str) -> None:
+def test_check_tool_version_exception(
+    version: str, pattern: str, minimum: tuple[int, ...]
+) -> None:
+    expected = ".".join(str(part) for part in minimum)
     with pytest.raises(
-        ReleaseException, match="Sigstore version not detected or not valid"
+        ReleaseException,
+        match=rf"tool version not detected or not valid\. Expecting >= {expected}",
     ):
-        run_release.check_sigstore_version(version)
+        run_release.check_tool_version("tool", version, pattern, minimum)
 
 
 @pytest.mark.parametrize(
@@ -258,3 +282,33 @@ def test_update_whatsnew_toctree(tmp_path: Path) -> None:
     # Assert
     new_contents = toctree__file.read_text()
     assert "   3.15.rst\n   3.14.rst\n" in new_contents
+
+
+@pytest.mark.parametrize(
+    ("version", "windows_file"),
+    [
+        ("3.15.0a1", "python-3.15.0a1.exe"),
+        ("3.16.0a1", "windows-3.16.0a1.json"),
+    ],
+)
+def test_wait_until_all_files_are_in_folder_windows(
+    monkeypatch: pytest.MonkeyPatch, version: str, windows_file: str
+) -> None:
+    files = [f"Python-{version}.tgz", f"python-{version}-macos11.pkg"]
+    client = Mock()
+    ftp_client = client.open_sftp.return_value
+    ftp_client.listdir.side_effect = [files, [*files, windows_file]]
+    monkeypatch.setattr("run_release.paramiko.SSHClient", lambda: client)
+    sleep = Mock()
+    monkeypatch.setattr("run_release.time.sleep", sleep)
+    db = {
+        "release": Tag(version),
+        "security_release": False,
+        "ssh_user": "release-manager",
+        "ssh_key": None,
+    }
+
+    run_release.wait_until_all_files_are_in_folder(cast(ReleaseShelf, db))
+
+    assert ftp_client.listdir.call_count == 2
+    sleep.assert_called_once_with(1)

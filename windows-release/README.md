@@ -35,24 +35,6 @@ Azure DevOps no longer has a per-pipeline option for retention,
 and so the only way to permanently retain a build is to manually select the "Retain" option.
 Without this, the build records will be lost after 30 days.
 
-## Retrying a partial NuGet publish
-
-If a publish fails after uploading some packages, use the existing artifacts to
-publish the remainder:
-
-1. Select **Run new** from the original build.
-2. Enable **Publish release** and **Produce Nuget packages**. Disable
-   **Produce PyManager package** and **Produce EXE/MSI installer**.
-3. Set **Republish a build (select in Resources)** to `build_to_publish`, and
-   leave **Repackage and publish a build (select in Resources)** set to `current`.
-4. Set **NuGet packages to skip on retry** to filenames or patterns matching only
-   packages confirmed to have been uploaded. Separate multiple entries with
-   semicolons, for example
-   `python-freethreaded.3.16.0-a1.nupkg;pythonx86-freethreaded.3.16.0-a1.nupkg`.
-   Leave `(none)` for an initial publish.
-5. Under **Next: Resources**, select the original run under
-   **Windows-Release [build_to_publish]**, then select **Run**.
-
 ## Finding/updating certificates
 
 For code signing, we use [Azure Trusted Signing](https://learn.microsoft.com/en-us/azure/trusted-signing/overview).

@@ -39,6 +39,10 @@ import update_version_next
 from buildbotapi import STALE_BUILDER_DAYS, BuildBotAPI, Builder
 from release import ReleaseShelf, Tag, Task, ask_question
 
+BLURB_MIN_VERSION = (2, 3)
+SIGSTORE_MIN_VERSION = (4, 0)
+BLURB_VERSION_PATTERN = r"^blurb version ([0-9.]+)"
+SIGSTORE_VERSION_PATTERN = r"^sigstore ([0-9.]+)"
 API_KEY_REGEXP = re.compile(r"(?P<user>\w+):(?P<key>\w+)")
 RELEASE_REGEXP = re.compile(
     r"(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)\.?(?P<extra>.*)?"
@@ -286,7 +290,6 @@ def check_tool(db: ReleaseShelf, tool: str) -> None:
 check_gh = functools.partial(check_tool, tool="gh")
 check_git = functools.partial(check_tool, tool="git")
 check_make = functools.partial(check_tool, tool="make")
-check_blurb = functools.partial(check_tool, tool="blurb")
 check_autoconf = functools.partial(check_tool, tool="autoconf")
 check_docker = functools.partial(check_tool, tool="docker")
 
@@ -335,20 +338,30 @@ def check_sigstore_client(db: ReleaseShelf) -> None:
     )
     _, stdout, _ = client.exec_command("python3 -m sigstore --version")
     sigstore_version = stdout.read(1000).decode()
-    check_sigstore_version(sigstore_version)
+    check_tool_version(
+        "sigstore", sigstore_version, SIGSTORE_VERSION_PATTERN, SIGSTORE_MIN_VERSION
+    )
 
 
-def check_sigstore_version(version: str) -> None:
-    version_match = re.match("^sigstore ([0-9.]+)", version)
-    if version_match:
+def check_blurb(db: ReleaseShelf) -> None:
+    check_tool(db, tool="blurb")
+    blurb_version = subprocess.check_output(["blurb", "--version"], text=True)
+    check_tool_version("blurb", blurb_version, BLURB_VERSION_PATTERN, BLURB_MIN_VERSION)
+
+
+def check_tool_version(
+    tool: str, version: str, pattern: str, minimum: tuple[int, ...]
+) -> None:
+    if version_match := re.search(pattern, version):
         version_tuple = tuple(int(part) for part in version_match.group(1).split("."))
-        if version_tuple >= (4, 0):
+        if version_tuple >= minimum:
             # good version
             return
 
+    expected = ".".join(str(part) for part in minimum)
     raise ReleaseException(
-        f"Sigstore version not detected or not valid. "
-        f"Expecting >= 4.0.0, got: {version}"
+        f"{tool} version not detected or not valid. "
+        f"Expecting >= {expected}, got: {version}"
     )
 
 
@@ -399,7 +412,7 @@ def check_buildbots(db: ReleaseShelf) -> None:
     for builder in failing_builders:
         print(f"- {builder.name}")
     print()
-    print("Check https://buildbot.python.org/all/#/release_status for more information")
+    print("Check https://buildbot.python.org/release_status for more information")
     print()
     if not ask_question("Do you want to continue even if these builders are failing?"):
         raise ReleaseException("Buildbots are failing!")
@@ -1039,7 +1052,10 @@ def wait_until_all_files_are_in_folder(db: ReleaseShelf) -> None:
             raise FileNotFoundError(
                 f"The release folder in {destination} has not been created"
             ) from None
-        are_windows_files_there = f"python-{release}.exe" in all_files
+        if db["release"].as_tuple() >= (3, 16):
+            are_windows_files_there = f"windows-{release}.json" in all_files
+        else:
+            are_windows_files_there = f"python-{release}.exe" in all_files
         are_macos_files_there = f"python-{release}-macos11.pkg" in all_files
         are_linux_files_there = f"Python-{release}.tgz" in all_files
 
