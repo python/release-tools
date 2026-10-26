@@ -150,7 +150,7 @@ def get_file_descriptions(
         ),
         (rx(r"\.exe$"), ("Windows installer (32-bit)", "windows", False, "")),
         (
-            rx(r"-macos(x)?1[1-9](\.[0-9]*)?\.pkg$"),
+            rx(r"-macos1[1-9]\.pkg$"),
             (
                 "macOS installer",
                 "macos",
