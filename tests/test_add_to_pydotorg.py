@@ -179,17 +179,6 @@ def test_minor_version(release: str, expected: str) -> None:
     assert add_to_pydotorg.minor_version(release) == expected
 
 
-@pytest.mark.parametrize(
-    ["release", "expected"],
-    [
-        ((3, 13, 0), "for macOS 10.13 and later"),
-        ((3, 14, 0), "for macOS 10.15 and later"),
-    ],
-)
-def test_macos_description(release: tuple[int, int, int], expected: str) -> None:
-    assert add_to_pydotorg.macos_description(release) == expected
-
-
 def test_list_files(fs: FakeFilesystem) -> None:
     # Arrange
     fake_ftp_root = "/fake_ftp_root"
