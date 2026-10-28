@@ -35,6 +35,11 @@ jobs:
       - group: CPythonTestSign
 
     steps:
+    - powershell: |
+        throw "Production signing certificate requires SourceCommit and non-other GitRemote ('$(SourceCommit)' '$(GitRemote)')"
+      displayName: "Check 'SourceCommit' and 'GitRemoteIsOther' when using production signing certificate"
+      condition: and(succeeded(), or(not(IsRealSigned), and(variables['SourceCommit'], not(variables['GitRemoteIsOther']))))
+
     - template: ./checkout.yml
 
     - powershell: |
