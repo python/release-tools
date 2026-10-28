@@ -407,8 +407,8 @@ cryptography==50.0.1 \
     #   pyopenssl
     #   rfc3161-client
     #   sigstore
-dnspython==2.7.0 \
-    --hash=sha256:b4c34b7d10b51bcc3a5071e7b8dee77939f1e878477eeecc965e9835f63c6c86
+dnspython==2.9.0 \
+    --hash=sha256:9a4aedb833c3c1b49214d04d44d3032ab7a9135f7c1d29a549b4ff78fd82fda9
     # via email-validator
 email-validator==2.2.0 \
     --hash=sha256:561977c2d73ce3611850a06fa56b414621e0c8faa9d66f2611407d87465da631
