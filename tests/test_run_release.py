@@ -285,6 +285,30 @@ def test_update_whatsnew_toctree(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
+    "task",
+    [
+        run_release.start_windows_build,
+        run_release.send_email_to_platform_release_managers,
+    ],
+)
+def test_skip_platform_tasks_for_security_release(
+    task: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Arrange
+    # No git_repo in db: the task must return before touching the repo
+    db = {
+        "release": Tag("3.13.12"),
+        "security_release": True,
+    }
+
+    # Act
+    task(cast(ReleaseShelf, db))
+
+    # Assert
+    assert "Skipping: security releases are source-only" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
     ("version", "windows_file"),
     [
         ("3.15.0a1", "python-3.15.0a1.exe"),
