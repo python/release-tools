@@ -1,7 +1,6 @@
 parameters:
   BuildToPublish: current
   DoEmbed: true
-  IncludeGPG: false
   HashAlgorithms: ['SHA256', 'MD5']
 
 jobs:
@@ -74,32 +73,6 @@ jobs:
       workingDirectory: '$(Pipeline.Workspace)\embed'
       condition: and(succeeded(), ne(variables['PublishARM64'], 'true'))
 
-
-  - ${{ if eq(parameters.IncludeGPG, 'true') }}:
-    - task: DownloadSecureFile@1
-      name: gpgkey
-      inputs:
-        secureFile: 'python-signing.key'
-      displayName: 'Download GPG key'
-
-    - powershell: |
-        git clone https://github.com/python/cpython-bin-deps --branch gpg --single-branch --depth 1 --progress -v "gpg"
-        gpg/gpg2.exe --import "$(gpgkey.secureFilePath)"
-        $files = gci -File "msi\*\*", "embed\*.zip" -EA SilentlyContinue
-        $files.FullName | %{
-            gpg/gpg2.exe -ba --batch --passphrase $(GPGPassphrase) $_
-            "Made signature for $_"
-        }
-      displayName: 'Generate GPG signatures'
-      workingDirectory: $(Pipeline.Workspace)
-
-    - powershell: |
-        $p = gps "gpg-agent" -EA 0
-        if ($p) { $p.Kill() }
-      displayName: 'Kill GPG agent'
-      condition: true
-
-
   - task: DownloadSecureFile@1
     name: sshkey
     inputs:
@@ -169,17 +142,6 @@ jobs:
         $hashes
       workingDirectory: $(Pipeline.Workspace)
       displayName: 'Generate hashes (${{ alg }})'
-
-  - ${{ if eq(parameters.IncludeGPG, 'true') }}:
-    - powershell: |
-        "Copying:"
-        $files = gci -File "msi\*\python*.asc", "embed\*.asc" -EA SilentlyContinue
-        $files.FullName
-        $d = mkdir "$(Build.ArtifactStagingDirectory)\hashes" -Force
-        move $files $d -Force
-        gci msi -Directory | %{ move "msi\$_\*.asc" (mkdir "$d\$_" -Force) }
-      workingDirectory: $(Pipeline.Workspace)
-      displayName: 'Copy GPG signatures for build'
 
   - publish: '$(Build.ArtifactStagingDirectory)\hashes'
     artifact: hashes
