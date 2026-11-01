@@ -6,4 +6,4 @@ python-gnupg
 aiohttp
 blurb>=2.3.0
 requests>=2.34
-sigstore>=4.5.0
+sigstore>=4.5.1
