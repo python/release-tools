@@ -46,7 +46,7 @@ parameters:
 # Version-specific build options
 # These often need to be changed by the person queuing the build, and should be
 # clearly labelled with the version range they apply to.
-# When a version becomes EOL, its options can either move to the next section or
+# When a version becomes security-only, its options can either move to the next section or
 # be removed if its impact is entirely absent from the source tree.
 - name: Post315OutputDir
   displayName: "Separate free-threaded outputs (3.15 and later)"
@@ -60,13 +60,13 @@ parameters:
   displayName: "Produce EXE/MSI installer (only up to 3.15)"
   type: boolean
   default: true
+
+# Stable version options
+# The default option matches what we use for all currently releasing versions.
 - name: DoJIT
   displayName: "Build the JIT compiler"
   type: boolean
   default: true
-
-# Stable version options
-# The default option matches what we use for all currently releasing versions.
 - name: DoFreethreaded
   displayName: "Include free-threaded builds"
   type: boolean
