@@ -42,7 +42,7 @@ env:
 
 jobs:
   verify-input:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     outputs:
       build-docs: ${{ steps.select-jobs.outputs.docs }}
@@ -108,7 +108,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   build-source:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     needs:
       - verify-input
@@ -149,7 +149,7 @@ jobs:
             cpython/${{ env.CPYTHON_RELEASE }}/src
 
   build-docs:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     needs:
       - verify-input
@@ -189,7 +189,7 @@ jobs:
             Doc/dist/
 
   test-source:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     needs:
       - build-source
@@ -215,7 +215,7 @@ jobs:
           ./bin/python3 -m test -uall -j4
 
   test-docs:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     needs:
       - build-docs
@@ -263,7 +263,7 @@ jobs:
           - arch: aarch64
             runs-on: macos-15
           - arch: x86_64
-            runs-on: ubuntu-24.04
+            runs-on: ubuntu-26.04
 
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 60
