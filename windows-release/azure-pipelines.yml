@@ -57,7 +57,7 @@ parameters:
   type: boolean
   default: false
 - name: DoMSI
-  displayName: "Produce EXE/MSI installer (only up to 3.15)"
+  displayName: "Produce EXE/MSI installer (3.14, 3.15)"
   type: boolean
   default: true
 
