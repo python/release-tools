@@ -46,7 +46,7 @@ parameters:
 # Version-specific build options
 # These often need to be changed by the person queuing the build, and should be
 # clearly labelled with the version range they apply to.
-# When a version becomes EOL, its options can either move to the next section or
+# When a version becomes security-only, its options can either move to the next section or
 # be removed if its impact is entirely absent from the source tree.
 - name: Post315OutputDir
   displayName: "Separate free-threaded outputs (3.15 and later)"
@@ -60,21 +60,13 @@ parameters:
   displayName: "Produce EXE/MSI installer (only up to 3.15)"
   type: boolean
   default: true
-- name: DoJIT
-  displayName: "Build the JIT compiler (3.14 and later)"
-  type: boolean
-  default: true
-- name: DoGPG
-  displayName: "Include GPG signatures (only up to 3.13)"
-  type: boolean
-  default: false
-- name: DoMSIX
-  displayName: "Produce Store packages (only up to 3.13)"
-  type: boolean
-  default: false
 
 # Stable version options
 # The default option matches what we use for all currently releasing versions.
+- name: DoJIT
+  displayName: "Build the JIT compiler"
+  type: boolean
+  default: true
 - name: DoFreethreaded
   displayName: "Include free-threaded builds"
   type: boolean
@@ -269,11 +261,6 @@ stages:
           BuildToPackage: ${{ parameters.BuildToPackage }}
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
-    - ${{ if eq(parameters.DoMSIX, 'true') }}:
-      - template: stage-layout-msix.yml
-        parameters:
-          BuildToPackage: ${{ parameters.BuildToPackage }}
-          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoPyManager, 'true') }}:
       - template: stage-layout-pymanager.yml
         parameters:
@@ -300,10 +287,6 @@ stages:
           DoFreethreaded: ${{ parameters.DoFreethreaded }}
           SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
           Post315OutputDir: ${{ parameters.Post315OutputDir }}
-    - ${{ if eq(parameters.DoMSIX, 'true') }}:
-      - template: stage-pack-msix.yml
-        parameters:
-          SigningCertificate: ${{ iif(eq(parameters.SigningCertificate, 'Unsigned'), '', parameters.SigningCertificate) }}
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-pack-nuget.yml
         parameters:
@@ -359,7 +342,6 @@ stages:
         parameters:
           BuildToPublish: ${{ parameters.BuildToPublish }}
           DoEmbed: ${{ parameters.DoEmbed }}
-          IncludeGPG: ${{ parameters.DoGPG }}
     - ${{ if eq(parameters.DoNuget, 'true') }}:
       - template: stage-publish-nugetorg.yml
         parameters:
