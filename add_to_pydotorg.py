@@ -95,13 +95,6 @@ release_to_sigstore_identity_and_oidc_issuer = {
 }
 
 
-def macos_description(version: tuple[int, int, int]) -> str:
-    if version >= (3, 14):
-        return "for macOS 10.15 and later"
-    else:
-        return "for macOS 10.13 and later"
-
-
 def winarm64_experimental(version: tuple[int, int, int]) -> str:
     if version >= (3, 15):
         return ""
@@ -156,12 +149,12 @@ def get_file_descriptions(
         ),
         (rx(r"\.exe$"), ("Windows installer (32-bit)", "windows", False, "")),
         (
-            rx(r"-macos(x)?1[1-9](\.[0-9]*)?\.pkg$"),
+            rx(r"-macos1[1-9]\.pkg$"),
             (
                 "macOS installer",
                 "macos",
                 True,
-                macos_description(v),
+                "for macOS 10.15 and later",
             ),
         ),
         (
