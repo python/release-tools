@@ -31,6 +31,40 @@ jobs:
     workingDirectory: '$(Build.BinariesDirectory)\nuget'
     condition: and(succeeded(), ne(variables['PublishARM64'], 'true'))
 
+  - powershell: |
+      $serviceIndex = Invoke-RestMethod -Uri 'https://api.nuget.org/v3/index.json' -ErrorAction Stop
+      $api = $serviceIndex.resources |
+          Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' } |
+          Select-Object -First 1 -ExpandProperty '@id'
+      if (-not $api) {
+          throw 'Could not find the NuGet package base address'
+      }
+
+      foreach ($package in Get-ChildItem -Filter '*.nupkg' -File) {
+          if ($package.BaseName -notmatch '^([^.]+)\.(.+)$') {
+              throw "Could not determine the package ID and version from $($package.Name)"
+          }
+          $packageId = $Matches[1].ToLowerInvariant()
+          $packageVersion = $Matches[2].ToLowerInvariant()
+
+          try {
+              $versionsUri = "$api$packageId/index.json"
+              $versions = (Invoke-RestMethod -Uri $versionsUri -ErrorAction Stop).versions
+          } catch {
+              if ([int]$_.Exception.Response.StatusCode -eq 404) {
+                  continue
+              }
+              throw
+          }
+
+          if ($versions -contains $packageVersion) {
+              Write-Host "Already published: $($package.Name)"
+              Remove-Item -LiteralPath $package.FullName
+          }
+      }
+    displayName: 'Skip already published NuGet packages'
+    workingDirectory: '$(Build.BinariesDirectory)\nuget'
+
   - task: NuGetCommand@2
     displayName: Push packages
     condition: and(succeeded(), eq(variables['IsRealSigned'], 'true'))
@@ -39,3 +73,4 @@ jobs:
       packagesToPush: '$(Build.BinariesDirectory)\nuget\*.nupkg'
       nuGetFeedType: external
       publishFeedCredentials: 'Python on Nuget'
+      requestTimeout: 600
