@@ -1001,6 +1001,10 @@ def start_windows_build(db: ReleaseShelf) -> None:
     print("Click:\t'Next: Resources'")
     print("Click:\t'Run'")
     print()
+    print("On the run summary page, open the '...' menu and select 'Retain'.")
+    print("This keeps the build artifacts available if publishing needs to be retried.")
+    print("Retain any additional republish runs as well.")
+    print()
 
     if not ask_question("Have you started the Windows build?"):
         raise ReleaseException("Windows build must be started")
