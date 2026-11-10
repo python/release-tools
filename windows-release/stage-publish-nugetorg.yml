@@ -22,7 +22,7 @@ jobs:
         buildVersionToDownload: specific
         project: $(resources.pipeline.build_to_publish.projectId)
         pipeline: $(resources.pipeline.build_to_publish.pipelineId)
-        runId: $(resources.pipeline.build_to_publish.runID)
+        buildId: $(resources.pipeline.build_to_publish.runID)
       artifactName: nuget
       downloadPath: $(Build.BinariesDirectory)
 
