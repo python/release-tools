@@ -64,12 +64,12 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: "Checkout python/release-tools"
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
@@ -85,7 +85,7 @@ jobs:
           fi
 
       - name: "Setup Python"
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: 3.12
 
@@ -114,12 +114,12 @@ jobs:
       - verify-input
     steps:
       - name: "Checkout python/release-tools"
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
@@ -127,7 +127,7 @@ jobs:
           path: "cpython"
 
       - name: "Setup Python"
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: 3.12
 
@@ -142,7 +142,7 @@ jobs:
           python ../release.py --export "$CPYTHON_RELEASE" --skip-docs
 
       - name: "Upload the source artifacts"
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: source
           path: |
@@ -156,14 +156,14 @@ jobs:
     if: fromJSON(needs.verify-input.outputs.build-docs)
     steps:
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
           ref: "v${{ env.CPYTHON_RELEASE }}"
 
       - name: "Setup Python"
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: 3.12
 
@@ -182,7 +182,7 @@ jobs:
           make dist-text
 
       - name: "Upload the docs artifacts"
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: docs
           path: |
@@ -195,7 +195,7 @@ jobs:
       - build-source
     steps:
       - name: "Download the source artifacts"
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        uses: actions/download-artifact@v8.0.2
         with:
           name: source
 
@@ -221,12 +221,12 @@ jobs:
       - build-docs
     steps:
       - name: "Download the docs artifacts"
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        uses: actions/download-artifact@v8.0.2
         with:
           name: docs
 
       - name: "Set up Python"
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.x"
 
@@ -271,7 +271,7 @@ jobs:
       triplet: ${{ matrix.arch }}-linux-android
     steps:
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
@@ -291,7 +291,7 @@ jobs:
       - name: Build and test
         run: python3 Platforms/Android ci --fast-ci "$triplet"
 
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ env.triplet }}
           path: cross-build/${{ env.triplet }}/dist/*
@@ -306,7 +306,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: "Checkout ${{ env.GIT_REMOTE }}/cpython"
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           repository: "${{ env.GIT_REMOTE }}/cpython"
@@ -315,7 +315,7 @@ jobs:
       - name: Build and test
         run: python3 Platforms/Apple ci iOS --slow-ci
 
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: ios
           path: cross-build/dist/*
