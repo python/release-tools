@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, cast
 
 import aiohttp
-import gnupg  # type: ignore[import-untyped]
+import gnupg
 import paramiko
 import sigstore.models
 import sigstore.oidc

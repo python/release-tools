@@ -22,6 +22,8 @@ repos:
       - id: debug-statements
       - id: end-of-file-fixer
       - id: forbid-submodules
+      - id: requirements-txt-fixer
+        files: ^mypy-requirements.txt$
       - id: trailing-whitespace
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
