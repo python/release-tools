@@ -4,7 +4,7 @@ mypy==2.4.0
 pyfakefs
 pytest
 pytest-mock
-python-gnupg  # untyped :(
 requests>=2.34
 sigstore==4.5.1
 types-paramiko
+types-python-gnupg
