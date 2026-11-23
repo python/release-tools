@@ -80,13 +80,13 @@ def test_build_file_dict(tmp_path: Path) -> None:
 
 def test_post_object_raises_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     class Response:
-        status_code = 500
-        text = '{"error_message": "validation failed", "traceback": "details"}'
+        status = 500
+        data = b'{"error_message": "validation failed", "traceback": "details"}'
 
     def fake_post(*args: Any, **kwargs: Any) -> Response:
         return Response()
 
-    monkeypatch.setattr(add_to_pydotorg.session, "post", fake_post)
+    monkeypatch.setattr(add_to_pydotorg.http, "request", fake_post)
 
     with pytest.raises(RuntimeError, match="validation failed"):
         add_to_pydotorg.post_object(
@@ -94,23 +94,25 @@ def test_post_object_raises_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
         )
 
 
-def test_delete_object_uses_session(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_delete_object_uses_http(monkeypatch: pytest.MonkeyPatch) -> None:
     class Response:
-        status_code = 204
+        status = 204
 
-    calls: list[str] = []
+    calls: list[tuple[str, str]] = []
 
-    def fake_delete(url: str) -> Response:
-        calls.append(url)
+    def fake_delete(method: str, url: str) -> Response:
+        calls.append((method, url))
         return Response()
 
-    monkeypatch.setattr(add_to_pydotorg.session, "delete", fake_delete)
+    monkeypatch.setattr(add_to_pydotorg.http, "request", fake_delete)
 
     add_to_pydotorg.delete_object(
         "https://example.invalid/api/v1/", "release_file", 123
     )
 
-    assert calls == ["https://example.invalid/api/v1/downloads/release_file/123/"]
+    assert calls == [
+        ("DELETE", "https://example.invalid/api/v1/downloads/release_file/123/")
+    ]
 
 
 def test_create_release_files_cleans_up_created_rows(
