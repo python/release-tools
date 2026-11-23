@@ -34,7 +34,7 @@ from functools import cache
 from os import path
 from typing import Any, NoReturn
 
-import requests
+import urllib3
 
 
 # Copied from release.py
@@ -75,9 +75,8 @@ download_root = "https://www.python.org/ftp/python/"
 
 tag_cre = re.compile(r"(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:([ab]|rc)(\d+))?$")
 
-session = requests.Session()
-session.headers.update(
-    {"Authorization": f"ApiKey {auth_info}", "Content-Type": "application/json"}
+http = urllib3.PoolManager(
+    headers={"Authorization": f"ApiKey {auth_info}", "Content-Type": "application/json"}
 )
 
 github_oidc_provider = "https://github.com/login/oauth"
@@ -300,20 +299,22 @@ def query_object(base_url: str, objtype: str, **params: Any) -> int:
     """Find an API object by query parameters."""
     uri = f"{base_url}downloads/{objtype}/"
     uri += "?" + "&".join(f"{k}={v}" for k, v in params.items())
-    resp = session.get(uri)
-    if resp.status_code != 200 or not json.loads(resp.text)["objects"]:
+    resp = http.request("GET", uri)
+    if resp.status != 200 or not json.loads(resp.data)["objects"]:
         raise RuntimeError(f"no object for {objtype} params={params!r}")
-    obj = json.loads(resp.text)["objects"][0]
+    obj = json.loads(resp.data)["objects"][0]
     return int(obj["resource_uri"].strip("/").split("/")[-1])
 
 
 def post_object(base_url: str, objtype: str, datadict: dict[str, Any]) -> int:
     """Create a new API object."""
-    resp = session.post(f"{base_url}downloads/{objtype}/", data=json.dumps(datadict))
-    if resp.status_code != 201:
-        messages = [f"Creating {objtype} failed: {resp.status_code}"]
+    resp = http.request(
+        "POST", f"{base_url}downloads/{objtype}/", body=json.dumps(datadict)
+    )
+    if resp.status != 201:
+        messages = [f"Creating {objtype} failed: {resp.status}"]
         try:
-            info = json.loads(resp.text)
+            info = json.loads(resp.data)
         except json.JSONDecodeError:
             pass
         else:
@@ -332,9 +333,9 @@ def post_object(base_url: str, objtype: str, datadict: dict[str, Any]) -> int:
 
 def delete_object(base_url: str, objtype: str, pk: int) -> None:
     """Delete an existing API object."""
-    resp = session.delete(f"{base_url}downloads/{objtype}/{pk}/")
-    if resp.status_code != 204:
-        raise RuntimeError(f"Deleting {objtype} {pk} failed: {resp.status_code}")
+    resp = http.request("DELETE", f"{base_url}downloads/{objtype}/{pk}/")
+    if resp.status != 204:
+        raise RuntimeError(f"Deleting {objtype} {pk} failed: {resp.status}")
 
 
 def create_release_files(base_url: str, file_dicts: Iterable[dict[str, Any]]) -> int:
@@ -505,9 +506,11 @@ def main() -> None:
             raise RuntimeError(f"duplicate slug generated: {key}")
         file_dicts[key] = file_dict
     print("Deleting previous release files")
-    resp = session.delete(f"{args.base_url}downloads/release_file/?release={rel_pk}")
-    if resp.status_code != 204:
-        raise RuntimeError(f"deleting previous releases failed: {resp.status_code}")
+    resp = http.request(
+        "DELETE", f"{args.base_url}downloads/release_file/?release={rel_pk}"
+    )
+    if resp.status != 204:
+        raise RuntimeError(f"deleting previous releases failed: {resp.status}")
     n = create_release_files(args.base_url, file_dicts.values())
     print(f"Done - {n} files added")
 
